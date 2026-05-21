@@ -98,6 +98,9 @@ body {
   line-height: var(--line-height);
   user-select: text;
   cursor: text;
+  /* pre-wrap: respeta \n y \r\n del PTY como saltos de línea reales */
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 /* Línea de input */
