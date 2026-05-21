@@ -67,10 +67,12 @@ pub fn spawn_shell(
     // 4. Configurar y spawnear la shell dentro del slave PTY.
     let mut cmd = CommandBuilder::new(&shell);
     // TERM le dice a la shell qué capacidades tiene la terminal.
-    // Sin esto, zsh/bash no saben que pueden usar colores o controlar el cursor.
     cmd.env("TERM", "xterm-256color");
     // COLORTERM indica soporte de 24-bit color (true color)
     cmd.env("COLORTERM", "truecolor");
+    // Locale UTF-8: evita que herramientas como eza URL-encoden nombres con acentos
+    cmd.env("LANG", "en_US.UTF-8");
+    cmd.env("LC_ALL", "en_US.UTF-8");
 
     let child = pair.slave
         .spawn_command(cmd)
