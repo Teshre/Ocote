@@ -1,8 +1,8 @@
 // terminal.js — Renderizador del output y manejo del input
 
-// Tauri inyecta window.__TAURI__ automáticamente en el webview.
-// La API está namespaceada: invoke en .tauri, eventos en .event
-const tauri = window.__TAURI__.tauri;
+// Con withGlobalTauri:true en tauri.conf.json, Tauri inyecta la API completa.
+// invoke está en el nivel raíz; listen está bajo .event
+const { invoke } = window.__TAURI__;
 const { listen } = window.__TAURI__.event;
 
 const outputEl = document.getElementById('terminal-output');
@@ -46,7 +46,7 @@ function appendOutput(text) {
 // --- Inicialización ---
 async function init() {
     // Arrancar la shell (bash, zsh, o lo que tenga el usuario en $SHELL)
-    await tauri.invoke('spawn_shell');
+    await invoke('spawn_shell');
 
     // Escuchar el output que la shell produce
     await listen('pty-output', (e) => {
@@ -71,7 +71,7 @@ inputEl.addEventListener('keydown', async (e) => {
             history.unshift(cmd);
             historyIndex = -1;
         }
-        await tauri.invoke('write_to_shell', { input: cmd + '\n' });
+        await invoke('write_to_shell', { input: cmd + '\n' });
         inputEl.value = '';
         return;
     }
@@ -99,7 +99,7 @@ inputEl.addEventListener('keydown', async (e) => {
 
     // Ctrl+C — señal de interrupción al proceso en ejecución
     if (e.ctrlKey && e.key === 'c') {
-        await tauri.invoke('write_to_shell', { input: '\x03' });
+        await invoke('write_to_shell', { input: '\x03' });
         inputEl.value = '';
         return;
     }
@@ -108,7 +108,7 @@ inputEl.addEventListener('keydown', async (e) => {
     if (e.ctrlKey && e.key === 'l') {
         e.preventDefault();
         outputEl.innerHTML = '';
-        await tauri.invoke('write_to_shell', { input: '\x0c' });
+        await invoke('write_to_shell', { input: '\x0c' });
         return;
     }
 });
