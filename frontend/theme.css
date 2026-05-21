@@ -68,6 +68,7 @@ body {
   display: flex;
   flex: 1;
   overflow: hidden;
+  min-height: 0; /* necesario para que flex children puedan hacer overflow-y:auto */
 }
 
 /* Panel explorador de archivos */
@@ -87,6 +88,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0; /* propaga el contexto de scroll a los hijos flex */
   position: relative;
 }
 
