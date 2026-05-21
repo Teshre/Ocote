@@ -32,8 +32,10 @@
 
     <!-- Panel derecho: terminal -->
     <div id="terminal-panel">
-      <!-- Área de output (texto de la terminal) -->
-      <div id="terminal-output"></div>
+      <!-- Área de output (texto de la terminal).
+           tabindex="0": permite recibir foco para capturar el teclado.
+           El input es directo al PTY — no hay <input> HTML separado. -->
+      <div id="terminal-output" tabindex="0"></div>
 
       <!-- Autocompletado (aparece flotando sobre el input) -->
       <div id="autocomplete-popup" class="hidden"></div>
@@ -41,11 +43,10 @@
       <!-- Tooltip educativo (aparece a la derecha) -->
       <div id="tooltip-card" class="hidden"></div>
 
-      <!-- Línea de input -->
-      <div id="terminal-input-line">
-        <span id="prompt-symbol">$</span>
-        <input id="terminal-input" type="text" autocomplete="off" spellcheck="false" autofocus />
-      </div>
+      <!-- Línea de input removida — el teclado va directo al PTY.
+           El prompt ❯ de zsh/bash aparece en el output como en una
+           terminal real. Se puede restaurar en Fase 2 si se necesita
+           un modo de "beginner input" con autocompletado visual. -->
     </div>
   </div>
 

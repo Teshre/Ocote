@@ -110,37 +110,27 @@ body {
   line-height: var(--line-height);
 }
 
-/* Línea de input */
-#terminal-input-line {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-input);
-}
-
-#prompt-symbol {
-  color: var(--accent);
-  font-weight: bold;
-  flex-shrink: 0;
-}
-
-#terminal-input {
-  flex: 1;
-  background: transparent;
-  border: none;
+/* El input va directo al PTY — no hay <input> HTML.
+   El output recibe foco (tabindex="0") y captura el teclado.
+   Un sutil borde naranja indica que la terminal está activa. */
+#terminal-output:focus {
   outline: none;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: var(--font-size);
-  caret-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
+
+/* Estilos del input line guardados para referencia futura (Fase 2):
+#terminal-input-line { display:flex; align-items:center; gap:8px;
+  padding:8px 16px; border-top:1px solid var(--border);
+  background:var(--bg-input); }
+#prompt-symbol { color:var(--accent); font-weight:bold; flex-shrink:0; }
+#terminal-input { flex:1; background:transparent; border:none; outline:none;
+  color:var(--text-primary); font-family:var(--font-mono);
+  font-size:var(--font-size); caret-color:var(--accent); } */
 
 /* Popup de autocompletado */
 #autocomplete-popup {
   position: absolute;
-  bottom: 48px;
+  bottom: 12px;
   left: 32px;
   background: var(--bg-tooltip);
   border: 1px solid var(--border-strong);
