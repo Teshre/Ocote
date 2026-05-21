@@ -1,21 +1,18 @@
 // vt_parser.js — Parser ANSI/VT con modelo de líneas DOM
-// v4: corrige tres bugs visuales
+// v5: cursor visual + fix de ZLE char-by-char redraw
 //
-//  Bug 1 — GAP en el output:
-//    Cuando \x1b[A movía el cursor arriba y luego llegaba un \n,
-//    _newLine() creaba un div al FINAL del DOM en vez de avanzar
-//    por las líneas existentes → hueco gigante entre bloques de texto.
-//    Fix: _advanceLine() reutiliza la siguiente línea existente;
-//    solo crea una nueva si estamos al final.
+//  Con la nueva arquitectura de input (cada tecla va al PTY de inmediato),
+//  ZLE redibuja la línea completa después de cada carácter usando:
 //
-//  Bug 2 — Comandos invisibles:
-//    \x1b[0K (erase-to-EOL, el más común) llamaba _clearCurrentLine()
-//    DESPUÉS de que ZLE ya había escrito el comando en esa línea,
-//    borrándolo. Fix: solo \x1b[2K (erase-entire-line explícito) borra.
+//    \x1b[1G   (CHA: ir a columna 1)
+//    \x1b[0K   (EL: borrar hasta EOL)
+//    <prompt + comando actualizado>
 //
-//  Bug 3 — \x1b[G borraba la línea:
-//    CHA (cursor-horizontal-absolute) solo reposiciona el cursor;
-//    no borra nada. La limpieza corresponde a \r o a \x1b[2K.
+//  En v4 ambas secuencias estaban ignoradas → el contenido se acumulaba
+//  en la línea en lugar de reemplazarse (bug visible en el historial).
+//
+//  v5 restaura el borrado en G y K, y agrega un cursor parpadeante
+//  usando la clase CSS "current" en la línea activa.
 
 // --- Paletas de color ---
 
@@ -51,14 +48,21 @@ class VtParser {
         this.pending = '';
 
         // Registro de TODAS las líneas DOM.
-        // Necesario para que \x1b[A (cursor arriba) pueda volver a editar
-        // una línea anterior — p10k lo usa para redibujar el prompt.
         this.lines   = [];
         this.lineIdx = -1;
-        this.currentLine = this._newLine();
+        this.currentLine = null;
+        this._newLine();
     }
 
     // ── DOM helpers ──────────────────────────────────────────────────────────
+
+    // Actualiza cuál es la línea activa y transfiere la clase CSS "current".
+    // La clase "current" es la que usa el CSS para dibujar el cursor parpadeante.
+    _setCurrent(div) {
+        if (this.currentLine) this.currentLine.classList.remove('current');
+        this.currentLine = div;
+        if (div) div.classList.add('current');
+    }
 
     _newLine() {
         const div = document.createElement('div');
@@ -66,37 +70,31 @@ class VtParser {
         this.outputEl.appendChild(div);
         this.lines.push(div);
         this.lineIdx = this.lines.length - 1;
+        this._setCurrent(div);
         return div;
     }
 
-    // Mueve el "cursor" a una línea existente por índice
+    // Mueve el cursor a una línea existente por índice
     _goToLine(idx) {
         const i = Math.max(0, Math.min(idx, this.lines.length - 1));
-        this.lineIdx    = i;
-        this.currentLine = this.lines[i];
+        this.lineIdx = i;
+        this._setCurrent(this.lines[i]);
     }
 
     // Avanza a la siguiente línea.
-    //
-    // Diferencia clave con _newLine():
-    //   Si el cursor fue movido hacia arriba (via \x1b[A]) y hay líneas
-    //   por debajo, las REUTILIZA en lugar de crear nuevas al final del DOM.
-    //   Esto evita el "gap" visual causado por divs vacíos intercalados.
-    //
-    // Solo crea un div nuevo cuando realmente estamos al final.
+    // Reutiliza la línea existente si el cursor fue movido arriba con \x1b[A,
+    // o crea una nueva si estamos al final. Evita el "gap" visual.
     _advanceLine() {
         if (this.lineIdx < this.lines.length - 1) {
-            // Hay una línea DOM por debajo — avanzamos a ella
             this.lineIdx++;
-            this.currentLine = this.lines[this.lineIdx];
+            this._setCurrent(this.lines[this.lineIdx]);
         } else {
-            // Estamos en la última línea — creamos una nueva
-            this.currentLine = this._newLine();
+            this._newLine();
         }
         return this.currentLine;
     }
 
-    // Borra el contenido de la línea actual (implementa \r y \x1b[2K)
+    // Borra el contenido de la línea activa (implementa \r, \x1b[2K, \x1b[G])
     _clearCurrentLine() {
         this.currentLine.innerHTML = '';
     }
@@ -158,7 +156,6 @@ class VtParser {
         const kind = rest[1];
 
         if (kind === '[') {
-            // CSI: \x1b[ parámetros acción
             const m = rest.match(/^\x1b\[([0-9;?]*)([A-Za-z])/);
             if (!m) return 0;
 
@@ -168,12 +165,11 @@ class VtParser {
 
             switch (action) {
                 case 'm':
-                    // SGR — colores y estilos
                     this._applySgr(nums.length ? nums : [0]);
                     break;
 
                 case 'A':
-                    // Cursor arriba N líneas
+                    // Cursor arriba N líneas — p10k lo usa para redibujar el prompt
                     this._goToLine(this.lineIdx - (p0 || 1));
                     break;
 
@@ -183,14 +179,14 @@ class VtParser {
                     break;
 
                 case 'K':
-                    // Erase in line:
-                    //   0K (o K sin parámetro): erase desde cursor hasta EOL
-                    //     → IGNORADO. No rastreamos columna; el texto ya escrito
-                    //       es correcto. Si limpiáramos aquí, borraríamos el
-                    //       comando que ZLE acaba de dibujar en la línea.
-                    //   1K: erase desde inicio hasta cursor → IGNORADO (sin columna)
-                    //   2K: erase línea entera → SÍ se ejecuta (semántica clara)
-                    if (p0 === 2) this._clearCurrentLine();
+                    // Erase in line — en nuestro modelo sin tracking de columna,
+                    // todas las variantes (0K erase-to-EOL, 1K erase-from-SOL, 2K
+                    // erase-entire-line) se aproximan como "borrar línea entera".
+                    //
+                    // Con input char-by-char, ZLE siempre envía \x1b[1G]\x1b[0K]
+                    // ANTES de escribir el nuevo contenido, así que este borrado
+                    // ocurre en el momento correcto (no después del contenido).
+                    this._clearCurrentLine();
                     break;
 
                 case 'J':
@@ -200,37 +196,36 @@ class VtParser {
                         this.lines   = [];
                         this.lineIdx = -1;
                         this._resetStyle();
-                        this.currentLine = this._newLine();
+                        this.currentLine = null;
+                        this._newLine();
                     }
                     break;
 
                 case 'G':
-                    // CHA — Cursor Horizontal Absolute (\x1b[NG)
-                    // Solo reposiciona el cursor en la columna N.
-                    // NO borra la línea. El borrado corresponde a:
-                    //   - \r  (carriage return): sí borra en nuestro modelo
-                    //   - \x1b[2K]: erase-entire-line explícito
-                    // Ignoramos porque no rastreamos posición de columna.
+                    // CHA — Cursor Horizontal Absolute.
+                    // Col 1 (o sin parámetro) = inicio de línea.
+                    // ZLE lo usa junto con \x1b[K como señal "voy a redibujar esta
+                    // línea desde el principio" → borramos para que el nuevo
+                    // contenido no se acumule sobre el anterior.
+                    // Sin tracking de columna ignoramos valores > 1.
+                    if (!p0 || p0 === 1) this._clearCurrentLine();
                     break;
 
                 case 'H':
                 case 'f':
-                    // Cursor position — solo manejamos home (sin parámetros)
+                    // Cursor position — solo home (sin parámetros)
                     if (!p0 && !nums[1]) {
                         this._goToLine(0);
                         this._clearCurrentLine();
                     }
                     break;
-
-                // C (cursor right), D (cursor left), s/u (save/restore), etc.
-                // → ignorados, no afectan contenido visible
             }
 
             return m[0].length;
         }
 
         if (kind === ']') {
-            // OSC: título de ventana, hyperlinks, colores del tema, etc.
+            // OSC: título de ventana, hyperlinks, etc.
             const iBel = rest.indexOf('\x07', 2);
             const iSt  = rest.indexOf('\x1b\\', 2);
             let end = -1;
@@ -240,7 +235,6 @@ class VtParser {
             return end;
         }
 
-        // Otras secuencias de 2 chars
         return 2;
     }
 
@@ -264,14 +258,10 @@ class VtParser {
             if (ch === '\r') {
                 flushText(pos);
                 if (input[pos + 1] === '\n') {
-                    // \r\n → avanzar a siguiente línea.
-                    // _advanceLine() en vez de _newLine(): reutiliza divs
-                    // existentes cuando el cursor fue movido arriba con \x1b[A,
-                    // evitando el gap entre bloques de output.
+                    // \r\n → avanzar (reutiliza div existente si hay líneas debajo)
                     this._advanceLine();
                     pos += 2;
                 } else if (pos + 1 >= input.length) {
-                    // \r al final del chunk — puede ser \r\n partido
                     this.pending = '\r';
                     pos++;
                 } else {
@@ -285,8 +275,6 @@ class VtParser {
 
             if (ch === '\n') {
                 flushText(pos);
-                // _advanceLine() en vez de _newLine(): reutiliza la siguiente
-                // línea DOM si el cursor fue movido arriba con \x1b[A.
                 this._advanceLine();
                 pos++;
                 textStart = pos;
@@ -303,7 +291,6 @@ class VtParser {
                 continue;
             }
 
-            // Caracteres de control no imprimibles (excepto \t)
             if (ch < '\x20' && ch !== '\t') {
                 flushText(pos);
                 pos++;
@@ -316,8 +303,6 @@ class VtParser {
 
         if (!this.pending) flushText(pos);
 
-        // requestAnimationFrame garantiza que el DOM ya fue pintado
-        // antes de calcular scrollHeight
         requestAnimationFrame(() => {
             this.outputEl.scrollTop = this.outputEl.scrollHeight;
         });
@@ -330,6 +315,7 @@ class VtParser {
         this.lineIdx = -1;
         this._resetStyle();
         this.pending     = '';
-        this.currentLine = this._newLine();
+        this.currentLine = null;
+        this._newLine();
     }
 }
