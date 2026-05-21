@@ -1,18 +1,25 @@
 // vt_parser.js — Parser ANSI/VT con modelo de líneas DOM
-// v5: cursor visual + fix de ZLE char-by-char redraw
+// v6: fix CHA (cursor-to-column-N) + CPR response + cursor visual
 //
-//  Con la nueva arquitectura de input (cada tecla va al PTY de inmediato),
-//  ZLE redibuja la línea completa después de cada carácter usando:
+//  Problema principal identificado:
+//    ZLE redibuja la línea de input con \x1b[nG] (CHA a columna n, donde n
+//    es la columna donde empieza el texto editable, DESPUÉS del prompt).
+//    Si n > 1, nuestra regla "!p0 || p0===1" no borraba.
+//    Resultado: el texto tipado se acumulaba sobre el contenido anterior.
+//    Fix: borrar en CUALQUIER CHA (no solo col 1).
 //
-//    \x1b[1G   (CHA: ir a columna 1)
-//    \x1b[0K   (EL: borrar hasta EOL)
-//    <prompt + comando actualizado>
+//  Segundo problema:
+//    ZLE manda \x1b[6n (CPR — cursor position request) para saber en qué
+//    columna está. Sin respuesta, ZLE desincroniza su modelo interno del
+//    cursor y los redraws quedan mal posicionados.
+//    Fix: cuando onResponse está configurado, contestar \x1b[1;1R.
 //
-//  En v4 ambas secuencias estaban ignoradas → el contenido se acumulaba
-//  en la línea en lugar de reemplazarse (bug visible en el historial).
-//
-//  v5 restaura el borrado en G y K, y agrega un cursor parpadeante
-//  usando la clase CSS "current" en la línea activa.
+//  Notas de diseño:
+//    Sin un screen buffer real no podemos implementar el modelo de
+//    "sobreescritura de columnas" que usan CHA y EL correctamente.
+//    Aproximación pragmática: CHA = "voy a redibujar desde aquí", borrar
+//    toda la línea y escribir el nuevo contenido. Funciona para p10k
+//    porque su redraw siempre re-emite el prompt completo.
 
 // --- Paletas de color ---
 
@@ -47,17 +54,20 @@ class VtParser {
         // Buffer para secuencias incompletas entre chunks
         this.pending = '';
 
-        // Registro de TODAS las líneas DOM.
+        // Registro de TODAS las líneas DOM
         this.lines   = [];
         this.lineIdx = -1;
         this.currentLine = null;
+
+        // Callback opcional para responder al PTY (usado para CPR).
+        // terminal.js lo configura: vtParser.onResponse = (str) => sendToPty(str)
+        this.onResponse = null;
+
         this._newLine();
     }
 
     // ── DOM helpers ──────────────────────────────────────────────────────────
 
-    // Actualiza cuál es la línea activa y transfiere la clase CSS "current".
-    // La clase "current" es la que usa el CSS para dibujar el cursor parpadeante.
     _setCurrent(div) {
         if (this.currentLine) this.currentLine.classList.remove('current');
         this.currentLine = div;
@@ -74,16 +84,14 @@ class VtParser {
         return div;
     }
 
-    // Mueve el cursor a una línea existente por índice
     _goToLine(idx) {
         const i = Math.max(0, Math.min(idx, this.lines.length - 1));
         this.lineIdx = i;
         this._setCurrent(this.lines[i]);
     }
 
-    // Avanza a la siguiente línea.
-    // Reutiliza la línea existente si el cursor fue movido arriba con \x1b[A,
-    // o crea una nueva si estamos al final. Evita el "gap" visual.
+    // Avanza a la siguiente línea reutilizando divs existentes si el cursor
+    // fue movido hacia arriba, o crea uno nuevo si estamos al final.
     _advanceLine() {
         if (this.lineIdx < this.lines.length - 1) {
             this.lineIdx++;
@@ -94,12 +102,19 @@ class VtParser {
         return this.currentLine;
     }
 
-    // Borra el contenido de la línea activa (implementa \r, \x1b[2K, \x1b[G])
     _clearCurrentLine() {
         this.currentLine.innerHTML = '';
     }
 
-    // Escribe texto con el estilo actual a la línea activa
+    // Borra desde la línea actual hasta el final del DOM.
+    // Implementa \x1b[0J] (erase from cursor to end of display).
+    _clearToEnd() {
+        this._clearCurrentLine();
+        // Eliminar todos los divs por debajo del cursor
+        const removed = this.lines.splice(this.lineIdx + 1);
+        removed.forEach(d => d.remove());
+    }
+
     _writeText(text) {
         if (!text) return;
         const safe = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -160,7 +175,8 @@ class VtParser {
             if (!m) return 0;
 
             const action = m[2];
-            const nums   = m[1] ? m[1].split(';').map(Number) : [];
+            const raw    = m[1] || '';
+            const nums   = raw ? raw.split(';').map(Number) : [];
             const p0     = nums[0] ?? 0;
 
             switch (action) {
@@ -169,29 +185,27 @@ class VtParser {
                     break;
 
                 case 'A':
-                    // Cursor arriba N líneas — p10k lo usa para redibujar el prompt
                     this._goToLine(this.lineIdx - (p0 || 1));
                     break;
 
                 case 'B':
-                    // Cursor abajo N líneas
                     this._goToLine(this.lineIdx + (p0 || 1));
                     break;
 
                 case 'K':
-                    // Erase in line — en nuestro modelo sin tracking de columna,
-                    // todas las variantes (0K erase-to-EOL, 1K erase-from-SOL, 2K
-                    // erase-entire-line) se aproximan como "borrar línea entera".
-                    //
-                    // Con input char-by-char, ZLE siempre envía \x1b[1G]\x1b[0K]
-                    // ANTES de escribir el nuevo contenido, así que este borrado
-                    // ocurre en el momento correcto (no después del contenido).
+                    // Erase in line — sin tracking de columna, borramos siempre.
+                    // Con input char-by-char, K llega ANTES del nuevo contenido.
                     this._clearCurrentLine();
                     break;
 
                 case 'J':
-                    // Erase in display — 2J/3J: borrar pantalla completa
-                    if (p0 === 2 || p0 === 3) {
+                    if (p0 === 0) {
+                        // Erase from cursor to end of display.
+                        // p10k lo usa (cursor arriba + 0J) para redibujar el prompt
+                        // completo sin tocar el output anterior.
+                        this._clearToEnd();
+                    } else if (p0 === 2 || p0 === 3) {
+                        // Erase entire display
                         this.outputEl.innerHTML = '';
                         this.lines   = [];
                         this.lineIdx = -1;
@@ -203,22 +217,37 @@ class VtParser {
 
                 case 'G':
                     // CHA — Cursor Horizontal Absolute.
-                    // Col 1 (o sin parámetro) = inicio de línea.
-                    // ZLE lo usa junto con \x1b[K como señal "voy a redibujar esta
-                    // línea desde el principio" → borramos para que el nuevo
-                    // contenido no se acumule sobre el anterior.
-                    // Sin tracking de columna ignoramos valores > 1.
-                    if (!p0 || p0 === 1) this._clearCurrentLine();
+                    // ZLE lo usa para posicionarse antes de redibujar la línea.
+                    // CUALQUIER valor de columna indica "voy a redibujar desde aquí":
+                    // borramos la línea para que el nuevo contenido no se acumule.
+                    //
+                    // v5 solo borraba para p0 <= 1. El problema: ZLE envía
+                    // \x1b[nG] con n = columna donde empieza el texto editable
+                    // (e.g. n=5 después de "❯ "). Con n > 1 no borrábamos y
+                    // el texto tipado se sobreponía al anterior.
+                    this._clearCurrentLine();
                     break;
 
                 case 'H':
                 case 'f':
-                    // Cursor position — solo home (sin parámetros)
+                    // CUP — solo home sin parámetros
                     if (!p0 && !nums[1]) {
                         this._goToLine(0);
                         this._clearCurrentLine();
                     }
                     break;
+
+                case 'n':
+                    // DSR — Device Status Report
+                    if (p0 === 6 && this.onResponse) {
+                        // CPR request: ZLE pregunta "¿en qué fila y columna estás?"
+                        // Respondemos con fila 1, columna 1 (sin tracking real de pos).
+                        // Sin esta respuesta ZLE desincroniza su cursor interno.
+                        this.onResponse('\x1b[1;1R');
+                    }
+                    break;
+
+                // c (DA), t (xterm ops), r (set scroll region), etc. → ignorados
             }
 
             return m[0].length;
@@ -258,14 +287,12 @@ class VtParser {
             if (ch === '\r') {
                 flushText(pos);
                 if (input[pos + 1] === '\n') {
-                    // \r\n → avanzar (reutiliza div existente si hay líneas debajo)
                     this._advanceLine();
                     pos += 2;
                 } else if (pos + 1 >= input.length) {
                     this.pending = '\r';
                     pos++;
                 } else {
-                    // \r solo → carriage return: ir al inicio y sobreescribir
                     this._clearCurrentLine();
                     pos++;
                 }
@@ -308,7 +335,6 @@ class VtParser {
         });
     }
 
-    // Borra toda la pantalla (Ctrl+L)
     clear() {
         this.outputEl.innerHTML = '';
         this.lines   = [];

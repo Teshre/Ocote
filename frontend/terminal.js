@@ -26,6 +26,11 @@ const outputEl = document.getElementById('terminal-output');
 // El parser maneja todo el renderizado DOM directamente
 const vtParser = new VtParser(outputEl);
 
+// Conectar el callback de respuesta al PTY (para CPR \x1b[6n]):
+// cuando ZLE pregunta "¿dónde está el cursor?", respondemos con una
+// posición fija para que ZLE no desincronice su estado interno.
+vtParser.onResponse = (str) => sendToPty(str);
+
 // --- Inicialización ---
 async function init() {
     await invoke('spawn_shell');
@@ -80,7 +85,10 @@ outputEl.addEventListener('keydown', async (e) => {
 
         case 'Backspace':
             e.preventDefault();
-            await sendToPty('\x7f'); // DEL — borra carácter a la izquierda
+            // \x08 = BS (Ctrl+H) — erase hacia atrás en ZLE/readline.
+            // \x7f (DEL) puede estar reasignado a delete-char (hacia adelante)
+            // en algunas configs de p10k. \x08 es el estándar POSIX más seguro.
+            await sendToPty('\x08');
             return;
 
         case 'Delete':
