@@ -6,30 +6,22 @@ const { listen }  = window.__TAURI__.event;
 const outputEl = document.getElementById('terminal-output');
 const inputEl  = document.getElementById('terminal-input');
 
+// El parser maneja todo el renderizado DOM directamente
+const vtParser = new VtParser(outputEl);
+
 const history = [];
 let historyIndex = -1;
-
-// Agrega un chunk de output al área de la terminal.
-// vtParser (definido en vt_parser.js) convierte ANSI → HTML con colores.
-function appendOutput(raw) {
-    const html = window.vtParser.render(raw);
-    if (!html) return;
-
-    // insertAdjacentHTML es más eficiente que innerHTML += para acumular contenido
-    outputEl.insertAdjacentHTML('beforeend', html);
-    outputEl.scrollTop = outputEl.scrollHeight;
-}
 
 // --- Inicialización ---
 async function init() {
     await invoke('spawn_shell');
 
     await listen('pty-output', (e) => {
-        appendOutput(e.payload);
+        vtParser.write(e.payload);
     });
 
     await listen('pty-exit', () => {
-        appendOutput('\r\n[Sesión terminada]\r\n');
+        vtParser.write('\r\n[Sesión terminada]\r\n');
         inputEl.disabled = true;
     });
 
@@ -63,17 +55,15 @@ inputEl.addEventListener('keydown', async (e) => {
         return;
     }
 
-    // Ctrl+C — señal de interrupción
     if (e.ctrlKey && e.key === 'c') {
         await invoke('write_to_shell', { input: '\x03' });
         inputEl.value = '';
         return;
     }
 
-    // Ctrl+L — limpiar pantalla
     if (e.ctrlKey && e.key === 'l') {
         e.preventDefault();
-        outputEl.innerHTML = '';
+        vtParser.clear();
         await invoke('write_to_shell', { input: '\x0c' });
         return;
     }

@@ -95,12 +95,17 @@ body {
   flex: 1;
   padding: 12px 16px;
   overflow-y: auto;
-  line-height: var(--line-height);
   user-select: text;
   cursor: text;
-  /* pre-wrap: respeta \n y \r\n del PTY como saltos de línea reales */
-  white-space: pre-wrap;
-  word-break: break-all;
+}
+
+/* Cada línea de la terminal es un div independiente.
+   Esto nos permite borrar una línea con \r sin afectar las demás. */
+.term-line {
+  white-space: pre-wrap;   /* preserva espacios y tabs dentro de la línea */
+  word-break: break-all;   /* evita overflow en líneas muy largas */
+  min-height: calc(var(--font-size) * var(--line-height)); /* altura de líneas vacías */
+  line-height: var(--line-height);
 }
 
 /* Línea de input */
