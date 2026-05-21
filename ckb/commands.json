@@ -1,0 +1,159 @@
+[
+  {
+    "name": "ls",
+    "category": "filesystem",
+    "description_es": "Lista los archivos y carpetas del directorio actual",
+    "description_en": "List files and folders in the current directory",
+    "flags": [
+      { "flag": "-l", "description": "Formato detallado: permisos, tamaño, fecha" },
+      { "flag": "-a", "description": "Muestra archivos ocultos (los que empiezan con .)" },
+      { "flag": "-h", "description": "Tamaños legibles: KB, MB en vez de bytes" },
+      { "flag": "-la", "description": "Combina -l y -a (el más común)" }
+    ],
+    "examples": [
+      { "command": "ls", "description": "Listar archivos del directorio actual" },
+      { "command": "ls -la", "description": "Listar todo, incluyendo ocultos, con detalle" },
+      { "command": "ls ~/Documents", "description": "Listar contenido de Documentos" }
+    ]
+  },
+  {
+    "name": "cd",
+    "category": "filesystem",
+    "description_es": "Cambia el directorio de trabajo actual",
+    "description_en": "Change the current working directory",
+    "flags": [],
+    "examples": [
+      { "command": "cd Documents", "description": "Entrar a la carpeta Documents" },
+      { "command": "cd ..", "description": "Subir un nivel (ir al directorio padre)" },
+      { "command": "cd ~", "description": "Ir a tu carpeta de inicio" },
+      { "command": "cd -", "description": "Volver al directorio anterior" }
+    ]
+  },
+  {
+    "name": "pwd",
+    "category": "filesystem",
+    "description_es": "Muestra la ruta completa del directorio actual",
+    "description_en": "Print working directory — shows your current location",
+    "flags": [],
+    "examples": [
+      { "command": "pwd", "description": "Ver en qué carpeta estás ahora mismo" }
+    ]
+  },
+  {
+    "name": "mkdir",
+    "category": "filesystem",
+    "description_es": "Crea una nueva carpeta",
+    "description_en": "Make directory — create a new folder",
+    "flags": [
+      { "flag": "-p", "description": "Crea carpetas intermedias si no existen" }
+    ],
+    "examples": [
+      { "command": "mkdir mi-proyecto", "description": "Crear carpeta llamada mi-proyecto" },
+      { "command": "mkdir -p a/b/c", "description": "Crear estructura a/b/c de una vez" }
+    ]
+  },
+  {
+    "name": "rm",
+    "category": "filesystem",
+    "description_es": "Elimina archivos o carpetas (¡sin papelera!)",
+    "description_en": "Remove files or directories — WARNING: no trash bin",
+    "flags": [
+      { "flag": "-r", "description": "Elimina recursivamente (necesario para carpetas)" },
+      { "flag": "-f", "description": "Fuerza la eliminación sin confirmar (cuidado)" }
+    ],
+    "examples": [
+      { "command": "rm archivo.txt", "description": "Eliminar un archivo" },
+      { "command": "rm -r mi-carpeta", "description": "Eliminar carpeta y todo su contenido" }
+    ]
+  },
+  {
+    "name": "cp",
+    "category": "filesystem",
+    "description_es": "Copia archivos o carpetas",
+    "description_en": "Copy files or directories",
+    "flags": [
+      { "flag": "-r", "description": "Copia recursivamente (necesario para carpetas)" }
+    ],
+    "examples": [
+      { "command": "cp archivo.txt copia.txt", "description": "Copiar un archivo" },
+      { "command": "cp -r carpeta/ nueva-carpeta/", "description": "Copiar una carpeta entera" }
+    ]
+  },
+  {
+    "name": "mv",
+    "category": "filesystem",
+    "description_es": "Mueve o renombra archivos y carpetas",
+    "description_en": "Move or rename files and directories",
+    "flags": [],
+    "examples": [
+      { "command": "mv viejo.txt nuevo.txt", "description": "Renombrar un archivo" },
+      { "command": "mv archivo.txt Documents/", "description": "Mover archivo a Documents" }
+    ]
+  },
+  {
+    "name": "cat",
+    "category": "filesystem",
+    "description_es": "Muestra el contenido de un archivo",
+    "description_en": "Concatenate and print file contents",
+    "flags": [
+      { "flag": "-n", "description": "Muestra números de línea" }
+    ],
+    "examples": [
+      { "command": "cat README.md", "description": "Ver el contenido del README" },
+      { "command": "cat -n archivo.py", "description": "Ver archivo con números de línea" }
+    ]
+  },
+  {
+    "name": "grep",
+    "category": "search",
+    "description_es": "Busca texto dentro de archivos",
+    "description_en": "Search for text patterns inside files",
+    "flags": [
+      { "flag": "-r", "description": "Busca en todos los archivos de la carpeta recursivamente" },
+      { "flag": "-i", "description": "Ignora mayúsculas/minúsculas" },
+      { "flag": "-n", "description": "Muestra el número de línea" }
+    ],
+    "examples": [
+      { "command": "grep 'error' app.log", "description": "Buscar la palabra 'error' en app.log" },
+      { "command": "grep -rn 'TODO' src/", "description": "Buscar todos los TODOs en el código" }
+    ]
+  },
+  {
+    "name": "git",
+    "category": "git",
+    "description_es": "Control de versiones: rastrea cambios en tu código",
+    "description_en": "Version control system for tracking code changes",
+    "flags": [],
+    "examples": [
+      { "command": "git status", "description": "Ver qué archivos cambiaron" },
+      { "command": "git add .", "description": "Agregar todos los cambios al staging" },
+      { "command": "git commit -m 'mensaje'", "description": "Guardar los cambios con descripción" },
+      { "command": "git log --oneline", "description": "Ver historial de commits resumido" }
+    ]
+  },
+  {
+    "name": "npm",
+    "category": "node",
+    "description_es": "Gestor de paquetes de Node.js",
+    "description_en": "Node.js package manager",
+    "flags": [],
+    "examples": [
+      { "command": "npm install", "description": "Instalar dependencias del proyecto" },
+      { "command": "npm run dev", "description": "Iniciar el servidor de desarrollo" },
+      { "command": "npm install lodash", "description": "Instalar el paquete 'lodash'" }
+    ]
+  },
+  {
+    "name": "cargo",
+    "category": "rust",
+    "description_es": "Gestor de paquetes y herramienta de build de Rust",
+    "description_en": "Rust's package manager and build tool",
+    "flags": [],
+    "examples": [
+      { "command": "cargo new mi-proyecto", "description": "Crear un nuevo proyecto Rust" },
+      { "command": "cargo build", "description": "Compilar el proyecto" },
+      { "command": "cargo run", "description": "Compilar y ejecutar el proyecto" },
+      { "command": "cargo add serde", "description": "Agregar una dependencia" }
+    ]
+  }
+]

@@ -1,0 +1,31 @@
+[package]
+name = "ocote"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# Tauri — el framework que conecta Rust con la UI web
+tauri = { version = "1", features = ["shell-open"] }
+
+# PTY — permite spawnear bash/zsh/cmd como proceso hijo real
+portable-pty = "0.8"
+
+# VT parser — decodifica secuencias ANSI/VT100 (\033[1;32m etc.)
+vte = "0.13"
+
+# SQLite — base de datos local para la Command Knowledge Base
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# Serialización JSON — para comunicar datos Rust ↔ frontend
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[build-dependencies]
+# tauri-build genera código necesario durante la compilación (OBLIGATORIO)
+tauri-build = { version = "1", features = [] }
+
+[features]
+# Esta feature es requerida por Tauri en builds de producción
+custom-protocol = ["tauri/custom-protocol"]

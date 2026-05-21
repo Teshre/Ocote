@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ocote</title>
+  <link rel="stylesheet" href="theme.css" />
+</head>
+<body>
+  <!--
+    Layout principal de Ocote:
+    ┌─────────────────────────────────────────────┐
+    │  breadcrumb: ~/Documentos/proyecto          │  ← barra superior
+    ├────────────┬────────────────────────────────┤
+    │            │                                │
+    │  explorador│   terminal output              │
+    │  de archivos│                               │
+    │            │                                │
+    │            ├────────────────────────────────┤
+    │            │  $ █  ← input del usuario      │
+    └────────────┴────────────────────────────────┘
+  -->
+
+  <!-- Barra superior con ruta actual -->
+  <div id="breadcrumb">~/</div>
+
+  <div id="main-layout">
+    <!-- Panel izquierdo: explorador de archivos -->
+    <div id="explorer-panel">
+      <!-- explorer.js popula este panel -->
+    </div>
+
+    <!-- Panel derecho: terminal -->
+    <div id="terminal-panel">
+      <!-- Área de output (texto de la terminal) -->
+      <div id="terminal-output"></div>
+
+      <!-- Autocompletado (aparece flotando sobre el input) -->
+      <div id="autocomplete-popup" class="hidden"></div>
+
+      <!-- Tooltip educativo (aparece a la derecha) -->
+      <div id="tooltip-card" class="hidden"></div>
+
+      <!-- Línea de input -->
+      <div id="terminal-input-line">
+        <span id="prompt-symbol">$</span>
+        <input id="terminal-input" type="text" autocomplete="off" spellcheck="false" autofocus />
+      </div>
+    </div>
+  </div>
+
+  <!-- Tauri inyecta window.__TAURI__ automáticamente — no necesitamos script externo -->
+
+  <!-- Nuestros módulos JS -->
+  <script src="terminal.js"></script>
+  <script src="explorer.js"></script>
+  <script src="autocomplete.js"></script>
+  <script src="tooltip.js"></script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+# Rust / Cargo
+src-tauri/target/
+src-tauri/Cargo.lock   # los binarios finales tienen su propio lock; para libs se omite
+
+# Node / pnpm
+node_modules/
+.pnpm-store/
+
+# Tauri build output
+src-tauri/WixTools/
+src-tauri/gen/
+
+# macOS
+.DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDEs
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Secrets — nunca en el repo
+.env
+.env.local
+.env.*.local
