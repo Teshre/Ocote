@@ -5,6 +5,44 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-05-21 — Sesión 3: Cursor navigation + scroll fix
+
+**Estado al inicio:** Terminal funciona, colores visibles, pero comandos escritos no aparecen en output y el scroll no sigue al final.
+
+**Qué se hizo:**
+- Reescrito `vt_parser.js` como v3 con modelo de líneas completo
+  - Agregado `this.lines[]` y `this.lineIdx` para trackear todos los `<div>` DOM
+  - Nuevo método `_goToLine(idx)` para navegación de cursor
+  - `\x1b[A` (cursor up N): mueve a línea anterior — p10k lo usa para redibujar el prompt
+  - `\x1b[B` (cursor down N): mueve a línea posterior
+  - `\x1b[K` (erase in line): limpia la línea actual
+  - `\x1b[J` con 2J/3J: limpia toda la pantalla
+  - `\x1b[G` col≤1 (cursor to column 1): limpia línea actual (equivale a `\r`)
+  - `\x1b[H`/`\x1b[f` sin parámetros: cursor al home (línea 0)
+  - Scroll con `requestAnimationFrame` en lugar de directo, para que el cálculo ocurra después del pintado del DOM
+  - `clear()` actualizado para resetear `lines[]`
+- Fix CSS en `theme.css`:
+  - `min-height: 0` en `#main-layout` y `#terminal-panel`
+  - Sin este fix, los contenedores flex anidados no propagan el contexto de scroll a sus hijos, y `overflow-y: auto` en `#terminal-output` nunca activa el scrollbar
+
+**Decisiones tomadas:**
+- Aproximar `1K` y `0K` (erase to cursor/erase from cursor) como "borrar línea entera" — no rastreamos columna X, y en la práctica p10k siempre usa `2K` o `\r`
+- Ignorar `\x1b[C`/`\x1b[D` (cursor right/left) y `\x1b[s`/`\x1b[u` (save/restore) — no afectan contenido visible sin tracking de columna
+
+**Problemas encontrados y soluciones:**
+- Comandos no aparecían en output: p10k usa `\x1b[2K` + `\x1b[G` + `\x1b[A` para redibujar el prompt; estos CSI no estaban implementados → agregados en v3
+- Scroll no seguía al final: doble causa — (1) `min-height: 0` faltante en flex parents, (2) `scrollTop = scrollHeight` ejecutándose antes del repintado → solucionado con ambos fixes
+
+**Estado al final:**
+- Comandos visibles en output ✅ (p10k sequences manejadas)
+- Scroll sigue al final automáticamente ✅
+- Cursor up/down funcional para repintado de prompt ✅
+- 6 commits en GitHub ✅
+
+**Próximo paso:** Fase 2 — explorador de archivos lateral, Command Knowledge Base en SQLite.
+
+---
+
 ## 2026-05-21 — Sesión 2: PTY + Parser VT
 
 **Estado al inicio:** Esqueleto compilando, ventana abierta pero sin bash ni colores.
