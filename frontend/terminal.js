@@ -55,10 +55,48 @@ window.addEventListener('resize', () => {
   fitAddon.fit();
 });
 
-// ── Conectar input al PTY ────────────────────────────────────────────────
-term.onData((data) => {
+// ── Trackear input del usuario para autocompletado ───────────────────────
+let currentInput = '';
+
+function updateCurrentInput(data) {
   // data contiene la secuencia correcta para cada tecla
   // (xterm.js maneja Ctrl, flechas, etc. internamente)
+  
+  // Backspace: \x08 (BS) o \x7f (DEL)
+  if (data === '\x08' || data === '\x7f') {
+    currentInput = currentInput.slice(0, -1);
+  }
+  // Enter: \r o \n
+  else if (data === '\r' || data === '\n') {
+    currentInput = '';
+  }
+  // Escape o secuencias de escape: ignorar para input tracking
+  else if (data.startsWith('\x1b')) {
+    // Flechas, Home, End, etc. no modifican el input actual
+    return;
+  }
+  // Caracteres de control (Ctrl+A-Z, etc.): ignorar
+  else if (data.length === 1 && data.charCodeAt(0) < 32) {
+    return;
+  }
+  // Caracter imprimible
+  else {
+    if (data === ' ') {
+      currentInput = '';
+      return;
+    }
+    currentInput += data;
+  }
+  
+  // Notificar a autocompletado
+  if (window.onTerminalInputChanged) {
+    window.onTerminalInputChanged(currentInput);
+  }
+}
+
+// ── Conectar input al PTY ────────────────────────────────────────────────
+term.onData((data) => {
+  updateCurrentInput(data);
   invoke('write_to_shell', { input: data }).catch(console.error);
 });
 

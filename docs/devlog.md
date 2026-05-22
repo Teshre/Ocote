@@ -244,6 +244,63 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-05-22 — Sesión 7: CKB en SQLite + Autocompletado visual
+
+**Estado al inicio:** v0.3.0 con explorador de archivos funcional. CKB solo tenía `commands.json` (JSON estático). `autocomplete.js` era un placeholder vacío.
+
+**Qué se hizo:**
+
+### Implementación de `ckb.rs`
+- Esquema SQLite en memoria (`:memory:`) con 3 tablas: `commands`, `flags`, `examples`
+- Carga inicial al arrancar: parsea `ckb/commands.json` (12 comandos de muestra) con `serde_json`
+- `get_suggestions(prefix)` — búsqueda por prefijo insensible a mayúsculas (`LIKE 'prefix%'`)
+- `get_command_info(name)` — recupera descripción, categoría, flags y ejemplos de un comando
+- Manejo de errores con `.map_err(|e| e.to_string())` para compatibilidad con `Result<T, String>` de Tauri
+
+### Registro en `main.rs`
+- Agregado `CkbState::new()` al estado de Tauri vía `.manage()`
+- Registrados comandos `ckb::get_suggestions` y `ckb::get_command_info` en `generate_handler!`
+- Agregada dependencia `rusqlite = { version = "0.31", features = ["bundled"] }` en `Cargo.toml`
+
+### Implementación de `autocomplete.js`
+- Escucha `window.onTerminalInputChanged(input)` desde `terminal.js`
+- Debounce de 150ms para no saturar la CKB
+- Si el input tiene 1+ caracteres y no contiene espacio: consulta CKB vía `invoke('get_suggestions', { prefix: input })`
+- Renderiza popup flotante con nombre del comando + descripción en español
+- Click en sugerencia: envía backspaces para borrar lo escrito + inyecta el comando completo en el PTY
+
+### Modificación de `terminal.js`
+- Agregada función `updateCurrentInput(data)` que trackea lo que el usuario escribe
+- Detecta: backspace (`\x08`, `\x7f`), enter (`\r`, `\n`), escape/secuencias VT, caracteres de control, y caracteres imprimibles
+- Resetea `currentInput` al detectar espacio o enter (indica que ya no es prefijo de comando)
+- Notifica a `window.onTerminalInputChanged(currentInput)` después de cada cambio
+
+### CSS
+- No requirió cambios — los estilos del popup ya estaban en `theme.css` desde v0.1.0
+
+**Decisiones tomadas:**
+- SQLite en memoria (`:memory:`) por simplicidad en Fase 2. En Fase 3 se migrará a archivo en el directorio de datos de la app para persistencia entre sesiones.
+- Autocompletado informativo (visual) en vez de interactivo vía teclado: más simple, no intercepta flechas/enter/escape que zsh usa para historial y tab-completion. El usuario ve la sugerencia y puede seguir escribiendo o hacer click.
+- Debounce de 150ms: balance entre responsividad y no saturar la base de datos en cada tecla.
+- Eliminado import `Result as SqliteResult` no usado tras cambiar `init_schema` a devolver `Result<(), String>`.
+
+**Problemas encontrados y soluciones:**
+
+| Síntoma | Causa | Fix |
+|---------|-------|-----|
+| Error de compilación en `ckb.rs` | `init_schema` devolvía `rusqlite::Result` pero `new()` devolvía `Result<Self, String>`; `?` no podía convertir el error | `.map_err(|e| e.to_string())` en cada operación SQL dentro de `init_schema` |
+| Popup no aparece | `autocomplete.js` era un placeholder vacío | Implementación completa con debounce, query a CKB, renderizado y click handler |
+
+**Estado al final:**
+- CKB operativa con 12 comandos en SQLite ✅
+- Autocompletado visual funcional ✅
+- Build exitoso sin errores (4 warnings: imports/structs sin usar de Fases 2–3) ✅
+- 13 commits en GitHub (rama `main`) ✅
+
+**Próximo paso:** Fase 2 — Tooltip educativo (card de comando con ejemplos al presionar Enter). Luego Fase 3: detección de contexto (git, node, etc.).
+
+---
+
 ## 2026-05-22 — Sesión 6: Explorador de archivos lateral + sincronización bidireccional
 
 **Estado al inicio:** Terminal funcional con xterm.js (v0.3.0). Fase 2 en progreso: explorador de archivos planeado pero no implementado.

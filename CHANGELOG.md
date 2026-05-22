@@ -8,9 +8,38 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### En progreso
-- Fase 2: explorador de archivos lateral
-- Fase 2: Command Knowledge Base en SQLite
-- Fase 2: autocompletado visual con descripciones
+- Fase 2: tooltip educativo (card de comando con ejemplos)
+- Fase 3: detección de contexto (git, node, etc.)
+
+---
+
+## [0.4.0] — 2026-05-22 — CKB en SQLite + Autocompletado visual
+
+Command Knowledge Base operativa en memoria con SQLite. Autocompletado visual aparece sobre la terminal mostrando sugerencias con descripción en español.
+
+### Agregado
+- **`ckb.rs`**: Command Knowledge Base en SQLite en memoria
+  - Esquema: tabla `commands` (name, description_es, description_en, category), `flags`, `examples`, índice por nombre
+  - Carga inicial de 12 comandos desde `ckb/commands.json` vía `include_str!()` al arrancar la app
+  - `get_suggestions(prefix)` — búsqueda por prefijo (insensible a mayúsculas) con `LIKE 'prefix%'`
+  - `get_command_info(name)` — recupera descripción completa de un comando
+- **`autocomplete.js`**: popup de autocompletado visual
+  - Se activa cuando el usuario escribe en la terminal (sin espacios)
+  - Consulta la CKB cada 150ms (debounce)
+  - Muestra nombre del comando + descripción en español
+  - Click en sugerencia → inyecta el comando completo en el PTY (borra lo escrito con backspaces + envía comando)
+  - Estilos en `theme.css`: popup flotante con sombra, item seleccionado resaltado
+- **`terminal.js`**: trackea `currentInput` desde `term.onData` para alimentar el autocompletado
+  - Detecta backspace (`\x08`, `\x7f`), enter (`\r`, `\n`), escape, y caracteres imprimibles
+  - Resetea el input al detectar espacio o enter
+
+### Cambiado
+- **`main.rs`**: agregados `CkbState` al estado de Tauri + comandos `get_suggestions` y `get_command_info`
+- **`Cargo.toml`**: agregada dependencia `rusqlite = { version = "0.31", features = ["bundled"] }`
+
+### Corregido
+- **Error de compilación en `ckb.rs`**: `init_schema` devolvía `rusqlite::Result` pero `new()` devolvía `Result<Self, String>`. Fix: `.map_err(|e| e.to_string())` en cada operación SQL
+- **Import no usado**: removido `Result as SqliteResult` de `rusqlite`
 
 ---
 

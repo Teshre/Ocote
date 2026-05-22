@@ -10,6 +10,7 @@ mod context;
 fn main() {
     tauri::Builder::default()
         .manage(pty::PtyState::new())
+        .manage(ckb::CkbState::new().expect("error al inicializar CKB"))
         .invoke_handler(tauri::generate_handler![
             // Fase 1 — activos
             pty::spawn_shell,
@@ -17,10 +18,9 @@ fn main() {
             // Fase 2 — activos
             fs_explorer::list_directory,
             fs_explorer::get_home_directory,
-            pty::get_shell_cwd,
+            ckb::get_suggestions,
+            ckb::get_command_info,
             // Fase 2 — descomentar cuando se implementen
-            // ckb::get_suggestions,
-            // ckb::get_command_info,
             // Fase 3
             // context::detect_context,
         ])

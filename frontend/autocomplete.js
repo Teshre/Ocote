@@ -1,91 +1,107 @@
-// autocomplete.js — Popup de autocompletado con descripciones
+// autocomplete.js — Autocompletado visual con CKB
 //
-// Mientras el usuario escribe, muestra un popup con sugerencias
-// de la CKB (nombre del comando + descripción corta).
-// Navegable con flechas, Tab/Enter para aceptar, Esc para cerrar.
+// Cuando el usuario escribe en la terminal (sin espacios), este módulo
+// consulta la CKB y muestra un popup con sugerencias de comandos,
+// incluyendo su descripción en español.
 //
-// FASE 2 — Semanas 23-28
+// CAVEAT: El usuario sigue escribiendo normalmente; el popup es informativo.
+// Click en una sugerencia inyecta el comando completo en el PTY.
 
-const popupEl    = document.getElementById('autocomplete-popup');
-const inputEl    = document.getElementById('terminal-input');
+const invoke = window.__TAURI__.invoke;
 
-let suggestions  = [];
+const popup = document.getElementById('autocomplete-popup');
+
+let debounceTimer = null;
+let currentSuggestions = [];
 let selectedIndex = -1;
 
-// Escuchar lo que el usuario escribe
-inputEl.addEventListener('input', async () => {
-  const value = inputEl.value.trim();
+/**
+ * Callback invocado desde terminal.js cada vez que cambia el input del usuario.
+ * Si el input está vacío o contiene espacio, ocultamos el popup.
+ * Si no, hacemos debounce y consultamos la CKB.
+ */
+window.onTerminalInputChanged = function (input) {
+  clearTimeout(debounceTimer);
 
-  if (!value || value.includes(' ')) {
-    // No mostrar si está vacío o si ya escribió argumentos (hay espacio)
+  // Ocultar si no hay input o si ya escribió un espacio (ya no es prefijo de comando)
+  if (!input || input.length === 0 || input.includes(' ')) {
     hidePopup();
     return;
   }
 
-  // FASE 2: Consultar la CKB
-  // suggestions = await invoke('get_suggestions', { prefix: value, lang: 'es' });
-  // if (suggestions.length > 0) renderPopup();
-  // else hidePopup();
-});
-
-// Navegación con teclado
-inputEl.addEventListener('keydown', (e) => {
-  if (popupEl.classList.contains('hidden')) return;
-
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    selectedIndex = Math.min(selectedIndex + 1, suggestions.length - 1);
-    updateSelection();
-  }
-  if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    selectedIndex = Math.max(selectedIndex - 1, 0);
-    updateSelection();
-  }
-  if (e.key === 'Tab' || e.key === 'Enter') {
-    if (selectedIndex >= 0) {
-      e.preventDefault();
-      acceptSuggestion(suggestions[selectedIndex].name);
+  // Debounce: esperar 150 ms para no saturar la CKB con cada tecla
+  debounceTimer = setTimeout(async () => {
+    try {
+      const suggestions = await invoke('get_suggestions', { prefix: input });
+      if (suggestions.length > 0) {
+        renderPopup(suggestions, input);
+      } else {
+        hidePopup();
+      }
+    } catch (err) {
+      console.error('[Autocomplete] Error consultando CKB:', err);
+      hidePopup();
     }
-  }
-  if (e.key === 'Escape') {
-    hidePopup();
-  }
-});
+  }, 150);
+};
 
-function renderPopup() {
-  popupEl.innerHTML = suggestions.map((s, i) => `
-    <div class="autocomplete-item ${i === selectedIndex ? 'selected' : ''}"
-         data-index="${i}">
-      <span class="autocomplete-name">${s.name}</span>
-      <span class="autocomplete-desc">${s.description_es}</span>
-    </div>
-  `).join('');
+/**
+ * Renderiza el popup con la lista de sugerencias.
+ * @param {Array} suggestions — objetos { name, description_es }
+ * @param {string} prefix — lo que el usuario ha escrito hasta ahora
+ */
+function renderPopup(suggestions, prefix) {
+  currentSuggestions = suggestions;
+  selectedIndex = 0;
 
-  popupEl.querySelectorAll('.autocomplete-item').forEach(item => {
-    item.addEventListener('mousedown', (e) => {
-      e.preventDefault(); // evita que el input pierda foco
-      acceptSuggestion(suggestions[parseInt(item.dataset.index)].name);
+  let html = '';
+  for (let i = 0; i < suggestions.length; i++) {
+    const cmd = suggestions[i];
+    const selectedClass = i === 0 ? 'selected' : '';
+    html += `
+      <div
+        class="autocomplete-item ${selectedClass}"
+        data-index="${i}"
+        data-cmd="${escapeHtml(cmd.name)}"
+      >
+        <span class="autocomplete-name">${escapeHtml(cmd.name)}</span>
+        <span class="autocomplete-desc">${escapeHtml(cmd.description_es)}</span>
+      </div>
+    `;
+  }
+
+  popup.innerHTML = html;
+  popup.classList.remove('hidden');
+
+  // Evento click: inyectar comando completo en el PTY
+  popup.querySelectorAll('.autocomplete-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      const cmdName = item.getAttribute('data-cmd');
+      // Inyectar el comando completo
+      // Borramos lo que el usuario escribió con backspaces y enviamos el comando
+      const backspaces = prefix.length;
+      const input = '\x08'.repeat(backspaces) + cmdName;
+      invoke('write_to_shell', { input });
+      hidePopup();
     });
   });
-
-  popupEl.classList.remove('hidden');
 }
 
-function acceptSuggestion(name) {
-  inputEl.value = name + ' ';
-  inputEl.focus();
-  hidePopup();
-}
-
-function updateSelection() {
-  popupEl.querySelectorAll('.autocomplete-item').forEach((item, i) => {
-    item.classList.toggle('selected', i === selectedIndex);
-  });
-}
-
+/**
+ * Oculta el popup y limpia estado.
+ */
 function hidePopup() {
-  popupEl.classList.add('hidden');
-  suggestions = [];
+  popup.classList.add('hidden');
+  popup.innerHTML = '';
+  currentSuggestions = [];
   selectedIndex = -1;
+}
+
+/**
+ * Escapa HTML para evitar inyección desde la CKB.
+ */
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
