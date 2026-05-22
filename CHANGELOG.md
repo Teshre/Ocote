@@ -40,6 +40,8 @@ Command Knowledge Base operativa en memoria con SQLite. Autocompletado visual ap
 ### Corregido
 - **Error de compilación en `ckb.rs`**: `init_schema` devolvía `rusqlite::Result` pero `new()` devolvía `Result<Self, String>`. Fix: `.map_err(|e| e.to_string())` en cada operación SQL
 - **Import no usado**: removido `Result as SqliteResult` de `rusqlite`
+- **Sincronización terminal→explorador muy lenta**: reemplazado polling de 2s por fast-path (detecta Enter después de `cd`) + polling de 1s como fallback
+- **`tooltip.js` crasheaba**: buscaba `#terminal-input` que no existe desde v0.3.0 (xterm.js). Fix: envolver listener en `if (inputEl)`
 
 ---
 

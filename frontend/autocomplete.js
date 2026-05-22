@@ -7,8 +7,6 @@
 // CAVEAT: El usuario sigue escribiendo normalmente; el popup es informativo.
 // Click en una sugerencia inyecta el comando completo en el PTY.
 
-const invoke = window.__TAURI__.invoke;
-
 const popup = document.getElementById('autocomplete-popup');
 
 let debounceTimer = null;
@@ -32,7 +30,7 @@ window.onTerminalInputChanged = function (input) {
   // Debounce: esperar 150 ms para no saturar la CKB con cada tecla
   debounceTimer = setTimeout(async () => {
     try {
-      const suggestions = await invoke('get_suggestions', { prefix: input });
+      const suggestions = await window.__TAURI__.invoke('get_suggestions', { prefix: input });
       if (suggestions.length > 0) {
         renderPopup(suggestions, input);
       } else {
@@ -81,7 +79,7 @@ function renderPopup(suggestions, prefix) {
       // Borramos lo que el usuario escribió con backspaces y enviamos el comando
       const backspaces = prefix.length;
       const input = '\x08'.repeat(backspaces) + cmdName;
-      invoke('write_to_shell', { input });
+      window.__TAURI__.invoke('write_to_shell', { input });
       hidePopup();
     });
   });

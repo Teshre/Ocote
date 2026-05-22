@@ -297,7 +297,34 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 - Build exitoso sin errores (4 warnings: imports/structs sin usar de Fases 2–3) ✅
 - 13 commits en GitHub (rama `main`) ✅
 
-**Próximo paso:** Fase 2 — Tooltip educativo (card de comando con ejemplos al presionar Enter). Luego Fase 3: detección de contexto (git, node, etc.).
+---
+
+## 2026-05-22 — Sesión 7b: Fixes de sincronización y errores
+
+**Estado al inicio:** v0.4.0 con autocompletado visual funcionando, pero sincronización terminal→explorador lenta (2s de polling) y error `TypeError: null is not an object` en tooltip.js.
+
+**Qué se hizo:**
+
+### Fix: sincronización lenta
+- **Problema**: polling cada 2s + `lsof` escanea todos los descriptores de archivos del proceso zsh. Con plugins cargados, `lsof` tarda. `cd ..` era más rápido que `cd <carpeta>` porque resuelve a paths más cortos.
+- **Fast-path**: `terminal.js` detecta Enter después de `cd <target>` y llama `window.onTerminalCdExecuted(target)` inmediatamente. El explorador se actualiza al instante.
+- **Fallback**: polling reducido de 2000ms a 1000ms para corregir casos edge (`cd -`, subshells, cd que falla).
+- **`resolveCdPath()`**: resuelve rutas relativas, absolutas, `..`, `~`, y `cd` sin argumentos (→ home). Usa variable `homePath` guardada al inicializar.
+
+### Fix: `tooltip.js` crash
+- `const inputEl = document.getElementById('terminal-input')` devolvía `null` porque xterm.js eliminó el input HTML en v0.3.0.
+- El `addEventListener` en `null` lanzaba `TypeError` en cada arranque.
+- Fix: envolver todo en `if (inputEl) { ... }`.
+
+### Quitar logs de debug
+- `autocomplete.js` tenía `console.log` en cada tecla. Removidos para producción.
+
+**Estado al final:**
+- Sincronización terminal→explorador: instantánea para `cd` ✅
+- Fallback polling: 1s ✅
+- Sin errores de JS en consola ✅
+
+**Próximo paso:** Tooltip educativo (card de comando con ejemplos al presionar Enter). Luego Fase 3: detección de contexto (git, node, etc.).
 
 ---
 

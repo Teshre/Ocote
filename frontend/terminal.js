@@ -68,6 +68,14 @@ function updateCurrentInput(data) {
   }
   // Enter: \r o \n
   else if (data === '\r' || data === '\n') {
+    const trimmed = currentInput.trim();
+    // Fast-path: si el usuario ejecutó un cd, notificar al explorador inmediatamente
+    if (trimmed.startsWith('cd ')) {
+      const target = trimmed.substring(3).trim();
+      if (window.onTerminalCdExecuted) {
+        window.onTerminalCdExecuted(target);
+      }
+    }
     currentInput = '';
   }
   // Escape o secuencias de escape: ignorar para input tracking

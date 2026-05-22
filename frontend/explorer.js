@@ -11,6 +11,7 @@ const breadcrumb = document.getElementById('breadcrumb');
 // ── Estado ────────────────────────────────────────────────────────────────
 let currentPath = '';
 let lastSyncedPath = '';
+let homePath = '';
 let syncInterval = null;
 
 // ── Inicialización ────────────────────────────────────────────────────────
@@ -25,6 +26,7 @@ async function initExplorer() {
     
     try {
         currentPath = await window.__TAURI__.invoke('get_home_directory');
+        homePath = currentPath;
         console.log('[Explorer] Home:', currentPath);
         lastSyncedPath = currentPath;
         
@@ -65,7 +67,48 @@ function startSyncPolling() {
             // Silencioso: si no hay shell o lsof falla, no mostrar error
             // console.log('[Explorer] Sync check failed:', err);
         }
-    }, 2000);
+    }, 1000);
+}
+
+// ── Fast-path: cd ejecutado desde la terminal ─────────────────────────────
+// terminal.js llama a esta función inmediatamente cuando detecta Enter
+// después de un comando "cd <target>". Evita esperar al polling de 1s.
+
+window.onTerminalCdExecuted = function (target) {
+    const newPath = resolveCdPath(target, currentPath);
+    if (newPath && newPath !== currentPath) {
+        console.log('[Explorer] Fast sync: cd to', newPath);
+        currentPath = newPath;
+        lastSyncedPath = newPath;
+        
+        window.__TAURI__.invoke('list_directory', { path: currentPath })
+            .then(entries => {
+                renderEntries(entries, currentPath);
+                updateBreadcrumb(currentPath);
+            })
+            .catch(err => console.error('[Explorer] Fast sync error:', err));
+    }
+};
+
+function resolveCdPath(target, basePath) {
+    target = target.trim();
+    if (!target || target === '~') {
+        // cd sin argumentos o cd ~ → home
+        return homePath || basePath;
+    }
+    if (target === '-') {
+        // cd - → no podemos rastrear el anterior, dejar que el polling lo maneje
+        return null;
+    }
+    if (target === '..') {
+        return getParentPath(basePath);
+    }
+    if (target.startsWith('/')) {
+        return target;
+    }
+    // Ruta relativa
+    const sep = basePath.endsWith('/') ? '' : '/';
+    return basePath + sep + target;
 }
 
 // ── Renderizar entradas ────────────────────────────────────────────────

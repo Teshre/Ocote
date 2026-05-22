@@ -20,7 +20,8 @@ fn main() {
             fs_explorer::get_home_directory,
             ckb::get_suggestions,
             ckb::get_command_info,
-            // Fase 2 — descomentar cuando se implementen
+            // Fase 2 — activos
+            pty::get_shell_cwd,
             // Fase 3
             // context::detect_context,
         ])

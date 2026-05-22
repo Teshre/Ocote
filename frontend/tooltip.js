@@ -13,24 +13,28 @@ const inputEl   = document.getElementById('terminal-input');
 let lastShownCommand = null;
 
 // Detectar cuando el usuario termina de escribir el nombre del comando (agrega espacio)
-inputEl.addEventListener('input', async () => {
-  const value = inputEl.value;
-  const parts = value.split(' ');
-  const cmd   = parts[0];
+// NOTE: inputEl no existe en v0.3.0+ (xterm.js reemplazó el input HTML). El tooltip se
+// reactivará en Fase 3 con el nuevo sistema de input tracking.
+if (inputEl) {
+  inputEl.addEventListener('input', async () => {
+    const value = inputEl.value;
+    const parts = value.split(' ');
+    const cmd   = parts[0];
 
-  // El tooltip aparece cuando hay exactamente un espacio después del comando
-  if (parts.length === 2 && parts[1] === '' && cmd !== lastShownCommand) {
-    // FASE 3: buscar info del comando en CKB
-    // const info = await invoke('get_command_info', { name: cmd });
-    // if (info) showTooltip(info);
-    // else hideTooltip();
-    lastShownCommand = cmd;
-  }
+    // El tooltip aparece cuando hay exactamente un espacio después del comando
+    if (parts.length === 2 && parts[1] === '' && cmd !== lastShownCommand) {
+      // FASE 3: buscar info del comando en CKB
+      // const info = await invoke('get_command_info', { name: cmd });
+      // if (info) showTooltip(info);
+      // else hideTooltip();
+      lastShownCommand = cmd;
+    }
 
-  if (!value || !value.includes(' ')) {
-    hideTooltip();
-  }
-});
+    if (!value || !value.includes(' ')) {
+      hideTooltip();
+    }
+  });
+}
 
 function showTooltip(info) {
   tooltipEl.innerHTML = `
