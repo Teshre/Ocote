@@ -74,6 +74,15 @@ pub fn spawn_shell(
     cmd.env("LANG", "en_US.UTF-8");
     cmd.env("LC_ALL", "en_US.UTF-8");
 
+    // zsh-autosuggestions escribe la sugerencia en el mismo stream de output
+    // que el texto tipado. Sin un screen buffer real no podemos distinguirlos:
+    // al escribir "c" se veía "ccd Obsidian" (texto real + sugerencia mezclados).
+    // Fix: color fg=0 = #1a1a1a = igual al fondo → sugerencias invisibles.
+    // El mecanismo ZLE sigue activo: Tab y → aceptan la sugerencia correctamente.
+    cmd.env("ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE", "fg=0");
+    // Fish shell usa una variable distinta para el mismo efecto.
+    cmd.env("fish_color_autosuggestion", "000000");
+
     let child = pair.slave
         .spawn_command(cmd)
         .map_err(|e| e.to_string())?;
