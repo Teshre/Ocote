@@ -1,168 +1,78 @@
-// terminal.js — Input/output de la terminal
-// v2: input directo al PTY, carácter por carácter
-//
-// Arquitectura anterior: HTML <input> que acumulaba texto y mandaba
-// el comando completo al presionar Enter. Problema: ZLE recibía todos
-// los caracteres de golpe, aceptaba el comando sin hacer echo individual
-// de cada letra, y los comandos nunca aparecían junto al prompt ❯.
-//
-// Arquitectura nueva: el área de output captura el teclado directamente.
-// Cada tecla se envía al PTY de inmediato. ZLE las recibe una a una,
-// las echa de vuelta al stream de output, y las muestra junto al ❯
-// exactamente como en una terminal real.
-//
-// Beneficios:
-//   - Los comandos aparecen mientras se escriben ✓
-//   - Tab-completion funciona nativamente ✓
-//   - Inline editing con ← → funciona ✓
-//   - Historial con ↑ ↓ lo maneja ZLE directamente ✓
-//   - Ctrl+R (búsqueda reversa) funciona ✓
+// terminal.js — Terminal con xterm.js
+// Reemplaza el parser VT custom por xterm.js, que maneja correctamente
+// zsh-autosuggestions, p10k, bash readline, y apps TUI (vim, htop, fzf).
 
 const { invoke } = window.__TAURI__;
-const { listen }  = window.__TAURI__.event;
+const { listen } = window.__TAURI__.event;
 
-const outputEl = document.getElementById('terminal-output');
+const container = document.getElementById('terminal-container');
 
-// El parser maneja todo el renderizado DOM directamente
-const vtParser = new VtParser(outputEl);
+// ── Tema Ocote ────────────────────────────────────────────────────────────
+const OCOTE_THEME = {
+  background: '#1a1a1a',
+  foreground: '#e8e6df',
+  cursor: '#f5a623',
+  selectionBackground: 'rgba(245, 166, 35, 0.3)',
+  black: '#1a1a1a',
+  red: '#e06c75',
+  green: '#98c379',
+  yellow: '#e5c07b',
+  blue: '#61afef',
+  magenta: '#c678dd',
+  cyan: '#56b6c2',
+  white: '#abb2bf',
+  brightBlack: '#5c6370',
+  brightRed: '#e06c75',
+  brightGreen: '#98c379',
+  brightYellow: '#e5c07b',
+  brightBlue: '#61afef',
+  brightMagenta: '#c678dd',
+  brightCyan: '#56b6c2',
+  brightWhite: '#ffffff',
+};
 
-// Conectar el callback de respuesta al PTY (para CPR \x1b[6n]):
-// cuando ZLE pregunta "¿dónde está el cursor?", respondemos con una
-// posición fija para que ZLE no desincronice su estado interno.
-vtParser.onResponse = (str) => sendToPty(str);
-
-// --- Inicialización ---
-async function init() {
-    await invoke('spawn_shell');
-
-    await listen('pty-output', (e) => {
-        vtParser.write(e.payload);
-    });
-
-    await listen('pty-exit', () => {
-        vtParser.write('\r\n[Sesión terminada]\r\n');
-    });
-
-    outputEl.focus();
-}
-
-// --- Envío al PTY ---
-async function sendToPty(str) {
-    try {
-        await invoke('write_to_shell', { input: str });
-    } catch (err) {
-        console.error('write_to_shell:', err);
-    }
-}
-
-// --- Manejo del teclado ---
-// El área de output tiene tabindex="0" (ver index.html), así que puede
-// recibir foco y capturar keydown. Cada tecla se traduce a la secuencia
-// de escape correcta y se envía al PTY inmediatamente.
-outputEl.addEventListener('keydown', async (e) => {
-    // Dejar pasar atajos del sistema (Cmd+C copiar, Cmd+V pegar, etc.)
-    if (e.metaKey) return;
-
-    // ── Ctrl + letra ─────────────────────────────────────────────────
-    // Ctrl+A–Z = bytes \x01–\x1A (control characters estándar de Unix)
-    if (e.ctrlKey && e.key.length === 1) {
-        e.preventDefault();
-        const code = e.key.toUpperCase().charCodeAt(0) - 64; // A=1, B=2 ...
-        if (code >= 1 && code <= 26) {
-            if (code === 12) vtParser.clear(); // Ctrl+L: también limpiar el DOM
-            await sendToPty(String.fromCharCode(code));
-        }
-        return;
-    }
-
-    // ── Teclas especiales ─────────────────────────────────────────────
-    switch (e.key) {
-        case 'Enter':
-            e.preventDefault();
-            // '\r' (CR) es lo correcto para terminales — ZLE lo espera en raw mode
-            await sendToPty('\r');
-            return;
-
-        case 'Backspace':
-            e.preventDefault();
-            // \x08 = BS (Ctrl+H) — erase hacia atrás en ZLE/readline.
-            // \x7f (DEL) puede estar reasignado a delete-char (hacia adelante)
-            // en algunas configs de p10k. \x08 es el estándar POSIX más seguro.
-            await sendToPty('\x08');
-            return;
-
-        case 'Delete':
-            e.preventDefault();
-            await sendToPty('\x1b[3~'); // borra carácter a la derecha
-            return;
-
-        case 'Tab':
-            e.preventDefault();
-            await sendToPty('\t'); // tab-completion en ZLE
-            return;
-
-        case 'Escape':
-            e.preventDefault();
-            await sendToPty('\x1b');
-            return;
-
-        case 'ArrowUp':
-            e.preventDefault();
-            await sendToPty('\x1b[A'); // historial anterior (ZLE lo maneja)
-            return;
-
-        case 'ArrowDown':
-            e.preventDefault();
-            await sendToPty('\x1b[B'); // historial siguiente
-            return;
-
-        case 'ArrowRight':
-            e.preventDefault();
-            await sendToPty('\x1b[C'); // mover cursor derecha en la línea
-            return;
-
-        case 'ArrowLeft':
-            e.preventDefault();
-            await sendToPty('\x1b[D'); // mover cursor izquierda en la línea
-            return;
-
-        case 'Home':
-            e.preventDefault();
-            await sendToPty('\x1b[H'); // inicio de línea (equivale a Ctrl+A en zsh)
-            return;
-
-        case 'End':
-            e.preventDefault();
-            await sendToPty('\x1b[F'); // fin de línea (equivale a Ctrl+E)
-            return;
-
-        case 'PageUp':
-            e.preventDefault();
-            await sendToPty('\x1b[5~');
-            return;
-
-        case 'PageDown':
-            e.preventDefault();
-            await sendToPty('\x1b[6~');
-            return;
-
-        case 'Insert':
-            e.preventDefault();
-            await sendToPty('\x1b[2~');
-            return;
-    }
-
-    // ── Caracteres imprimibles ────────────────────────────────────────
-    // e.key.length === 1 filtra F1-F12, Shift, etc.
-    // !e.altKey excluye AltGr combos (aunque en macOS Alt genera caracteres)
-    if (e.key.length === 1 && !e.ctrlKey) {
-        e.preventDefault();
-        await sendToPty(e.key);
-        return;
-    }
+// ── Inicializar xterm.js ─────────────────────────────────────────────────
+const term = new Terminal({
+  theme: OCOTE_THEME,
+  fontFamily: "'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
+  fontSize: 14,
+  lineHeight: 1.5,
+  cursorBlink: true,
+  cursorStyle: 'block',
+  scrollback: 10000,
+  convertEol: true,
+  rightClickSelectsWord: false,
 });
 
-// Clic en el output → dar foco para capturar el teclado
-outputEl.addEventListener('click', () => outputEl.focus());
+const fitAddon = new FitAddon.FitAddon();
+term.loadAddon(fitAddon);
+
+term.open(container);
+fitAddon.fit();
+
+// Redimensionar cuando la ventana cambie de tamaño
+window.addEventListener('resize', () => {
+  fitAddon.fit();
+});
+
+// ── Conectar input al PTY ────────────────────────────────────────────────
+term.onData((data) => {
+  // data contiene la secuencia correcta para cada tecla
+  // (xterm.js maneja Ctrl, flechas, etc. internamente)
+  invoke('write_to_shell', { input: data }).catch(console.error);
+});
+
+// ── Conectar output del PTY ──────────────────────────────────────────────
+async function init() {
+  await invoke('spawn_shell');
+
+  await listen('pty-output', (e) => {
+    term.write(e.payload);
+  });
+
+  await listen('pty-exit', () => {
+    term.writeln('\r\n[Sesión terminada]');
+  });
+}
 
 init().catch(console.error);

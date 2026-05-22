@@ -10,7 +10,46 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ### En progreso
 - Fase 2: explorador de archivos lateral
 - Fase 2: Command Knowledge Base en SQLite
-- Screen buffer 2D para soporte de apps TUI (vim, htop, etc.)
+- Fase 2: autocompletado visual con descripciones
+
+---
+
+## [0.3.0] — 2026-05-22 — Migración a xterm.js + Explorador de archivos
+
+Diagnóstico profundo de bugs de input + migración a xterm.js + implementación del explorador de archivos lateral con sincronización bidireccional.
+
+### Agregado
+- **xterm.js** (`frontend/lib/`): librería de terminal madura (usada por VS Code, Hyper, etc.)
+- **@xterm/addon-fit**: redimensiona la terminal automáticamente al tamaño del contenedor
+- **Tema Ocote en xterm.js**: colores ANSI personalizados que coinciden con el tema visual de la app
+- **Explorador de archivos lateral** (`explorer.js` + `fs_explorer.rs`):
+  - Panel con árbol de archivos/carpetas con iconos por tipo
+  - Click en carpeta → navega dentro + ejecuta `cd` en el PTY
+  - Botón `..` para subir un nivel
+  - Breadcrumb en barra superior (`~/Documents/proyecto`)
+  - Sincronización bidireccional: click en explorador → `cd` en terminal; `cd` en terminal → explorador se actualiza automáticamente (vía `lsof` + polling cada 2s)
+- **`get_shell_cwd()`** en `pty.rs`: lee el CWD real del proceso zsh vía `lsof -p <pid> -d cwd` (macOS)
+
+### Cambiado
+- **`terminal.js`**: reescrito para usar `xterm.Terminal` en vez del parser VT custom
+- **`index.html`**: carga xterm.js y addon-fit desde `frontend/lib/`; reemplazado `#terminal-output` por `#terminal-container`
+- **`theme.css`**: eliminados estilos de `.term-line` y cursor custom (xterm.js maneja el renderizado internamente); agregados estilos del explorador (`.explorer-item`, `.explorer-folder`, etc.)
+- **`pty.rs`**: simplificado — removidos hacks de env vars; vuelta a detectar `$SHELL` (zsh); agregado tracking de PID del shell para CWD sync
+- **`main.rs`**: registrados comandos `list_directory`, `get_home_directory`, `get_shell_cwd`
+
+### Eliminado
+- **`vt_parser.js`**: parser VT custom (v1–v7) eliminado por completo
+
+### Corregido
+- **Double-char (`ccd` al escribir `cd`)**: xterm.js maneja zsh-autosuggestions internamente
+- **Backspace errático**: xterm.js maneja secuencias VT de reposicionamiento correctamente
+- **Comando desaparece tras Enter**: xterm.js renderiza historial completo correctamente
+- **`SyntaxError: duplicate variable 'invoke'`**: múltiples scripts declaraban `const { invoke }` en scope global; fix: usar `window.__TAURI__.invoke` directamente
+
+### Decisiones técnicas
+- **Migrar a xterm.js**: Terax (inspiración) también lo usa. Screen buffer 2D propio habría requerido miles de líneas.
+- **Polling de CWD cada 2s en vez de shell integration**: más simple, no requiere modificar `.zshrc`, funciona con cualquier shell.
+- **Emoji en vez de SVG para iconos de archivo**: más rápido, cross-platform sin dependencias de fuentes.
 
 ---
 

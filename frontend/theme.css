@@ -80,6 +80,54 @@ body {
   overflow-y: auto;
   padding: 8px 0;
   flex-shrink: 0;
+  /* DEBUG: borde temporal para verificar que el panel existe */
+  /* border: 2px solid red; */
+}
+
+/* Items del explorador */
+.explorer-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary);
+  transition: background 0.1s;
+  user-select: none;
+}
+
+.explorer-item:hover {
+  background: var(--accent-dim);
+}
+
+.explorer-up {
+  color: var(--text-secondary);
+  font-style: italic;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  padding-bottom: 6px;
+}
+
+.explorer-folder {
+  font-weight: 500;
+}
+
+.explorer-file {
+  color: var(--text-secondary);
+}
+
+.explorer-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  width: 20px;
+  text-align: center;
+}
+
+.explorer-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Panel terminal */
@@ -92,45 +140,19 @@ body {
   position: relative;
 }
 
-/* Output de la terminal */
-#terminal-output {
+/* Contenedor de xterm.js */
+#terminal-container {
   flex: 1;
-  padding: 12px 16px;
-  overflow-y: auto;
-  user-select: text;
-  cursor: text;
+  overflow: hidden;
+  position: relative;
 }
 
-/* Cada línea de la terminal es un div independiente.
-   Esto nos permite borrar una línea con \r sin afectar las demás. */
-.term-line {
-  white-space: pre-wrap;   /* preserva espacios y tabs dentro de la línea */
-  word-break: break-all;   /* evita overflow en líneas muy largas */
-  min-height: calc(var(--font-size) * var(--line-height)); /* altura de líneas vacías */
-  line-height: var(--line-height);
-}
-
-/* El input va directo al PTY — no hay <input> HTML.
-   El output recibe foco (tabindex="0") y captura el teclado.
-   Un sutil borde naranja indica que la terminal está activa. */
-#terminal-output:focus {
-  outline: none;
-  box-shadow: inset 0 0 0 1px var(--accent);
-}
-
-/* Cursor parpadeante en la línea activa.
-   Solo visible cuando el área de terminal tiene el foco del teclado.
-   Aparece al final del contenido de la línea activa (última posición escrita). */
-@keyframes term-cursor-blink {
-  50% { opacity: 0; }
-}
-
-#terminal-output:focus .term-line.current::after {
-  content: '▋';
-  animation: term-cursor-blink 1s step-end infinite;
-  color: var(--accent);
-  font-weight: normal;
-}
+/* xterm.js ya maneja internamente:
+   - Renderizado de texto con colores ANSI/VT
+   - Cursor parpadeante
+   - Scroll
+   - Selección de texto
+   Por eso no necesitamos estilos custom para .term-line ni cursor */
 
 /* Estilos del input line guardados para referencia futura (Fase 2):
 #terminal-input-line { display:flex; align-items:center; gap:8px;

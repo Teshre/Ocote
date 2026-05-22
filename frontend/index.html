@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ocote</title>
+  <link rel="stylesheet" href="lib/xterm.css" />
   <link rel="stylesheet" href="theme.css" />
 </head>
 <body>
@@ -13,11 +14,9 @@
     │  breadcrumb: ~/Documentos/proyecto          │  ← barra superior
     ├────────────┬────────────────────────────────┤
     │            │                                │
-    │  explorador│   terminal output              │
+    │  explorador│   terminal xterm.js            │
     │  de archivos│                               │
     │            │                                │
-    │            ├────────────────────────────────┤
-    │            │  $ █  ← input del usuario      │
     └────────────┴────────────────────────────────┘
   -->
 
@@ -32,28 +31,24 @@
 
     <!-- Panel derecho: terminal -->
     <div id="terminal-panel">
-      <!-- Área de output (texto de la terminal).
-           tabindex="0": permite recibir foco para capturar el teclado.
-           El input es directo al PTY — no hay <input> HTML separado. -->
-      <div id="terminal-output" tabindex="0"></div>
+      <!-- xterm.js renderiza aquí -->
+      <div id="terminal-container"></div>
 
       <!-- Autocompletado (aparece flotando sobre el input) -->
       <div id="autocomplete-popup" class="hidden"></div>
 
       <!-- Tooltip educativo (aparece a la derecha) -->
       <div id="tooltip-card" class="hidden"></div>
-
-      <!-- Línea de input removida — el teclado va directo al PTY.
-           El prompt ❯ de zsh/bash aparece en el output como en una
-           terminal real. Se puede restaurar en Fase 2 si se necesita
-           un modo de "beginner input" con autocompletado visual. -->
     </div>
   </div>
 
-  <!-- Tauri inyecta window.__TAURI__ automáticamente — no necesitamos script externo -->
+  <!-- Tauri inyecta window.__TAURI__ automáticamente -->
+
+  <!-- xterm.js -->
+  <script src="lib/xterm.js"></script>
+  <script src="lib/addon-fit.js"></script>
 
   <!-- Nuestros módulos JS -->
-  <script src="vt_parser.js"></script>
   <script src="terminal.js"></script>
   <script src="explorer.js"></script>
   <script src="autocomplete.js"></script>

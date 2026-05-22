@@ -6,8 +6,6 @@
 //
 // FASE 2 — Semanas 23-28
 
-const { invoke } = window.__TAURI__;
-
 const popupEl    = document.getElementById('autocomplete-popup');
 const inputEl    = document.getElementById('terminal-input');
 

@@ -5,6 +5,61 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-05-22 — Sesión 5: Diagnóstico de bugs + migración a xterm.js
+
+**Estado al inicio:** Fase 1 completada pero con 3 bugs persistentes: double-char (`ccd` al escribir `cd`), backspace errático, y comando que desaparece tras Enter. Se intentaron fixes con env vars (`ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE`, `POWERLEVEL9K_TRANSIENT_PROMPT`) e inyección post-.zshrc sin éxito.
+
+**Qué se hizo:**
+
+### Diagnóstico: bash vs zsh
+- Forzamos `/bin/bash` en `pty.rs` en vez de `$SHELL` (zsh)
+- Con bash los bugs desaparecieron → confirmamos que el problema es 100% zsh plugins (zsh-autosuggestions + p10k)
+- Con bash descubrimos un bug secundario: backspace borraba el prompt `bash-3.2$` porque nuestro parser trataba `\r` como "limpiar toda la línea"
+
+### Investigación de repos open source
+- **Terax AI** (inspiración del proyecto): usa `xterm.js` en el frontend + `portable-pty` en el backend. NO implementa su propio parser VT.
+- **Alacritty**: tiene `Grid<T>` en Rust con screen buffer 2D completo (miles de líneas de código)
+- Decisión: seguir el mismo approach que Terax — usar xterm.js en vez de reinventar la rueda
+
+### Migración a xterm.js
+- Instalado `xterm@5.3.0` y `@xterm/addon-fit`
+- Copiados archivos build a `frontend/lib/` (xterm.js, addon-fit.js, xterm.css)
+- Reescrito `terminal.js`: ~30 líneas usando `xterm.Terminal` + `FitAddon` + conexión al PTY vía Tauri events
+- Reescrito `index.html`: carga xterm desde `frontend/lib/`
+- Actualizado `theme.css`: eliminados estilos de `.term-line` y cursor custom
+- Eliminado `vt_parser.js` por completo
+- Simplificado `pty.rs`: removidos hacks de env vars; detecta `$SHELL` (zsh) de nuevo
+
+### Tests post-migración
+- `cd` aparece como `cd`, no `ccd` ✅
+- `ls` aparece como `ls`, no `lls` ✅
+- Backspace borra hacia atrás correctamente, sin tocar el prompt ✅
+- Comando permanece visible en historial tras Enter ✅
+- zsh + p10k funcionan sin configuración especial ✅
+
+**Decisiones tomadas:**
+- Usar xterm.js en vez de implementar screen buffer 2D propio: más rápido, más robusto, y alineado con Terax
+- Eliminar vt_parser.js custom (v1–v7): ya no es necesario y simplifica el mantenimiento
+- Screen buffer 2D propio se descarta: xterm.js lo maneja internamente
+
+**Problemas encontrados y soluciones:**
+
+| Síntoma | Causa | Fix |
+|---------|-------|-----|
+| Double-char (`ccd`) | zsh-autosuggestions inyectaba sugerencia en stream PTY; parser custom no separaba texto real vs sugerencia | Migrar a xterm.js (screen buffer 2D integrado) |
+| Backspace errático | p10k/zsh enviaban secuencias VT complejas de reposicionamiento que el parser custom malinterpretaba | xterm.js maneja todas las secuencias VT correctamente |
+| Comando desaparece tras Enter | p10k transient prompt usa secuencias VT para borrar la línea; parser custom no trackeaba el estado correctamente | xterm.js renderiza historial completo correctamente |
+| Bash backspace borra prompt | Bash readline usa `\r` para reposicionar cursor; nuestro parser limpiaba la línea entera en `\r` | xterm.js maneja `\r` como reposicionamiento, no limpieza |
+
+**Estado al final:**
+- Terminal funcional con zsh, p10k, colores, historial ✅
+- Ningún bug de input conocido ✅
+- Preparado para Fase 2 ✅
+
+**Próximo paso:** Fase 2 — explorador de archivos lateral (`fs_explorer.rs` + `explorer.js`), Command Knowledge Base en SQLite (`ckb.rs`), autocompletado visual.
+
+---
+
 ## 2026-05-21 — Sesión 4: Input directo al PTY + parser v4–v7
 
 **Estado al inicio:** Parser v3 funcional con soporte de cursor navigation. Comandos parcialmente visibles, pero input venía de un `<input>` HTML separado que acumulaba texto y lo mandaba al presionar Enter.
@@ -186,6 +241,65 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 - Sin errores de compilación ✅
 
 **Próximo paso:** Implementar el PTY wrapper en `pty.rs` — conectar bash/zsh al input/output de la ventana. (Fase 1, Semanas 3-4)
+
+---
+
+## 2026-05-22 — Sesión 6: Explorador de archivos lateral + sincronización bidireccional
+
+**Estado al inicio:** Terminal funcional con xterm.js (v0.3.0). Fase 2 en progreso: explorador de archivos planeado pero no implementado.
+
+**Qué se hizo:**
+
+### Implementación de `fs_explorer.rs`
+- Comando Tauri `list_directory(path)` que lee un directorio y devuelve `Vec<FileEntry>`
+- Estructura `FileEntry` con: name, path, is_dir, size
+- Filtrado de archivos ocultos (empiezan con `.`)
+- Ordenamiento: carpetas primero (alfabéticamente), luego archivos (alfabéticamente)
+- Comando `get_home_directory()` con múltiples métodos de detección (HOME, home_dir(), /Users/<user>)
+
+### Implementación de `explorer.js`
+- Panel lateral con lista de archivos y carpetas con iconos (📁 para carpetas, iconos por extensión para archivos)
+- Click en carpeta → navega dentro y ejecuta `cd` en el PTY
+- Botón `..` (↩) para subir un nivel
+- Breadcrumb en la barra superior muestra la ruta actual (`~/Documents/proyecto`)
+- Scroll independiente en el panel lateral
+
+### Sincronización bidireccional terminal ↔ explorador
+- **Explorador → Terminal:** click en carpeta envía `cd "<carpeta>"\n` al PTY
+- **Terminal → Explorador:** polling cada 2 segundos vía `get_shell_cwd()` que usa `lsof -p <pid> -d cwd` (macOS) para leer el CWD real del proceso zsh
+- Sin modificar `.zshrc` — detección pura del sistema operativo
+
+### Fix de `invoke` duplicado
+- Descubierto que múltiples scripts (`terminal.js`, `explorer.js`, `tooltip.js`, `autocomplete.js`) declaraban `const { invoke }` en el scope global, causando `SyntaxError: Can't create duplicate variable`
+- Fix: todos los scripts (excepto `terminal.js`) usan `window.__TAURI__.invoke` directamente
+
+### CSS del explorador
+- Estilos `.explorer-item`, `.explorer-folder`, `.explorer-file`, `.explorer-up`
+- Hover effect con `background: var(--accent-dim)`
+- Truncado de nombres largos con ellipsis
+- Iconos por extensión de archivo (📜 JS, 🦀 Rust, 🐍 Python, etc.)
+
+**Decisiones tomadas:**
+- Polling de CWD cada 2 segundos en vez de shell integration (modificar `.zshrc`): más simple, no requiere cambios en la config del usuario, y funciona con cualquier shell
+- Iconos con emoji en vez de iconos SVG: más rápido de implementar, cross-platform sin dependencias de fuentes
+- `window.__TAURI__.invoke` directo en vez de módulos ES: los scripts se cargan con `<script src>` en el HTML, no hay bundler que maneje módulos
+
+**Problemas encontrados y soluciones:**
+
+| Síntoma | Causa | Fix |
+|---------|-------|-----|
+| Panel lateral vacío | `const { invoke }` duplicado entre scripts → `SyntaxError` | Usar `window.__TAURI__.invoke` en todos los scripts |
+| Botón `..` no funciona | Faltaba `data-is-dir="true"` en el div del botón subir | Agregar atributo + manejar en `handleClick` |
+| `cd ..` en terminal no actualiza explorador | El explorador no sabía el CWD actual del proceso shell | `get_shell_cwd()` vía `lsof` + polling cada 2s |
+| `cd` en terminal no actualiza explorador | Mismo problema: no había sincronización terminal→explorador | Mismo fix: polling de CWD |
+
+**Estado al final:**
+- Explorador de archivos funcional con navegación y sincronización ✅
+- Sincronización bidireccional terminal ↔ explorador ✅
+- Sin errores de JS conocidos ✅
+- 12 commits en GitHub (rama `main`) ✅
+
+**Próximo paso:** Fase 2 — Command Knowledge Base en SQLite (`ckb.rs`), autocompletado visual con descripciones (`autocomplete.js`).
 
 ---
 

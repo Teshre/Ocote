@@ -7,8 +7,6 @@
 //
 // FASE 3 — Semanas 29-33
 
-const { invoke } = window.__TAURI__;
-
 const tooltipEl = document.getElementById('tooltip-card');
 const inputEl   = document.getElementById('terminal-input');
 
