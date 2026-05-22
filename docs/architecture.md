@@ -81,26 +81,58 @@ Ocote/
 
 ## Flujo de datos
 
+### Input (tecla → PTY)
 ```
-Usuario escribe en #terminal-input
-  → terminal.js captura el keydown
-  → invoke('write_to_shell', { input }) [Fase 1]
-  → pty.rs escribe al stdin del proceso bash
-  → bash produce output con secuencias ANSI
-  → pty.rs lee el output en un thread separado
-  → emit('pty-output', texto) hacia el frontend
-  → vt_parser.rs convierte ANSI → HTML spans [Fase 1]
-  → terminal.js inserta los spans en #terminal-output
+Usuario presiona tecla en #terminal-output (tabindex="0")
+  → terminal.js captura keydown
+  → traduce a secuencia de escape correcta (\r, \x08, \x1b[A, etc.)
+  → invoke('write_to_shell', { input })
+  → pty.rs escribe bytes al stdin del proceso bash/zsh
+  → ZLE (Zsh Line Editor) recibe cada carácter individualmente
+  → ZLE hace echo del carácter + redibuja el prompt si es necesario
 ```
 
+### Output (PTY → pantalla)
+```
+bash/zsh produce output con secuencias ANSI/VT
+  → pty.rs lee bytes en thread separado (buffer 4 KB)
+  → emit('pty-output', string) hacia el frontend vía Tauri event
+  → terminal.js recibe el evento
+  → vtParser.write(payload) — VtParser procesa byte a byte
+  → secuencias ANSI parseadas:
+      \x1b[K  → limpiar línea actual
+      \x1b[A/B → mover cursor arriba/abajo en el DOM
+      \x1b[0J → limpiar desde línea actual hasta el final
+      \x1b[m  → aplicar estilos SGR (color, bold, etc.)
+      \x1b[G  → IGNORADO (no limpia ni mueve en el DOM)
+      \r\n / \n → avanzar línea (_advanceLine)
+      \r solo → limpiar línea actual (sin avanzar)
+  → _writeText() inserta <span style="..."> en el div actual
+  → requestAnimationFrame hace scroll al final
+```
+
+### Autocompletado (Fase 2 — pendiente)
 ```
 Usuario escribe prefijo de comando
   → autocomplete.js detecta input sin espacios
-  → invoke('get_suggestions', { prefix }) [Fase 2]
+  → invoke('get_suggestions', { prefix })
   → ckb.rs hace SELECT en SQLite
   → retorna Vec<Command> al frontend
   → autocomplete.js renderiza el popup
 ```
+
+### Modelo DOM del parser (VtParser)
+```
+outputEl (#terminal-output)
+  └── div.term-line          ← línea 0
+  └── div.term-line          ← línea 1
+  └── div.term-line.current  ← línea activa (cursor aquí)
+        └── span[style]      ← texto con color/bold/etc.
+        └── texto plano      ← texto sin estilo
+```
+- `this.lines[]` — array de todos los divs en el DOM
+- `this.lineIdx` — índice de la línea activa
+- `_advanceLine()` — reutiliza el siguiente div existente; solo crea uno nuevo al llegar al final. Crítico para evitar el gap visual cuando p10k mueve el cursor hacia arriba.
 
 ---
 

@@ -41,9 +41,30 @@ ckb/
 - **Fase 3 (Meses 8-12):** Tooltip educativo, sugerencias contextuales, onboarding, distribución
 - **Fase 4 (Meses 12-18):** Comunidad, devlog, lanzamiento, credibilidad técnica
 
-## Estado actual
-**Día 0 — Esqueleto creado, Rust no instalado todavía.**  
-Próximo paso: instalar Rust con `rustup` y completar semanas 1-2 del roadmap (Rust Book caps. 1-6 + Rustlings).
+## Estado actual — 2026-05-21
+**Fase 1 completada.** Terminal interactiva funcional con PTY real.
+
+- zsh/bash conectado al PTY (`pty.rs` con `portable-pty`) ✅
+- Output ANSI/VT renderizado en DOM (`vt_parser.js` v7) ✅
+- Input carácter a carácter directo al PTY (`terminal.js` v2) ✅
+- Tab-completion, historial, inline editing, Ctrl+C/D/L vía ZLE ✅
+- Colores ANSI 16/256/truecolor, bold, italic, underline ✅
+- Cursor parpadeante naranja en línea activa ✅
+- Scroll automático al final ✅
+- 10 commits en `main`, rama sin PRs pendientes
+
+**Notas importantes para próximo agente:**
+- `vt_parser.js` v7: CHA (`\x1b[G]`) está **ignorado completamente**. No revertir. Solo `\x1b[K]` y `\r` limpian líneas.
+- `ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE=fg=0` en `pty.rs`: hace sugerencias invisibles. No remover — es intencional.
+- Backspace usa `\x08` (no `\x7f`). No cambiar sin probar con p10k.
+- El "comando desaparece después de Enter" es el transient prompt de p10k — es comportamiento esperado, no un bug.
+- No hay screen buffer 2D todavía; apps TUI (vim, htop, fzf) no funcionarán bien hasta Fase 2.
+
+**Próximo paso:** Fase 2
+- Explorador de archivos lateral (`explorer.js` + `fs_explorer.rs`)
+- Command Knowledge Base en SQLite (`ckb.rs` + `ckb/commands.json` → DB)
+- Autocompletado visual con descripción del comando
+- Screen buffer 2D para soporte de apps TUI
 
 ## Cómo ayudar al desarrollador
 - Es developer en aprendizaje, usa IA como asistente principal

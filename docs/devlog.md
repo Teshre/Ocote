@@ -5,6 +5,79 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-05-21 — Sesión 4: Input directo al PTY + parser v4–v7
+
+**Estado al inicio:** Parser v3 funcional con soporte de cursor navigation. Comandos parcialmente visibles, pero input venía de un `<input>` HTML separado que acumulaba texto y lo mandaba al presionar Enter.
+
+**Qué se hizo:**
+
+### Reescritura de arquitectura de input (`terminal.js` v2)
+- Eliminado el `<input>` HTML separado; el área de output (`#terminal-output`) captura el teclado directamente con `tabindex="0"`
+- Cada tecla se envía al PTY de inmediato (`sendToPty(e.key)`), carácter por carácter
+- ZLE recibe cada tecla individualmente → hace echo individual → los comandos aparecen junto al prompt `❯` igual que en una terminal real
+- Mapeadas todas las secuencias de escape necesarias:
+  - Ctrl+A–Z → bytes `\x01`–`\x1A`
+  - Enter → `\r` (CR, no LF — ZLE espera CR en raw mode)
+  - Backspace → `\x08` (BS/Ctrl+H, no `\x7f` que puede estar reasignado a delete-char en p10k)
+  - Delete → `\x1b[3~`, Tab → `\t`, Escape → `\x1b`
+  - Flechas, Home, End, PageUp/Down, Insert → secuencias estándar VT
+- Ctrl+L limpia también el DOM (`vtParser.clear()`) además de mandar `\x0c` al PTY
+- Clic en el output da foco automáticamente
+
+### vt_parser.js iteraciones v4 → v7
+- **v4**: Agregado `_advanceLine()` que reutiliza el siguiente `<div>` existente en lugar de siempre crear uno nuevo. Fix del gap visual ("cuadro negro") que aparecía cuando p10k movía el cursor hacia arriba con `\x1b[A` y luego `\n` creaba divs fuera de lugar.
+- **v5**: Con input char-by-char, ZLE redibuja en cada tecla con `\x1b[nG]\x1b[K]<contenido>\x1b[mG]`. Restaurado el clearing en K y en G (col≤1). Agregado `_clearToEnd()` para `\x1b[0J]` (p10k lo usa para redibujar el prompt sin borrar output previo).
+- **v6**: Agregado soporte para respuesta CPR (`\x1b[6n]` → `\x1b[1;1R]`) vía callback `onResponse`. CHA extendido a cualquier valor de columna.
+- **v7 (final)**: Diagnóstico definitivo del problema de doble carácter y backspace extraño:
+  - **Root cause doble carácter**: zsh-autosuggestions escribe la sugerencia (ej. `cd Obsidian`) en gris (fg=8) directamente en el stream del PTY, inmediatamente después del carácter tipado. Sin screen buffer, ambos se renderizan igual → `c` + `cd Obsidian` = `ccd Obsidian`.
+  - **Root cause backspace hacia adelante**: Al borrar, la sugerencia cambiaba y aparecía más larga, simulando movimiento hacia la derecha.
+  - **Root cause contenido borrado (v6)**: El CHA final (`\x1b[mG]` después del contenido) también limpiaba → borraba lo que acababa de escribir.
+  - **Fix**: CHA (`\x1b[G]`) ignorado completamente. Solo `\x1b[K]` y `\r` borran líneas.
+
+### Fix de autosuggestions en `pty.rs`
+- Agregadas variables de entorno al spawnear la shell:
+  - `ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE=fg=0` → sugerencias con color `#1a1a1a` = fondo → invisibles
+  - `fish_color_autosuggestion=000000` → equivalente para Fish shell
+  - El mecanismo ZLE sigue activo: Tab y `→` aceptan la sugerencia correctamente
+
+### CSS (`theme.css`)
+- Agregado borde naranja sutil al enfocar `#terminal-output:focus` (indica que la terminal está activa)
+- Cursor parpadeante en `.term-line.current::after` con bloque `▋` en naranja Ocote
+- Solo visible cuando el área tiene foco del teclado
+
+**Decisiones tomadas:**
+- CHA siempre ignorado: la responsabilidad de limpiar recae exclusivamente en `\x1b[K]` (EL). Esta es la única interpretación que funciona correctamente con el patrón de redraw de ZLE.
+- `\x08` en lugar de `\x7f` para Backspace: más robusto entre distintas configuraciones de p10k/readline.
+- No se implementa screen buffer 2D: queda para Fase 2. El modelo de líneas DOM es suficiente para la mayoría de los casos de uso.
+
+**Problemas encontrados y soluciones:**
+
+| Síntoma | Causa | Fix |
+|---------|-------|-----|
+| Cuadro negro / gap en output | `_newLine()` siempre al final del DOM aunque el cursor estuviera arriba | `_advanceLine()` reutiliza divs existentes |
+| Comandos no aparecen al escribir | Input HTML mandaba todo de golpe; ZLE no hacía echo individual | Input char-by-char directo al PTY |
+| Contenido se acumula (historial apilado) | CHA y K ignorados → ZLE redibujaba encima sin limpiar | Restaurado clearing en K y G (v5) |
+| Contenido se borra al escribir | CHA final (post-contenido) también limpiaba | CHA ignorado completamente (v7) |
+| `ccd Obsidian` al escribir `cd` | zsh-autosuggestions en el stream del PTY | `ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE=fg=0` |
+| Backspace mueve cursor derecha | `\x7f` reasignado + sugerencia cambiante | `\x08` (BS) + fix de autosuggestions |
+
+**Estado al final:**
+- Input char-by-char funcional ✅
+- Comandos aparecen junto al prompt `❯` mientras se escriben ✅
+- Backspace funciona hacia atrás ✅
+- Tab-completion nativo vía ZLE ✅
+- Historial con ↑ ↓ vía ZLE ✅
+- Cursor parpadeante naranja en línea activa ✅
+- 10 commits en GitHub (rama `main`) ✅
+
+**Comportamiento esperado (no bug):**
+- El comando tipado "desaparece" después de Enter → es el **transient prompt de p10k** (intencional). Se puede desactivar con `POWERLEVEL9K_TRANSIENT_PROMPT=off` si se necesita.
+- Iconos de Nerd Fonts no renderizan → WebView no tiene las fuentes instaladas, deferido a Fase 2.
+
+**Próximo paso:** Fase 2 — explorador de archivos lateral, Command Knowledge Base en SQLite, screen buffer 2D para manejo correcto de aplicaciones TUI (vim, htop, etc.).
+
+---
+
 ## 2026-05-21 — Sesión 3: Cursor navigation + scroll fix
 
 **Estado al inicio:** Terminal funciona, colores visibles, pero comandos escritos no aparecen en output y el scroll no sigue al final.
