@@ -8,7 +8,24 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### En progreso
-- Fase 3: detección de contexto (git, node, etc.)
+- Fase 3: detección de contexto (git, node, python, etc.)
+- Fase 3: onboarding de primer uso
+- Fase 3: soporte de apps TUI (vim, htop, fzf)
+- Fase 3: distribución (build .app para macOS)
+
+---
+
+## [0.4.4] — 2026-05-22 — Polish final de Fase 2
+
+Ajustes finales de UX antes de cerrar Fase 2.
+
+### Corregido
+- **Tooltip no aparecía para `cd`, `git`, etc.**: `currentInput` se reseteaba al detectar espacio, perdiendo el nombre del comando. Fix: separar `currentInput` (autocompletado) de `currentCommandLine` (tooltip + cd detection).
+- **Popup de autocompletado tapaba la línea de input**: iteración de posicionamiento:
+  1. Arriba del cursor → tapaba líneas anteriores
+  2. Debajo del cursor → demasiado cerca
+  3. Debajo con margen de `2*lineHeight + 20px` → flota claramente separado sin tapar nada
+- **Posicionamiento dinámico**: `autocomplete.js` lee `cursorY` y `lineHeight` desde `window.ocoteTerminal` (xterm.js) para calcular `top` en píxeles.
 
 ---
 

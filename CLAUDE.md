@@ -17,7 +17,7 @@ Terminal de línea de comandos construida con Rust + Tauri. El objetivo es ser l
 src-tauri/src/
   main.rs          ← entry point Tauri, registra comandos
   pty.rs           ← PTY con portable-pty (Fase 1)
-  vt_parser.rs     ← parser ANSI/VT con vte (Fase 1)
+  vt_parser.rs     ← parser ANSI/VT con vte (Fase 1, eliminado en v0.3.0)
   ckb.rs           ← Command Knowledge Base / SQLite (Fase 2)
   fs_explorer.rs   ← árbol de archivos (Fase 2)
   context.rs       ← detección de contexto: git, node, etc. (Fase 3)
@@ -32,7 +32,7 @@ frontend/
   tooltip.js       ← card educativa de comandos
   theme.css        ← estilos
 ckb/
-  commands.json    ← fuente de datos de la CKB (~12 comandos de muestra, llegar a 80-200)
+  commands.json    ← fuente de datos de la CKB (62 comandos, objetivo 100-200)
 ```
 
 ## Roadmap (4 fases, 12-18 meses)
@@ -42,7 +42,7 @@ ckb/
 - **Fase 4 (Meses 12-18):** Comunidad, devlog, lanzamiento, credibilidad técnica
 
 ## Estado actual — 2026-05-22
-**Fase 2 casi completada.** Terminal con xterm.js + explorador de archivos + CKB SQLite + autocompletado visual + tooltip educativo.
+**Fase 2 COMPLETADA.** Terminal funcional con xterm.js, explorador de archivos, CKB SQLite (62 comandos), autocompletado visual y tooltip educativo.
 
 - zsh/bash conectado al PTY (`pty.rs` con `portable-pty`) ✅
 - xterm.js renderizado (migrado desde parser VT custom) ✅
@@ -50,10 +50,10 @@ ckb/
 - Tab-completion, historial, inline editing, Ctrl+C/D/L vía ZLE ✅
 - Explorador de archivos lateral con cache (`explorer.js` + `fs_explorer.rs`) ✅
 - Sincronización bidireccional terminal↔explorador (fast-path + polling) ✅
-- CKB en SQLite con 12 comandos (`ckb.rs` + `ckb/commands.json`) ✅
-- Autocompletado visual con descripciones (`autocomplete.js`) ✅
-- Tooltip educativo de comandos (`tooltip.js`) ✅
-- ~16 commits en `main`, rama sin PRs pendientes
+- CKB en SQLite con 62 comandos (`ckb.rs` + `ckb/commands.json`) ✅
+- Autocompletado visual posicionado debajo del cursor (`autocomplete.js` + `window.ocoteTerminal`) ✅
+- Tooltip educativo funcional con argumentos (`tooltip.js`) ✅
+- ~20 commits en `main`, rama sin PRs pendientes
 
 **Notas importantes para próximo agente:**
 - `vt_parser.js` fue eliminado por completo en v0.3.0. xterm.js maneja todo el renderizado.
@@ -62,13 +62,17 @@ ckb/
 - El "comando desaparece después de Enter" es el transient prompt de p10k — comportamiento esperado.
 - Cache de directorios en `explorer.js`: `dirCache` guarda entradas por 30s. TTL en `CACHE_TTL_MS`.
 - `fs_explorer.rs` usa `file_type()` (no `metadata()`) para performance.
-- Tooltip aparece al ejecutar comando (Enter) — no al escribir. Se cierra con Esc, click fuera, o auto-close a 8s.
+- Tooltip aparece al ejecutar comando (Enter). Funciona con argumentos (`cd`, `git status`) gracias a `currentCommandLine`.
+- `terminal.js` expone `window.ocoteTerminal` para que `autocomplete.js` lea coordenadas del cursor (posicionamiento dinámico).
+- Popup de autocompletado se posiciona dinámicamente debajo del cursor usando `cursorY` y `lineHeight` de xterm.js.
 - `get_command_info()` devuelve `Option<Command>` — `null` si no está en CKB.
 
-**Próximo paso:**
-1. Ampliar CKB de 12 a ~50-80 comandos (prioridad alta — contenido educativo)
-2. Screen buffer 2D / soporte de apps TUI (vim, htop, fzf)
-3. Fase 3: detección de contexto (git, node, python, etc.)
+**Próximo paso — Fase 3 (Sugerencias contextuales, Onboarding, Distribución):**
+1. **Detección de contexto** (`context.rs`): detectar si el CWD actual es un repo git, proyecto node (package.json), python (requirements.txt), rust (Cargo.toml), docker, etc.
+2. **Sugerencias contextuales**: priorizar comandos relevantes en el autocompletado según el contexto detectado.
+3. **Onboarding**: flujo de bienvenida para primer uso, explicando explorador, breadcrumb, autocomplete y tooltip.
+4. **Soporte de apps TUI** (vim, htop, fzf): investigar si xterm.js + Tauri ya lo soportan o qué falta (screen buffer 2D, focus handling).
+5. **Distribución**: build de `.app` para macOS, investigar firma de código y auto-updater.
 
 ## Cómo ayudar al desarrollador
 - Es developer en aprendizaje, usa IA como asistente principal

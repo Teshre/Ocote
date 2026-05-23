@@ -246,6 +246,53 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-05-22 — Sesión 10: Polish final de Fase 2 — Popup y tooltip
+
+**Estado al inicio:** v0.4.3 con CKB de 62 comandos. El usuario reportó que el popup de autocompletado estaba pegado al fondo de la terminal (posición CSS fija `bottom: 12px`) y que el tooltip no aparecía al ejecutar comandos con argumentos (`cd Desktop`, `git status`).
+
+**Qué se hizo:**
+
+### Fix: tooltip para comandos con argumentos
+- **Problema**: `updateCurrentInput()` reseteaba `currentInput = ''` al detectar un espacio. Al presionar Enter después de `cd Desktop`, `currentInput` valía `"Desktop"` en vez de `"cd"`. El tooltip buscaba `"Desktop"` en la CKB y no lo encontraba.
+- **Fix**: Separar el tracking en dos variables:
+  - `currentInput`: se resetea en espacio (sigue alimentando el autocompletado de prefijos)
+  - `currentCommandLine`: acumula la línea completa (usada para extraer el nombre del comando al presionar Enter)
+- Ahora `cd ..`, `git status`, `npm install`, etc. muestran tooltip correctamente.
+
+### Fix: posicionamiento dinámico del popup de autocompletado
+- **Problema**: El popup usaba `bottom: 12px` en CSS, siempre pegado al fondo de la terminal. Si el usuario escribía en la mitad de la pantalla, el popup quedaba lejos y tapaba el output anterior.
+- **Iteración 1 — Arriba del cursor**: calculamos `top = cursorRow*lineHeight - popupHeight`. Tapaba la línea anterior y quedaba muy apretado.
+- **Iteración 2 — Debajo del cursor**: calculamos `top = cursorRow*lineHeight + lineHeight + 6`. Mejor, pero aún tapaba un poco la línea de input.
+- **Iteración 3 — Debajo con margen amplio**: `top = cursorRow*lineHeight + 2*lineHeight + 20`. El popup flota claramente separado, 2 líneas debajo del cursor + 20px de margen.
+- **Implementación**:
+  - `terminal.js` expone `window.ocoteTerminal` (instancia xterm.js)
+  - `autocomplete.js` lee `term.buffer.active.cursorY`, `viewportY`, `fontSize` y `lineHeight` para calcular la posición exacta en píxeles relativa al viewport.
+  - Eliminado `bottom: 12px` del CSS; ahora `top` se controla 100% por JS.
+
+**Decisiones tomadas:**
+- Separar tracking de input en dos variables es más simple que parsear retroactivamente: `currentInput` para autocompletado (prefijo) y `currentCommandLine` para tooltip (comando completo).
+- Leer coordenadas de xterm.js en vez de estimar con DOM: más preciso porque xterm.js maneja su propio viewport virtual con scroll.
+- Margen de 20px + 2 líneas: suficiente para que el popup no se confunda con el prompt ni tape nada, sin quedar demasiado lejos.
+
+**Problemas encontrados y soluciones:**
+
+| Síntoma | Causa | Fix |
+|---------|-------|-----|
+| Tooltip no aparece con `cd Desktop` | `currentInput` reseteado en espacio | Separar `currentInput` y `currentCommandLine` |
+| Popup tapa línea de input | Margen de solo 6px debajo del cursor | Aumentar a `2*lineHeight + 20px` |
+| Popup lejos del cursor | Posición CSS fija `bottom: 12px` | Posicionamiento dinámico con xterm.js coordinates |
+
+**Estado al final:**
+- Fase 2 COMPLETADA ✅
+- Tooltip funciona con comandos con argumentos ✅
+- Popup flota debajo del cursor sin tapar nada ✅
+- ~20 commits en `main` ✅
+- Preparado para Fase 3 ✅
+
+**Próximo paso:** Fase 3 — detección de contexto (git, node, python, rust, docker), sugerencias contextuales, onboarding, y soporte de apps TUI.
+
+---
+
 ## 2026-05-22 — Sesión 9: CKB ampliada de 12 a 62 comandos
 
 **Estado al inicio:** v0.4.2 con tooltip funcionando pero CKB muy pequeña (12 comandos). El usuario quería una base amplia que sirviera tanto a principiantes como a developers expertos.
