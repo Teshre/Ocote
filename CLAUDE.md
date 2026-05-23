@@ -42,7 +42,7 @@ ckb/
 - **Fase 4 (Meses 12-18):** Comunidad, devlog, lanzamiento, credibilidad técnica
 
 ## Estado actual — 2026-05-22
-**Fase 2 en progreso.** Terminal con xterm.js + explorador de archivos + CKB SQLite + autocompletado visual.
+**Fase 2 casi completada.** Terminal con xterm.js + explorador de archivos + CKB SQLite + autocompletado visual + tooltip educativo.
 
 - zsh/bash conectado al PTY (`pty.rs` con `portable-pty`) ✅
 - xterm.js renderizado (migrado desde parser VT custom) ✅
@@ -52,7 +52,8 @@ ckb/
 - Sincronización bidireccional terminal↔explorador (fast-path + polling) ✅
 - CKB en SQLite con 12 comandos (`ckb.rs` + `ckb/commands.json`) ✅
 - Autocompletado visual con descripciones (`autocomplete.js`) ✅
-- ~15 commits en `main`, rama sin PRs pendientes
+- Tooltip educativo de comandos (`tooltip.js`) ✅
+- ~16 commits en `main`, rama sin PRs pendientes
 
 **Notas importantes para próximo agente:**
 - `vt_parser.js` fue eliminado por completo en v0.3.0. xterm.js maneja todo el renderizado.
@@ -61,10 +62,11 @@ ckb/
 - El "comando desaparece después de Enter" es el transient prompt de p10k — comportamiento esperado.
 - Cache de directorios en `explorer.js`: `dirCache` guarda entradas por 30s. TTL en `CACHE_TTL_MS`.
 - `fs_explorer.rs` usa `file_type()` (no `metadata()`) para performance.
-- `tooltip.js` tiene lógica placeholder — el input HTML fue eliminado en v0.3.0.
+- Tooltip aparece al ejecutar comando (Enter) — no al escribir. Se cierra con Esc, click fuera, o auto-close a 8s.
+- `get_command_info()` devuelve `Option<Command>` — `null` si no está en CKB.
 
 **Próximo paso:**
-1. Tooltip educativo (card de comando con ejemplos al ejecutar)
+1. Ampliar CKB de 12 a ~50-80 comandos (prioridad alta — contenido educativo)
 2. Screen buffer 2D / soporte de apps TUI (vim, htop, fzf)
 3. Fase 3: detección de contexto (git, node, python, etc.)
 

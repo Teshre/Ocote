@@ -244,6 +244,64 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+---
+
+## 2026-05-22 — Sesión 8: Tooltip educativo de comandos
+
+**Estado al inicio:** v0.4.1 con CKB, autocompletado, y explorador funcionando. `tooltip.js` era un placeholder roto (buscaba `#terminal-input` que ya no existe). El tooltip es uno de los diferenciadores clave del proyecto.
+
+**Qué se hizo:**
+
+### Reescritura de `tooltip.js`
+- Eliminada la lógica antigua que dependía de `#terminal-input` (eliminado en v0.3.0)
+- Nuevo sistema basado en eventos: escucha `window.onTerminalCommandExecuted(cmdName)`
+- Consulta `get_command_info(name)` en la CKB via Tauri
+- Renderiza card con:
+  - Header: nombre del comando (naranja Ocote) + categoría (badge gris)
+  - Descripción en español
+  - Top 3 flags con su descripción
+  - Ejemplo con el comando en verde + descripción
+  - Hint: "Esc o click fuera para cerrar"
+- Auto-cierra después de 8 segundos
+- No muestra nada si el comando no está en la CKB
+
+### Modificación de `terminal.js`
+- En `updateCurrentInput()`, al detectar Enter: extrae la primera palabra del input como nombre de comando
+- Llama `window.onTerminalCommandExecuted(cmdName)` después de manejar `cd` y antes de resetear `currentInput`
+- Solo notifica si hay contenido (evita mostrar tooltip en Enter vacío)
+
+### CSS del tooltip (`theme.css`)
+- `.tooltip-header`: flex con justify-content: space-between
+- `.tooltip-category`: badge pequeño uppercase con fondo oscuro
+- `.tooltip-section-title`: "FLAGS COMUNES" / "EJEMPLO" en gris uppercase
+- `.tooltip-flag`: layout horizontal con `code` (amarillo, fondo oscuro) + descripción
+- `.tooltip-example`: bloque verde con `$ comando`
+- `.tooltip-example-desc`: descripción del ejemplo en gris
+- Separador sutil antes del hint de cierre
+
+**Decisiones tomadas:**
+- Mostrar tooltip al **ejecutar** comando (Enter) en vez de al escribirlo: menos intrusivo, aparece cuando el usuario ya decidió usar el comando
+- Auto-close a los 8s: el usuario no debe cerrarlo manualmente, pero tampoco queda forever
+- Top 3 flags en vez de todos: la CKB tiene hasta 4 flags por comando, pero 3 caben mejor en la card
+- No mostrar si comando no está en CKB: evita cards vacías o "comando no encontrado"
+
+**Problemas encontrados y soluciones:**
+
+| Síntoma | Causa | Fix |
+|---------|-------|-----|
+| Tooltip no aparece | `tooltip.js` era placeholder roto que buscaba `#terminal-input` | Reescribir completamente con arquitectura de eventos |
+| Card vacía para comandos desconocidos | No se validaba si `get_command_info` devolvía null | `if (info) showTooltip()` else `hideTooltip()` |
+
+**Estado al final:**
+- Tooltip educativo funcional ✅
+- Aparece al ejecutar comandos reconocidos ✅
+- Se cierra con Esc, click fuera, o auto-close a 8s ✅
+- Sin errores de JS ✅
+
+**Próximo paso:** Ampliar CKB de 12 a ~50-80 comandos. Luego Fase 3: detección de contexto.
+
+---
+
 ## 2026-05-22 — Sesión 7: CKB en SQLite + Autocompletado visual
 
 **Estado al inicio:** v0.3.0 con explorador de archivos funcional. CKB solo tenía `commands.json` (JSON estático). `autocomplete.js` era un placeholder vacío.

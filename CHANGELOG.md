@@ -8,8 +8,32 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### En progreso
-- Fase 2: tooltip educativo (card de comando con ejemplos)
 - Fase 3: detección de contexto (git, node, etc.)
+
+---
+
+## [0.4.2] — 2026-05-22 — Tooltip educativo de comandos
+
+Card lateral que aparece automáticamente cuando ejecutas un comando reconocido, mostrando qué hace, sus flags más comunes y un ejemplo.
+
+### Agregado
+- **`tooltip.js` reescrito**: card educativa funcional
+  - Escucha `window.onTerminalCommandExecuted(cmdName)` desde `terminal.js`
+  - Consulta `get_command_info()` en la CKB vía Tauri
+  - Muestra: nombre del comando, categoría, descripción en español, top 3 flags, y ejemplo
+  - Auto-cierra después de 8 segundos de inactividad
+  - Se cierra con Esc o click fuera
+- **`terminal.js`**: notifica comando ejecutado al tooltip
+  - Extrae el nombre del comando (primera palabra antes de espacio)
+  - Llama `window.onTerminalCommandExecuted(cmdName)` en cada Enter
+
+### Cambiado
+- **`theme.css`**: estilos mejorados para el tooltip
+  - `.tooltip-header` con nombre + badge de categoría
+  - `.tooltip-section-title` para secciones (Flags comunes, Ejemplo)
+  - `.tooltip-flag` con `code` amarillo y descripción gris
+  - `.tooltip-example-desc` para la descripción del ejemplo
+  - Separador sutil antes del hint de cierre
 
 ---
 
