@@ -50,6 +50,9 @@ term.loadAddon(fitAddon);
 term.open(container);
 fitAddon.fit();
 
+// Exponer terminal para que otros scripts puedan consultar posición del cursor
+window.ocoteTerminal = term;
+
 // Redimensionar cuando la ventana cambie de tamaño
 window.addEventListener('resize', () => {
   fitAddon.fit();

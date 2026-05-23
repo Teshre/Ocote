@@ -166,7 +166,6 @@ body {
 /* Popup de autocompletado */
 #autocomplete-popup {
   position: absolute;
-  bottom: 12px;
   left: 32px;
   background: var(--bg-tooltip);
   border: 1px solid var(--border-strong);
