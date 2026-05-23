@@ -110,8 +110,9 @@ function positionPopupAboveCursor() {
   const lineHeightMult = term.options.lineHeight || 1.5;
   const lineHeightPx = fontSize * lineHeightMult;
 
-  // Posicionar DEBAJO del cursor: fila * altura + altura + margen
-  const top = (cursorRow * lineHeightPx) + lineHeightPx + 6;
+  // Posicionar DEBAJO del cursor con espacio: fila * altura + 2*altura + margen grande
+  // 2*lineHeight asegura que el popup quede debajo del prompt + input, sin tapar nada
+  const top = (cursorRow * lineHeightPx) + (lineHeightPx * 2) + 20;
 
   popup.style.top = `${top}px`;
 }
