@@ -89,37 +89,31 @@ function renderPopup(suggestions, prefix) {
 }
 
 /**
- * Posiciona el popup justo arriba de la línea actual del cursor en xterm.js.
- * Esto hace que el popup aparezca cerca de donde el usuario está escribiendo,
- * en lugar de pegado al fondo de la terminal.
+ * Posiciona el popup justo debajo de la línea actual del cursor en xterm.js.
+ * El popup aparece abajo del cursor para no tapar lo que el usuario ya escribió.
  */
 function positionPopupAboveCursor() {
   const term = window.ocoteTerminal;
   if (!term) return;
-  
+
   const cursorY = term.buffer.active.cursorY;
   const viewportY = term.buffer.active.viewportY;
   const cursorRow = cursorY - viewportY;
-  
+
   // Si el cursor no está en el viewport visible, no reposicionar
   if (cursorRow < 0 || cursorRow >= term.rows) {
     return;
   }
-  
-  // Calcular posición vertical: arriba del cursor
+
   // lineHeight ≈ fontSize * lineHeight (14 * 1.5 = 21px)
   const fontSize = term.options.fontSize || 14;
   const lineHeightMult = term.options.lineHeight || 1.5;
   const lineHeightPx = fontSize * lineHeightMult;
-  
-  // Medir altura real del popup ahora que tiene contenido
-  const popupHeight = popup.offsetHeight || 160;
-  
-  // Posicionar arriba del cursor con 6px de margen
-  const top = (cursorRow * lineHeightPx) - popupHeight - 6;
-  
-  popup.style.top = `${Math.max(4, top)}px`;
-  popup.style.bottom = 'auto';
+
+  // Posicionar DEBAJO del cursor: fila * altura + altura + margen
+  const top = (cursorRow * lineHeightPx) + lineHeightPx + 6;
+
+  popup.style.top = `${top}px`;
 }
 
 /**
