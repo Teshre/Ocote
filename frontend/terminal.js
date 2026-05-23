@@ -55,8 +55,9 @@ window.addEventListener('resize', () => {
   fitAddon.fit();
 });
 
-// ── Trackear input del usuario para autocompletado ───────────────────────
-let currentInput = '';
+// ── Trackear input del usuario para autocompletado y tooltip ─────────────
+let currentInput = '';        // input desde último espacio (para autocompletado)
+let currentCommandLine = '';  // línea de comando completa (para tooltip/cd)
 
 function updateCurrentInput(data) {
   // data contiene la secuencia correcta para cada tecla
@@ -65,10 +66,11 @@ function updateCurrentInput(data) {
   // Backspace: \x08 (BS) o \x7f (DEL)
   if (data === '\x08' || data === '\x7f') {
     currentInput = currentInput.slice(0, -1);
+    currentCommandLine = currentCommandLine.slice(0, -1);
   }
   // Enter: \r o \n
   else if (data === '\r' || data === '\n') {
-    const trimmed = currentInput.trim();
+    const trimmed = currentCommandLine.trim();
     if (trimmed) {
       // Extraer el nombre del comando (primera palabra antes de espacio)
       const cmdName = trimmed.split(/\s+/)[0];
@@ -87,6 +89,7 @@ function updateCurrentInput(data) {
       }
     }
     currentInput = '';
+    currentCommandLine = '';
   }
   // Escape o secuencias de escape: ignorar para input tracking
   else if (data.startsWith('\x1b')) {
@@ -101,9 +104,15 @@ function updateCurrentInput(data) {
   else {
     if (data === ' ') {
       currentInput = '';
+      currentCommandLine += data;
+      // Notificar a autocompletado (input vacío = ocultar popup)
+      if (window.onTerminalInputChanged) {
+        window.onTerminalInputChanged('');
+      }
       return;
     }
     currentInput += data;
+    currentCommandLine += data;
   }
   
   // Notificar a autocompletado
