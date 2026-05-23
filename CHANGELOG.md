@@ -13,6 +13,25 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [0.4.1] — 2026-05-22 — Optimización de sincronización terminal→explorador
+
+Rendimiento mejorado en la sincronización bidireccional. Directorios ya visitados se renderizan instantáneamente.
+
+### Agregado
+- **Cache de directorios en `explorer.js`**: `dirCache` (Map) guarda entradas de directorios visitados por 30 segundos
+- **`loadDirectory(path, { instant })`**: función centralizada para cargar directorios con cache
+- **`refreshDirectory(path)`**: refresca cache en background sin bloquear UI
+
+### Cambiado
+- **`fs_explorer.rs`**: `list_directory` ahora usa `entry.file_type()` en vez de `entry.metadata()` — evita leer permisos, tamaño, timestamps (syscall más rápida)
+- **`explorer.js`**: `handleClick()` y `onTerminalCdExecuted()` usan `loadDirectory()` con cache
+- **Polling de fallback**: reducido de 2000ms → 1000ms → ahora usa cache primero
+
+### Corregido
+- **`initExplorer()`**: ahora usa `loadDirectory()` en vez de llamar `list_directory` directamente
+
+---
+
 ## [0.4.0] — 2026-05-22 — CKB en SQLite + Autocompletado visual
 
 Command Knowledge Base operativa en memoria con SQLite. Autocompletado visual aparece sobre la terminal mostrando sugerencias con descripción en español.

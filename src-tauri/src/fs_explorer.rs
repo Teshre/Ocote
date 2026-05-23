@@ -50,36 +50,33 @@ pub fn list_directory(path: String) -> Result<Vec<FileEntry>, String> {
             }
         };
 
-        let metadata = match entry.metadata() {
-            Ok(m) => m,
-            Err(e) => {
-                eprintln!("Warning: no se pudo leer metadata de {:?}: {}", entry.path(), e);
-                continue;
-            }
-        };
-
         let name = entry.file_name()
             .to_string_lossy()
             .to_string();
 
         // Ignorar archivos ocultos (empiezan con .)
-        // Esto incluye ., .., .git, .zshrc, etc.
         if name.starts_with('.') {
             continue;
         }
+
+        // file_type() es más rápido que metadata() — no lee tamaño, permisos, etc.
+        let is_dir = match entry.file_type() {
+            Ok(ft) => ft.is_dir(),
+            Err(e) => {
+                eprintln!("Warning: no se pudo leer tipo de {:?}: {}", entry.path(), e);
+                continue;
+            }
+        };
 
         let path_str = entry.path()
             .to_string_lossy()
             .to_string();
 
-        let is_dir = metadata.is_dir();
-        let size = if is_dir { 0 } else { metadata.len() };
-
         entries.push(FileEntry {
             name,
             path: path_str,
             is_dir,
-            size,
+            size: 0, // El frontend no muestra tamaño actualmente
         });
     }
 

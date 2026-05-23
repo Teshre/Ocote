@@ -14,6 +14,11 @@ let lastSyncedPath = '';
 let homePath = '';
 let syncInterval = null;
 
+// Cache de directorios: path → { entries, timestamp }
+// Esto hace que directorios ya visitados se rendericen instantáneamente
+const dirCache = new Map();
+const CACHE_TTL_MS = 30000; // 30 segundos
+
 // ── Inicialización ────────────────────────────────────────────────────────
 
 async function initExplorer() {
@@ -30,11 +35,7 @@ async function initExplorer() {
         console.log('[Explorer] Home:', currentPath);
         lastSyncedPath = currentPath;
         
-        const entries = await window.__TAURI__.invoke('list_directory', { path: currentPath });
-        console.log('[Explorer] Entries:', entries.length);
-        
-        renderEntries(entries, currentPath);
-        updateBreadcrumb(currentPath);
+        await loadDirectory(currentPath);
         
         // Iniciar polling para sincronizar terminal → explorador
         startSyncPolling();
@@ -56,16 +57,10 @@ function startSyncPolling() {
             const cwd = await window.__TAURI__.invoke('get_shell_cwd');
             if (cwd && cwd !== lastSyncedPath) {
                 console.log('[Explorer] Sync: terminal CWD changed to', cwd);
-                lastSyncedPath = cwd;
-                currentPath = cwd;
-                
-                const entries = await window.__TAURI__.invoke('list_directory', { path: currentPath });
-                renderEntries(entries, currentPath);
-                updateBreadcrumb(currentPath);
+                await loadDirectory(cwd);
             }
         } catch (err) {
             // Silencioso: si no hay shell o lsof falla, no mostrar error
-            // console.log('[Explorer] Sync check failed:', err);
         }
     }, 1000);
 }
@@ -78,17 +73,57 @@ window.onTerminalCdExecuted = function (target) {
     const newPath = resolveCdPath(target, currentPath);
     if (newPath && newPath !== currentPath) {
         console.log('[Explorer] Fast sync: cd to', newPath);
-        currentPath = newPath;
-        lastSyncedPath = newPath;
-        
-        window.__TAURI__.invoke('list_directory', { path: currentPath })
-            .then(entries => {
-                renderEntries(entries, currentPath);
-                updateBreadcrumb(currentPath);
-            })
-            .catch(err => console.error('[Explorer] Fast sync error:', err));
+        loadDirectory(newPath, { instant: true });
     }
 };
+
+// ── Cargar directorio con cache ─────────────────────────────────────────
+
+async function loadDirectory(path, options = {}) {
+    const { instant = false } = options;
+    
+    currentPath = path;
+    lastSyncedPath = path;
+    updateBreadcrumb(path);
+    
+    // 1. Intentar cache (renderizado instantáneo)
+    const cached = dirCache.get(path);
+    if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+        renderEntries(cached.entries, path);
+        // Refrescar en background si no es instant
+        if (!instant) {
+            refreshDirectory(path);
+        }
+        return;
+    }
+    
+    // 2. Si no hay cache, mostrar loading y esperar
+    if (!instant || !cached) {
+        panel.innerHTML = '<div style="padding:12px;color:var(--text-dim);font-size:12px">Cargando...</div>';
+    }
+    
+    try {
+        const entries = await window.__TAURI__.invoke('list_directory', { path });
+        dirCache.set(path, { entries, timestamp: Date.now() });
+        renderEntries(entries, path);
+    } catch (err) {
+        console.error('[Explorer] Error cargando directorio:', err);
+        panel.innerHTML = `<div style="padding:12px;color:#e06c75;font-size:11px">${escapeHtml(String(err))}</div>`;
+    }
+}
+
+async function refreshDirectory(path) {
+    try {
+        const entries = await window.__TAURI__.invoke('list_directory', { path });
+        dirCache.set(path, { entries, timestamp: Date.now() });
+        // Solo re-renderizar si seguimos en este path
+        if (currentPath === path) {
+            renderEntries(entries, path);
+        }
+    } catch (err) {
+        console.error('[Explorer] Error refrescando directorio:', err);
+    }
+}
 
 function resolveCdPath(target, basePath) {
     target = target.trim();
@@ -168,20 +203,14 @@ async function handleClick(e) {
     
     if (!isDir) return;
     
-    currentPath = path;
-    lastSyncedPath = path;
-    panel.innerHTML = '<div style="padding:12px;color:var(--text-dim);font-size:12px">Cargando...</div>';
+    // Cargar directorio (con cache es instantáneo)
+    await loadDirectory(path, { instant: true });
     
+    // Sincronizar con PTY
     try {
-        const entries = await window.__TAURI__.invoke('list_directory', { path: currentPath });
-        renderEntries(entries, currentPath);
-        updateBreadcrumb(currentPath);
-        
-        // Sincronizar con PTY: usar el path absoluto para cd
         await window.__TAURI__.invoke('write_to_shell', { input: `cd "${path}"\n` });
     } catch (err) {
-        console.error('[Explorer] Error navegando:', err);
-        panel.innerHTML = `<div style="padding:12px;color:#e06c75;font-size:11px">${escapeHtml(String(err))}</div>`;
+        console.error('[Explorer] Error sincronizando con PTY:', err);
     }
 }
 

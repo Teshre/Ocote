@@ -324,6 +324,51 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 - Fallback polling: 1s ✅
 - Sin errores de JS en consola ✅
 
+---
+
+## 2026-05-22 — Sesión 7c: Cache de directorios + optimización file_type
+
+**Estado al inicio:** v0.4.0/v0.4.1 con sync instantáneo para `cd`, pero todavía perceptiblemente más lento que Terax. El usuario reportó que la navegación no es instantánea como debería ser.
+
+**Qué se hizo:**
+
+### Cache de directorios en frontend
+- Agregado `dirCache` (Map) en `explorer.js`: almacena `{ entries, timestamp }` por path
+- TTL de 30 segundos — directorios recién visitados se renderizan sin llamar a Rust
+- `loadDirectory(path, { instant })`: centraliza toda la carga de directorios
+  1. Si hay cache válido → `renderEntries()` inmediatamente
+  2. Si no hay cache → muestra loading → llama `list_directory` → guarda en cache → renderiza
+- `refreshDirectory(path)`: refresca en background sin bloquear UI
+
+### Optimización en Rust
+- `fs_explorer.rs`: reemplazado `entry.metadata()` por `entry.file_type()`
+  - `metadata()` hace syscall para leer permisos, tamaño, timestamps
+  - `file_type()` solo devuelve si es archivo o carpeta — syscall mucho más rápida
+  - Eliminada lectura de `metadata.len()` (size) — el frontend no lo muestra actualmente
+
+### Refactor de explorer.js
+- `handleClick()` y `onTerminalCdExecuted()` ahora usan `loadDirectory()` en vez de lógica duplicada
+- `initExplorer()` usa `loadDirectory()`
+- `startSyncPolling()` usa `loadDirectory()`
+
+**Decisiones tomadas:**
+- Cache en frontend (no en Rust): el bottleneck no es la red (es local), es el syscall de leer directorio + serialización JSON + IPC Tauri. Cachear en JS evita todo eso.
+- TTL de 30s: suficiente para navegación rápida, no demasiado largo para que archivos nuevos no aparezcan.
+- `file_type()` en vez de `metadata()`: el size no se usa en la UI actualmente. Si se necesita en el futuro, se puede agregar como campo opcional.
+
+**Problemas encontrados y soluciones:**
+
+| Síntoma | Causa | Fix |
+|---------|-------|-----|
+| Navegación lenta aun con fast-path | Cada `cd` hace IPC + syscall + read_dir completo | Cache de directorios en frontend |
+| `list_directory` tarda en directorios grandes | `metadata()` lee stats de cada archivo | `file_type()` solo chequea si es dir |
+
+**Estado al final:**
+- Navegación instantánea a directorios ya visitados ✅
+- `file_type()` más rápido que `metadata()` ✅
+- Refactor centralizado en `loadDirectory()` ✅
+- Aún más lento que Terax (quizás por el IPC de Tauri vs Terax que usa Node.js nativo) — aceptable para v0.4.1
+
 **Próximo paso:** Tooltip educativo (card de comando con ejemplos al presionar Enter). Luego Fase 3: detección de contexto (git, node, etc.).
 
 ---
