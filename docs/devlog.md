@@ -246,6 +246,56 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-05-22 — Sesión 9: CKB ampliada de 12 a 62 comandos
+
+**Estado al inicio:** v0.4.2 con tooltip funcionando pero CKB muy pequeña (12 comandos). El usuario quería una base amplia que sirviera tanto a principiantes como a developers expertos.
+
+**Qué se hizo:**
+
+### Expansión masiva de `ckb/commands.json`
+- De 12 a 62 comandos totales (+50 nuevos)
+- Organizados por categorías funcionales:
+
+| Categoría | Comandos | Para quién |
+|-----------|----------|------------|
+| filesystem | 16 total | Todos — navegación básica y avanzada |
+| search | 8 total | Dev — procesamiento de texto y búsqueda |
+| process | 7 total | DevOps/sysadmin — gestión de procesos |
+| network | 8 total | Dev/DevOps — conectividad y transferencia |
+| development | 10 total | Developers — git, npm, docker, python, rust, etc. |
+| system | 13 total | Todos — info del sistema, variables, alias |
+| package_manager | 2 total | Todos — brew (macOS), apt (Linux) |
+
+### Comandos principales agregados
+- **Principiantes**: `touch`, `clear`, `history`, `man`, `sudo`, `exit`, `alias`, `env`, `whoami`, `date`
+- **Developers web**: `node`, `python3`, `docker`, `make`, `gcc`, `curl`, `wget`, `ssh`, `scp`
+- **DevOps/sysadmin**: `ps`, `top`, `kill`, `killall`, `ping`, `netstat`, `ifconfig`, `rsync`, `tar`, `gzip`, `chmod`, `chown`
+- **Power users**: `find`, `sed`, `awk`, `xargs`, `sort`, `uniq`, `wc`, `cut`, `du`, `df`, `ln`, `unzip`
+
+### Criterios de inclusión
+- Comandos universales (funcionan en macOS y Linux)
+- Descripción en español clara y sin jerga innecesaria
+- Top 3-4 flags más útiles (no todos)
+- 2-3 ejemplos prácticos reales
+- Excluidos: comandos muy específicos de una distro, aliases internos de zsh, plugins
+
+**Decisiones tomadas:**
+- No incluir `vim`/`nano` como comandos de CKB: son apps TUI, no comandos con flags/ejemplos simples
+- `ifconfig` incluido aunque está "deprecated" en Linux: sigue siendo el default en macOS
+- `apt` y `brew` como representantes de gestores de paquetes (no `yum`/`pacman` por simplicidad)
+- `python3` en vez de `python`: macOS y distros modernas usan python3
+- Descripciones en español informal pero preciso: "Elimina archivos o carpetas (¡sin papelera!)"
+
+**Estado al final:**
+- 62 comandos en CKB ✅
+- Todos con descripción_es, flags y ejemplos ✅
+- Compila y carga correctamente en SQLite al arrancar ✅
+- Tooltip y autocompletado funcionan con todos los comandos ✅
+
+**Próximo paso:** Fase 3 — detección de contexto (git, node, python, etc.).
+
+---
+
 ## 2026-05-22 — Sesión 8: Tooltip educativo de comandos
 
 **Estado al inicio:** v0.4.1 con CKB, autocompletado, y explorador funcionando. `tooltip.js` era un placeholder roto (buscaba `#terminal-input` que ya no existe). El tooltip es uno de los diferenciadores clave del proyecto.

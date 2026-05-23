@@ -12,6 +12,23 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [0.4.3] — 2026-05-22 — CKB ampliada: 12 → 62 comandos
+
+Command Knowledge Base expandida de 12 a 62 comandos cubriendo filesystem, búsqueda, procesos, red, desarrollo, sistema y gestores de paquetes.
+
+### Agregado
+- **CKB expandida** (`ckb/commands.json`): 50 comandos nuevos organizados por categoría
+  - **filesystem (12 nuevos)**: `touch`, `head`, `tail`, `less`, `find`, `which`, `chmod`, `chown`, `du`, `df`, `tar`, `gzip`, `zip`, `unzip`, `ln`
+  - **search (6 nuevos)**: `sed`, `awk`, `wc`, `sort`, `uniq`, `xargs`, `cut`
+  - **process (5 nuevos)**: `ps`, `top`, `kill`, `killall`, `jobs`, `fg`, `bg`
+  - **network (7 nuevos)**: `ping`, `curl`, `wget`, `ssh`, `scp`, `rsync`, `ifconfig`, `netstat`
+  - **development (5 nuevos)**: `node`, `python3`, `docker`, `make`, `gcc`, `rustc`
+  - **system (9 nuevos)**: `clear`, `history`, `man`, `sudo`, `uname`, `whoami`, `uptime`, `date`, `env`, `export`, `alias`, `exit`
+  - **package_manager (2 nuevos)**: `brew`, `apt`
+  - Todos con descripciones en español, flags comunes y ejemplos prácticos
+
+---
+
 ## [0.4.2] — 2026-05-22 — Tooltip educativo de comandos
 
 Card lateral que aparece automáticamente cuando ejecutas un comando reconocido, mostrando qué hace, sus flags más comunes y un ejemplo.

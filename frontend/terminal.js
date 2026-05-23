@@ -90,6 +90,10 @@ function updateCurrentInput(data) {
     }
     currentInput = '';
     currentCommandLine = '';
+    // Ocultar autocompletado al ejecutar comando
+    if (window.onTerminalInputChanged) {
+      window.onTerminalInputChanged('');
+    }
   }
   // Escape o secuencias de escape: ignorar para input tracking
   else if (data.startsWith('\x1b')) {

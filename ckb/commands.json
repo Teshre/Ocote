@@ -72,7 +72,8 @@
     "description_es": "Copia archivos o carpetas",
     "description_en": "Copy files or directories",
     "flags": [
-      { "flag": "-r", "description": "Copia recursivamente (necesario para carpetas)" }
+      { "flag": "-r", "description": "Copia recursivamente (necesario para carpetas)" },
+      { "flag": "-v", "description": "Muestra qué archivos se están copiando" }
     ],
     "examples": [
       { "command": "cp archivo.txt copia.txt", "description": "Copiar un archivo" },
@@ -84,7 +85,9 @@
     "category": "filesystem",
     "description_es": "Mueve o renombra archivos y carpetas",
     "description_en": "Move or rename files and directories",
-    "flags": [],
+    "flags": [
+      { "flag": "-i", "description": "Pide confirmación antes de sobrescribir" }
+    ],
     "examples": [
       { "command": "mv viejo.txt nuevo.txt", "description": "Renombrar un archivo" },
       { "command": "mv archivo.txt Documents/", "description": "Mover archivo a Documents" }
@@ -104,6 +107,202 @@
     ]
   },
   {
+    "name": "touch",
+    "category": "filesystem",
+    "description_es": "Crea un archivo vacío o actualiza su fecha de modificación",
+    "description_en": "Create empty file or update timestamp",
+    "flags": [],
+    "examples": [
+      { "command": "touch nuevo.txt", "description": "Crear un archivo vacío" },
+      { "command": "touch app.js", "description": "Actualizar la fecha del archivo" }
+    ]
+  },
+  {
+    "name": "head",
+    "category": "filesystem",
+    "description_es": "Muestra las primeras líneas de un archivo",
+    "description_en": "Show first lines of a file",
+    "flags": [
+      { "flag": "-n", "description": "Número de líneas a mostrar (por defecto 10)" }
+    ],
+    "examples": [
+      { "command": "head log.txt", "description": "Ver las primeras 10 líneas" },
+      { "command": "head -n 5 datos.csv", "description": "Ver las primeras 5 líneas" }
+    ]
+  },
+  {
+    "name": "tail",
+    "category": "filesystem",
+    "description_es": "Muestra las últimas líneas de un archivo",
+    "description_en": "Show last lines of a file",
+    "flags": [
+      { "flag": "-n", "description": "Número de líneas a mostrar (por defecto 10)" },
+      { "flag": "-f", "description": "Sigue el archivo en tiempo real (útil para logs)" }
+    ],
+    "examples": [
+      { "command": "tail app.log", "description": "Ver las últimas 10 líneas del log" },
+      { "command": "tail -f app.log", "description": "Seguir el log en tiempo real" }
+    ]
+  },
+  {
+    "name": "less",
+    "category": "filesystem",
+    "description_es": "Visualizador de archivos largos con scroll",
+    "description_en": "File viewer with scroll for long files",
+    "flags": [],
+    "examples": [
+      { "command": "less app.log", "description": "Ver archivo largo con scroll" },
+      { "command": "q", "description": "Salir de less (dentro de less)" }
+    ]
+  },
+  {
+    "name": "find",
+    "category": "filesystem",
+    "description_es": "Busca archivos por nombre en el sistema",
+    "description_en": "Find files by name in the system",
+    "flags": [
+      { "flag": "-name", "description": "Busca por nombre exacto (acepta wildcards)" },
+      { "flag": "-type f", "description": "Busca solo archivos" },
+      { "flag": "-type d", "description": "Busca solo carpetas" }
+    ],
+    "examples": [
+      { "command": "find . -name '*.js'", "description": "Buscar todos los archivos .js" },
+      { "command": "find . -type d -name 'node_modules'", "description": "Buscar carpetas node_modules" }
+    ]
+  },
+  {
+    "name": "which",
+    "category": "filesystem",
+    "description_es": "Muestra la ruta completa de un programa",
+    "description_en": "Show full path of a program",
+    "flags": [],
+    "examples": [
+      { "command": "which python", "description": "Ver dónde está instalado Python" },
+      { "command": "which node", "description": "Ver dónde está instalado Node.js" }
+    ]
+  },
+  {
+    "name": "chmod",
+    "category": "filesystem",
+    "description_es": "Cambia los permisos de archivos y carpetas",
+    "description_en": "Change file permissions",
+    "flags": [
+      { "flag": "+x", "description": "Hace el archivo ejecutable" },
+      { "flag": "755", "description": "Permisos: dueño todo, otros lectura/ejecución" }
+    ],
+    "examples": [
+      { "command": "chmod +x script.sh", "description": "Hacer un script ejecutable" },
+      { "command": "chmod 755 archivo", "description": "Cambiar permisos a 755" }
+    ]
+  },
+  {
+    "name": "chown",
+    "category": "filesystem",
+    "description_es": "Cambia el dueño de un archivo o carpeta",
+    "description_en": "Change file owner",
+    "flags": [
+      { "flag": "-R", "description": "Cambia recursivamente en carpetas" }
+    ],
+    "examples": [
+      { "command": "chown usuario archivo.txt", "description": "Cambiar dueño del archivo" },
+      { "command": "sudo chown -R $USER carpeta/", "description": "Hacerte dueño de una carpeta" }
+    ]
+  },
+  {
+    "name": "du",
+    "category": "filesystem",
+    "description_es": "Muestra el espacio que ocupan archivos y carpetas",
+    "description_en": "Disk usage — show space used by files/folders",
+    "flags": [
+      { "flag": "-h", "description": "Tamaños legibles (KB, MB, GB)" },
+      { "flag": "-sh", "description": "Muestra solo el total de la carpeta" }
+    ],
+    "examples": [
+      { "command": "du -sh Documents", "description": "Ver cuánto ocupa Documents" },
+      { "command": "du -h * | sort -h", "description": "Ver tamaños ordenados" }
+    ]
+  },
+  {
+    "name": "df",
+    "category": "filesystem",
+    "description_es": "Muestra el espacio libre en los discos",
+    "description_en": "Disk free — show available disk space",
+    "flags": [
+      { "flag": "-h", "description": "Tamaños legibles" }
+    ],
+    "examples": [
+      { "command": "df -h", "description": "Ver espacio libre en todos los discos" }
+    ]
+  },
+  {
+    "name": "tar",
+    "category": "filesystem",
+    "description_es": "Crea o extrae archivos comprimidos .tar",
+    "description_en": "Create or extract .tar archives",
+    "flags": [
+      { "flag": "-cvf", "description": "Crear archivo tar (c=create, v=verbose, f=file)" },
+      { "flag": "-xvf", "description": "Extraer archivo tar (x=extract)" },
+      { "flag": "-czvf", "description": "Crear tar.gz (z=gzip)" },
+      { "flag": "-xzvf", "description": "Extraer tar.gz" }
+    ],
+    "examples": [
+      { "command": "tar -czvf backup.tar.gz carpeta/", "description": "Comprimir carpeta en tar.gz" },
+      { "command": "tar -xzvf backup.tar.gz", "description": "Descomprimir tar.gz" }
+    ]
+  },
+  {
+    "name": "gzip",
+    "category": "filesystem",
+    "description_es": "Comprime archivos individuales",
+    "description_en": "Compress individual files",
+    "flags": [
+      { "flag": "-d", "description": "Descomprimir (decompress)" },
+      { "flag": "-k", "description": "Mantener el archivo original" }
+    ],
+    "examples": [
+      { "command": "gzip archivo.txt", "description": "Comprimir archivo.txt a archivo.txt.gz" },
+      { "command": "gzip -d archivo.txt.gz", "description": "Descomprimir" }
+    ]
+  },
+  {
+    "name": "zip",
+    "category": "filesystem",
+    "description_es": "Crea archivos .zip",
+    "description_en": "Create .zip archives",
+    "flags": [
+      { "flag": "-r", "description": "Comprimir recursivamente carpetas" }
+    ],
+    "examples": [
+      { "command": "zip archivo.zip archivo.txt", "description": "Comprimir un archivo" },
+      { "command": "zip -r proyecto.zip proyecto/", "description": "Comprimir carpeta completa" }
+    ]
+  },
+  {
+    "name": "unzip",
+    "category": "filesystem",
+    "description_es": "Extrae archivos .zip",
+    "description_en": "Extract .zip archives",
+    "flags": [
+      { "flag": "-d", "description": "Extraer en un directorio específico" }
+    ],
+    "examples": [
+      { "command": "unzip archivo.zip", "description": "Extraer en el directorio actual" },
+      { "command": "unzip archivo.zip -d /tmp/", "description": "Extraer en /tmp/" }
+    ]
+  },
+  {
+    "name": "ln",
+    "category": "filesystem",
+    "description_es": "Crea enlaces (atajos) a archivos",
+    "description_en": "Create links to files",
+    "flags": [
+      { "flag": "-s", "description": "Crear enlace simbólico (shortcut)" }
+    ],
+    "examples": [
+      { "command": "ln -s /ruta/original enlace", "description": "Crear un shortcut a un archivo" }
+    ]
+  },
+  {
     "name": "grep",
     "category": "search",
     "description_es": "Busca texto dentro de archivos",
@@ -111,7 +310,8 @@
     "flags": [
       { "flag": "-r", "description": "Busca en todos los archivos de la carpeta recursivamente" },
       { "flag": "-i", "description": "Ignora mayúsculas/minúsculas" },
-      { "flag": "-n", "description": "Muestra el número de línea" }
+      { "flag": "-n", "description": "Muestra el número de línea" },
+      { "flag": "-v", "description": "Muestra líneas que NO coinciden" }
     ],
     "examples": [
       { "command": "grep 'error' app.log", "description": "Buscar la palabra 'error' en app.log" },
@@ -119,8 +319,269 @@
     ]
   },
   {
+    "name": "sed",
+    "category": "search",
+    "description_es": "Editor de flujo: reemplaza texto en archivos",
+    "description_en": "Stream editor — find and replace text",
+    "flags": [
+      { "flag": "-i", "description": "Edita el archivo en lugar de mostrar output" }
+    ],
+    "examples": [
+      { "command": "sed 's/viejo/nuevo/g' archivo.txt", "description": "Reemplazar 'viejo' por 'nuevo'" },
+      { "command": "sed -i 's/foo/bar/g' archivo.txt", "description": "Reemplazar y guardar en el archivo" }
+    ]
+  },
+  {
+    "name": "awk",
+    "category": "search",
+    "description_es": "Procesa y extrae columnas de texto",
+    "description_en": "Text processing and column extraction",
+    "flags": [],
+    "examples": [
+      { "command": "awk '{print $1}' archivo.txt", "description": "Imprimir la primera columna" },
+      { "command": "awk -F: '{print $1}' /etc/passwd", "description": "Usar : como separador y mostrar columna 1" }
+    ]
+  },
+  {
+    "name": "wc",
+    "category": "search",
+    "description_es": "Cuenta líneas, palabras y bytes de un archivo",
+    "description_en": "Count lines, words, and bytes",
+    "flags": [
+      { "flag": "-l", "description": "Cuenta solo líneas" },
+      { "flag": "-w", "description": "Cuenta solo palabras" }
+    ],
+    "examples": [
+      { "command": "wc -l archivo.txt", "description": "Contar líneas del archivo" },
+      { "command": "ls | wc -l", "description": "Contar cuántos archivos hay" }
+    ]
+  },
+  {
+    "name": "sort",
+    "category": "search",
+    "description_es": "Ordena líneas de texto alfabéticamente",
+    "description_en": "Sort lines alphabetically",
+    "flags": [
+      { "flag": "-r", "description": "Orden inverso" },
+      { "flag": "-n", "description": "Orden numérico" },
+      { "flag": "-h", "description": "Ordena tamaños legibles (1K, 1M, 1G)" }
+    ],
+    "examples": [
+      { "command": "sort archivo.txt", "description": "Ordenar líneas alfabéticamente" },
+      { "command": "du -h | sort -h", "description": "Ordenar tamaños de archivos" }
+    ]
+  },
+  {
+    "name": "uniq",
+    "category": "search",
+    "description_es": "Elimina o cuenta líneas duplicadas consecutivas",
+    "description_en": "Remove or count duplicate consecutive lines",
+    "flags": [
+      { "flag": "-c", "description": "Cuenta cuántas veces aparece cada línea" },
+      { "flag": "-d", "description": "Muestra solo las líneas duplicadas" }
+    ],
+    "examples": [
+      { "command": "sort archivo.txt | uniq", "description": "Eliminar duplicados" },
+      { "command": "sort archivo.txt | uniq -c", "description": "Contar ocurrencias de cada línea" }
+    ]
+  },
+  {
+    "name": "xargs",
+    "category": "search",
+    "description_es": "Convierte output de texto en argumentos para otro comando",
+    "description_en": "Convert text output into arguments for another command",
+    "flags": [
+      { "flag": "-I {}", "description": "Usa {} como placeholder para cada línea" }
+    ],
+    "examples": [
+      { "command": "find . -name '*.js' | xargs rm", "description": "Eliminar todos los archivos .js encontrados" },
+      { "command": "cat archivos.txt | xargs -I {} cp {} backup/", "description": "Copiar archivos listados" }
+    ]
+  },
+  {
+    "name": "ps",
+    "category": "process",
+    "description_es": "Muestra los procesos que están corriendo",
+    "description_en": "Show running processes",
+    "flags": [
+      { "flag": "aux", "description": "Muestra TODOS los procesos con detalle (sin guión)" }
+    ],
+    "examples": [
+      { "command": "ps aux", "description": "Ver todos los procesos del sistema" },
+      { "command": "ps aux | grep node", "description": "Buscar procesos de Node.js" }
+    ]
+  },
+  {
+    "name": "top",
+    "category": "process",
+    "description_es": "Monitor de procesos en tiempo real (presiona q para salir)",
+    "description_en": "Real-time process monitor (press q to quit)",
+    "flags": [],
+    "examples": [
+      { "command": "top", "description": "Ver procesos ordenados por uso de CPU" },
+      { "command": "q", "description": "Salir de top" }
+    ]
+  },
+  {
+    "name": "kill",
+    "category": "process",
+    "description_es": "Termina un proceso por su ID (PID)",
+    "description_en": "Terminate a process by its ID (PID)",
+    "flags": [
+      { "flag": "-9", "description": "Fuerza la terminación (último recurso)" }
+    ],
+    "examples": [
+      { "command": "kill 1234", "description": "Terminar el proceso con PID 1234" },
+      { "command": "kill -9 1234", "description": "Forzar terminación del proceso" }
+    ]
+  },
+  {
+    "name": "killall",
+    "category": "process",
+    "description_es": "Termina todos los procesos con un nombre dado",
+    "description_en": "Kill all processes with a given name",
+    "flags": [],
+    "examples": [
+      { "command": "killall firefox", "description": "Cerrar todas las ventanas de Firefox" },
+      { "command": "killall node", "description": "Terminar todos los procesos de Node.js" }
+    ]
+  },
+  {
+    "name": "jobs",
+    "category": "process",
+    "description_es": "Muestra los procesos en segundo plano de la sesión actual",
+    "description_en": "Show background jobs in current session",
+    "flags": [],
+    "examples": [
+      { "command": "jobs", "description": "Ver procesos en segundo plano" }
+    ]
+  },
+  {
+    "name": "fg",
+    "category": "process",
+    "description_es": "Trae un proceso en segundo plano al frente",
+    "description_en": "Bring a background job to the foreground",
+    "flags": [],
+    "examples": [
+      { "command": "fg", "description": "Traer el último proceso al frente" },
+      { "command": "fg %1", "description": "Traer el trabajo número 1 al frente" }
+    ]
+  },
+  {
+    "name": "bg",
+    "category": "process",
+    "description_es": "Continúa un proceso detenido en segundo plano",
+    "description_en": "Resume a stopped job in the background",
+    "flags": [],
+    "examples": [
+      { "command": "bg", "description": "Continuar el último proceso en background" }
+    ]
+  },
+  {
+    "name": "ping",
+    "category": "network",
+    "description_es": "Verifica si un servidor responde (prueba de conectividad)",
+    "description_en": "Check if a server responds (connectivity test)",
+    "flags": [
+      { "flag": "-c", "description": "Número de pings a enviar" }
+    ],
+    "examples": [
+      { "command": "ping google.com", "description": "Probar conexión a Google" },
+      { "command": "ping -c 4 8.8.8.8", "description": "Enviar solo 4 pings" }
+    ]
+  },
+  {
+    "name": "curl",
+    "category": "network",
+    "description_es": "Descarga contenido de URLs o hace peticiones HTTP",
+    "description_en": "Download content from URLs or make HTTP requests",
+    "flags": [
+      { "flag": "-O", "description": "Guarda el archivo con su nombre original" },
+      { "flag": "-L", "description": "Sigue redirecciones" },
+      { "flag": "-I", "description": "Muestra solo los headers HTTP" }
+    ],
+    "examples": [
+      { "command": "curl https://api.github.com", "description": "Hacer petición GET a una API" },
+      { "command": "curl -O https://ejemplo.com/archivo.zip", "description": "Descargar un archivo" }
+    ]
+  },
+  {
+    "name": "wget",
+    "category": "network",
+    "description_es": "Descarga archivos desde internet",
+    "description_en": "Download files from the internet",
+    "flags": [
+      { "flag": "-O", "description": "Guarda con un nombre diferente" }
+    ],
+    "examples": [
+      { "command": "wget https://ejemplo.com/archivo.zip", "description": "Descargar un archivo" }
+    ]
+  },
+  {
+    "name": "ssh",
+    "category": "network",
+    "description_es": "Conecta a una máquina remota de forma segura",
+    "description_en": "Connect to a remote machine securely",
+    "flags": [
+      { "flag": "-p", "description": "Especifica el puerto (por defecto 22)" }
+    ],
+    "examples": [
+      { "command": "ssh usuario@servidor.com", "description": "Conectar a servidor remoto" },
+      { "command": "ssh -p 2222 usuario@servidor.com", "description": "Conectar por puerto 2222" }
+    ]
+  },
+  {
+    "name": "scp",
+    "category": "network",
+    "description_es": "Copia archivos entre tu máquina y un servidor remoto",
+    "description_en": "Copy files between local and remote machines",
+    "flags": [
+      { "flag": "-r", "description": "Copia carpetas recursivamente" }
+    ],
+    "examples": [
+      { "command": "scp archivo.txt usuario@servidor:/ruta/", "description": "Subir archivo a servidor" },
+      { "command": "scp usuario@servidor:/ruta/archivo.txt .", "description": "Descargar archivo del servidor" }
+    ]
+  },
+  {
+    "name": "rsync",
+    "category": "network",
+    "description_es": "Sincroniza archivos entre carpetas o máquinas (más rápido que cp/scp)",
+    "description_en": "Synchronize files between folders or machines",
+    "flags": [
+      { "flag": "-avz", "description": "Archiva, verbose, comprime (modo recomendado)" },
+      { "flag": "--progress", "description": "Muestra el progreso de la copia" }
+    ],
+    "examples": [
+      { "command": "rsync -avz carpeta/ usuario@servidor:/ruta/", "description": "Sincronizar carpeta con servidor" },
+      { "command": "rsync -avz --progress origen/ destino/", "description": "Sincronizar dos carpetas locales" }
+    ]
+  },
+  {
+    "name": "ifconfig",
+    "category": "network",
+    "description_es": "Muestra la configuración de red de tu máquina",
+    "description_en": "Show network configuration",
+    "flags": [],
+    "examples": [
+      { "command": "ifconfig", "description": "Ver interfaces de red y direcciones IP" }
+    ]
+  },
+  {
+    "name": "netstat",
+    "category": "network",
+    "description_es": "Muestra conexiones de red activas",
+    "description_en": "Show active network connections",
+    "flags": [
+      { "flag": "-tuln", "description": "Muestra puertos TCP/UDP en escucha" }
+    ],
+    "examples": [
+      { "command": "netstat -tuln", "description": "Ver puertos abiertos en tu máquina" }
+    ]
+  },
+  {
     "name": "git",
-    "category": "git",
+    "category": "development",
     "description_es": "Control de versiones: rastrea cambios en tu código",
     "description_en": "Version control system for tracking code changes",
     "flags": [],
@@ -128,24 +589,29 @@
       { "command": "git status", "description": "Ver qué archivos cambiaron" },
       { "command": "git add .", "description": "Agregar todos los cambios al staging" },
       { "command": "git commit -m 'mensaje'", "description": "Guardar los cambios con descripción" },
-      { "command": "git log --oneline", "description": "Ver historial de commits resumido" }
+      { "command": "git log --oneline", "description": "Ver historial de commits resumido" },
+      { "command": "git push", "description": "Subir cambios al repositorio remoto" },
+      { "command": "git pull", "description": "Descargar cambios del repositorio remoto" },
+      { "command": "git branch", "description": "Ver ramas existentes" },
+      { "command": "git checkout -b nueva-rama", "description": "Crear y cambiar a nueva rama" }
     ]
   },
   {
     "name": "npm",
-    "category": "node",
+    "category": "development",
     "description_es": "Gestor de paquetes de Node.js",
     "description_en": "Node.js package manager",
     "flags": [],
     "examples": [
       { "command": "npm install", "description": "Instalar dependencias del proyecto" },
       { "command": "npm run dev", "description": "Iniciar el servidor de desarrollo" },
-      { "command": "npm install lodash", "description": "Instalar el paquete 'lodash'" }
+      { "command": "npm install lodash", "description": "Instalar el paquete 'lodash'" },
+      { "command": "npm uninstall lodash", "description": "Desinstalar un paquete" }
     ]
   },
   {
     "name": "cargo",
-    "category": "rust",
+    "category": "development",
     "description_es": "Gestor de paquetes y herramienta de build de Rust",
     "description_en": "Rust's package manager and build tool",
     "flags": [],
@@ -153,7 +619,252 @@
       { "command": "cargo new mi-proyecto", "description": "Crear un nuevo proyecto Rust" },
       { "command": "cargo build", "description": "Compilar el proyecto" },
       { "command": "cargo run", "description": "Compilar y ejecutar el proyecto" },
-      { "command": "cargo add serde", "description": "Agregar una dependencia" }
+      { "command": "cargo add serde", "description": "Agregar una dependencia" },
+      { "command": "cargo test", "description": "Ejecutar tests" }
+    ]
+  },
+  {
+    "name": "node",
+    "category": "development",
+    "description_es": "Ejecuta código JavaScript (runtime de Node.js)",
+    "description_en": "Execute JavaScript code (Node.js runtime)",
+    "flags": [
+      { "flag": "-v", "description": "Muestra la versión instalada" }
+    ],
+    "examples": [
+      { "command": "node app.js", "description": "Ejecutar un archivo JavaScript" },
+      { "command": "node -v", "description": "Ver versión de Node.js" }
+    ]
+  },
+  {
+    "name": "python3",
+    "category": "development",
+    "description_es": "Ejecuta código Python 3",
+    "description_en": "Execute Python 3 code",
+    "flags": [
+      { "flag": "-m venv", "description": "Crea un entorno virtual" },
+      { "flag": "-v", "description": "Muestra la versión instalada" }
+    ],
+    "examples": [
+      { "command": "python3 script.py", "description": "Ejecutar un script Python" },
+      { "command": "python3 -m venv env", "description": "Crear entorno virtual llamado 'env'" },
+      { "command": "python3 -v", "description": "Ver versión de Python" }
+    ]
+  },
+  {
+    "name": "docker",
+    "category": "development",
+    "description_es": "Gestiona contenedores de aplicaciones",
+    "description_en": "Manage application containers",
+    "flags": [],
+    "examples": [
+      { "command": "docker ps", "description": "Ver contenedores en ejecución" },
+      { "command": "docker run -it ubuntu bash", "description": "Ejecutar contenedor Ubuntu interactivo" },
+      { "command": "docker build -t mi-app .", "description": "Construir imagen desde Dockerfile" },
+      { "command": "docker-compose up", "description": "Levantar servicios definidos en docker-compose.yml" }
+    ]
+  },
+  {
+    "name": "make",
+    "category": "development",
+    "description_es": "Ejecuta tareas definidas en un Makefile",
+    "description_en": "Execute tasks defined in a Makefile",
+    "flags": [],
+    "examples": [
+      { "command": "make", "description": "Ejecutar la primera tarea del Makefile" },
+      { "command": "make build", "description": "Ejecutar la tarea 'build'" }
+    ]
+  },
+  {
+    "name": "gcc",
+    "category": "development",
+    "description_es": "Compilador de C/C++",
+    "description_en": "C/C++ compiler",
+    "flags": [
+      { "flag": "-o", "description": "Nombre del archivo de salida" }
+    ],
+    "examples": [
+      { "command": "gcc programa.c -o programa", "description": "Compilar programa.c a ejecutable" }
+    ]
+  },
+  {
+    "name": "rustc",
+    "category": "development",
+    "description_es": "Compilador de Rust",
+    "description_en": "Rust compiler",
+    "flags": [
+      { "flag": "-o", "description": "Nombre del archivo de salida" }
+    ],
+    "examples": [
+      { "command": "rustc main.rs -o programa", "description": "Compilar main.rs a ejecutable" }
+    ]
+  },
+  {
+    "name": "clear",
+    "category": "system",
+    "description_es": "Limpia la pantalla de la terminal",
+    "description_en": "Clear the terminal screen",
+    "flags": [],
+    "examples": [
+      { "command": "clear", "description": "Limpiar la pantalla" }
+    ]
+  },
+  {
+    "name": "history",
+    "category": "system",
+    "description_es": "Muestra los comandos que has ejecutado recientemente",
+    "description_en": "Show recently executed commands",
+    "flags": [],
+    "examples": [
+      { "command": "history", "description": "Ver historial de comandos" },
+      { "command": "history | grep git", "description": "Buscar comandos git en el historial" }
+    ]
+  },
+  {
+    "name": "man",
+    "category": "system",
+    "description_es": "Muestra el manual de un comando (presiona q para salir)",
+    "description_en": "Show the manual for a command (press q to quit)",
+    "flags": [],
+    "examples": [
+      { "command": "man ls", "description": "Ver el manual completo de ls" },
+      { "command": "man grep", "description": "Ver el manual de grep" }
+    ]
+  },
+  {
+    "name": "sudo",
+    "category": "system",
+    "description_es": "Ejecuta un comando con privilegios de administrador",
+    "description_en": "Run a command with administrator privileges",
+    "flags": [],
+    "examples": [
+      { "command": "sudo apt update", "description": "Actualizar paquetes como admin" },
+      { "command": "sudo rm archivo-sistema", "description": "Eliminar archivo del sistema" }
+    ]
+  },
+  {
+    "name": "uname",
+    "category": "system",
+    "description_es": "Muestra información sobre el sistema operativo",
+    "description_en": "Show operating system information",
+    "flags": [
+      { "flag": "-a", "description": "Muestra toda la información" }
+    ],
+    "examples": [
+      { "command": "uname -a", "description": "Ver info completa del sistema" }
+    ]
+  },
+  {
+    "name": "whoami",
+    "category": "system",
+    "description_es": "Muestra el nombre de usuario actual",
+    "description_en": "Show current username",
+    "flags": [],
+    "examples": [
+      { "command": "whoami", "description": "Ver tu nombre de usuario" }
+    ]
+  },
+  {
+    "name": "uptime",
+    "category": "system",
+    "description_es": "Muestra cuánto tiempo lleva encendida la máquina",
+    "description_en": "Show how long the machine has been running",
+    "flags": [],
+    "examples": [
+      { "command": "uptime", "description": "Ver tiempo de actividad del sistema" }
+    ]
+  },
+  {
+    "name": "date",
+    "category": "system",
+    "description_es": "Muestra la fecha y hora actual",
+    "description_en": "Show current date and time",
+    "flags": [],
+    "examples": [
+      { "command": "date", "description": "Ver fecha y hora actual" }
+    ]
+  },
+  {
+    "name": "env",
+    "category": "system",
+    "description_es": "Muestra las variables de entorno del sistema",
+    "description_en": "Show environment variables",
+    "flags": [],
+    "examples": [
+      { "command": "env", "description": "Ver todas las variables de entorno" },
+      { "command": "env | grep PATH", "description": "Buscar la variable PATH" }
+    ]
+  },
+  {
+    "name": "export",
+    "category": "system",
+    "description_es": "Crea o modifica una variable de entorno",
+    "description_en": "Create or modify an environment variable",
+    "flags": [],
+    "examples": [
+      { "command": "export PATH=$PATH:/usr/local/bin", "description": "Agregar ruta al PATH" },
+      { "command": "export EDITOR=vim", "description": "Definir editor por defecto" }
+    ]
+  },
+  {
+    "name": "alias",
+    "category": "system",
+    "description_es": "Crea un atajo (alias) para un comando largo",
+    "description_en": "Create a shortcut for a long command",
+    "flags": [],
+    "examples": [
+      { "command": "alias ll='ls -la'", "description": "Crear alias 'll' para 'ls -la'" },
+      { "command": "alias", "description": "Ver todos los alias definidos" }
+    ]
+  },
+  {
+    "name": "exit",
+    "category": "system",
+    "description_es": "Cierra la sesión de terminal actual",
+    "description_en": "Close the current terminal session",
+    "flags": [],
+    "examples": [
+      { "command": "exit", "description": "Salir de la terminal" }
+    ]
+  },
+  {
+    "name": "brew",
+    "category": "package_manager",
+    "description_es": "Gestor de paquetes para macOS (Homebrew)",
+    "description_en": "Package manager for macOS (Homebrew)",
+    "flags": [],
+    "examples": [
+      { "command": "brew install node", "description": "Instalar un paquete" },
+      { "command": "brew search firefox", "description": "Buscar un paquete" },
+      { "command": "brew update", "description": "Actualizar la lista de paquetes" },
+      { "command": "brew upgrade", "description": "Actualizar todos los paquetes instalados" }
+    ]
+  },
+  {
+    "name": "apt",
+    "category": "package_manager",
+    "description_es": "Gestor de paquetes para Debian/Ubuntu",
+    "description_en": "Package manager for Debian/Ubuntu",
+    "flags": [],
+    "examples": [
+      { "command": "sudo apt update", "description": "Actualizar lista de paquetes" },
+      { "command": "sudo apt install nginx", "description": "Instalar un paquete" },
+      { "command": "sudo apt upgrade", "description": "Actualizar todos los paquetes" },
+      { "command": "sudo apt remove nginx", "description": "Desinstalar un paquete" }
+    ]
+  },
+  {
+    "name": "cut",
+    "category": "search",
+    "description_es": "Extrae columnas o campos de cada línea de texto",
+    "description_en": "Extract columns or fields from each line",
+    "flags": [
+      { "flag": "-d", "description": "Define el delimitador (por defecto es tab)" },
+      { "flag": "-f", "description": "Selecciona qué campo(s) extraer" }
+    ],
+    "examples": [
+      { "command": "cut -d: -f1 /etc/passwd", "description": "Extraer primer campo de /etc/passwd (usuarios)" },
+      { "command": "ls -l | cut -d' ' -f9", "description": "Extraer nombres de archivo de ls -l" }
     ]
   }
 ]
