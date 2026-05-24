@@ -15,12 +15,12 @@ fn main() {
             // Fase 1 — activos
             pty::spawn_shell,
             pty::write_to_shell,
+            pty::resize_pty,
             // Fase 2 — activos
             fs_explorer::list_directory,
             fs_explorer::get_home_directory,
             ckb::get_suggestions,
             ckb::get_command_info,
-            // Fase 2 — activos
             pty::get_shell_cwd,
             // Fase 3 — activos
             context::detect_context,

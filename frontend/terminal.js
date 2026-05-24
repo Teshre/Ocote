@@ -53,7 +53,21 @@ fitAddon.fit();
 // Exponer terminal para que otros scripts puedan consultar posición del cursor
 window.ocoteTerminal = term;
 
-// Redimensionar cuando la ventana cambie de tamaño
+// ── Sincronizar tamaño PTY ↔ xterm.js ───────────────────────────────────
+//
+// Problema sin esto: vim, htop, fzf y cualquier app TUI llaman a
+// ioctl(TIOCGWINSZ) para saber el tamaño de la terminal. Si el PTY
+// dice 24×80 pero xterm.js tiene 55×220, la app renderiza en 24 líneas.
+//
+// Solución: cada vez que xterm.js cambia de tamaño, le avisamos al PTY.
+// El kernel envía SIGWINCH al proceso hijo → la app se redibuja.
+term.onResize(({ rows, cols }) => {
+  invoke('resize_pty', { rows, cols }).catch(console.error);
+});
+
+// Redimensionar cuando la ventana del OS cambie de tamaño.
+// fitAddon.fit() recalcula las filas/cols que caben en el contenedor,
+// luego llama term.resize() internamente, lo que dispara onResize arriba.
 window.addEventListener('resize', () => {
   fitAddon.fit();
 });
@@ -149,6 +163,12 @@ term.onData((data) => {
 // ── Conectar output del PTY ──────────────────────────────────────────────
 async function init() {
   await invoke('spawn_shell');
+
+  // Enviar el tamaño real de xterm.js al PTY inmediatamente.
+  // fitAddon.fit() ya corrió antes de init(), así que term.rows/cols
+  // ya tienen las dimensiones reales del contenedor.
+  // Sin esto, el primer TUI app que abra el usuario verá 24 filas.
+  invoke('resize_pty', { rows: term.rows, cols: term.cols }).catch(console.error);
 
   await listen('pty-output', (e) => {
     term.write(e.payload);
