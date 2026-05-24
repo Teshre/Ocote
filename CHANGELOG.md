@@ -15,6 +15,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [0.5.4] — 2026-05-23 — CKB ampliada: editores y herramientas TUI
+
+### Agregado
+- **7 comandos nuevos en CKB** (`ckb/commands.json`): 69 → 76 comandos
+  - **editor (4)**: `vim`, `nvim`, `nano`, `vi` — con modos, atajos de teclado y ejemplos
+  - **process (1)**: `htop` — monitor interactivo con atajos F2/F3/F5/F9
+  - **search (1)**: `fzf` — fuzzy finder con uso en pipes
+  - **system (1)**: `tmux` — multiplexor con prefijo Ctrl+b
+
+---
+
 ## [0.5.0] — 2026-05-23 — Detección de contexto (Fase 3 inicio)
 
 ### Agregado
