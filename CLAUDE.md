@@ -67,15 +67,21 @@ ckb/
 - Popup de autocompletado se posiciona dinámicamente debajo del cursor usando `cursorY` y `lineHeight` de xterm.js.
 - `get_command_info()` devuelve `Option<Command>` — `null` si no está en CKB.
 
-**Fase 3 — En progreso:**
+**Fase 3 COMPLETADA — 2026-05-23:**
 
-✅ **Detección de contexto** (`context.rs` v1): `detect_context(path)` detecta Git, Node, Rust, Python, Docker, Go, Make. Devuelve `ContextInfo { project_type, project_types, suggestions, label }`. 3 tests pasando.
+✅ **Detección de contexto** (`context.rs`): `detect_context(path)` detecta Git, Node, Rust, Python, Docker, Go, Make. 3 tests pasando.
+✅ **Contexto en autocompletado**: sugerencias contextuales primero (badge naranja), luego CKB. Cache por CWD.
+✅ **Onboarding**: overlay animado al primer uso, grid 2×2 de features, `localStorage`. Ctrl+Shift+? para volver a verlo.
+✅ **Soporte TUI**: `resize_pty(rows, cols)` sincroniza tamaño PTY↔xterm.js vía SIGWINCH. vim, nano, htop, fzf, tmux en CKB (76 comandos).
+✅ **Distribución**: GitHub Actions compila macOS (.dmg), Windows (.exe NSIS), Linux (.AppImage/.deb) al hacer `git tag vX.Y.Z && git push origin vX.Y.Z`.
 
-🔜 **Próximos pasos Fase 3:**
-1. **Integrar contexto en autocompletado**: cuando el usuario escribe, llamar `detect_context(cwd)` y mezclar las sugerencias contextuales con los resultados de la CKB.
-2. **Onboarding**: flujo de bienvenida para primer uso (mostrar una vez, persistir flag en disco).
-3. **Soporte de apps TUI** (vim, htop, fzf): investigar si xterm.js + Tauri ya lo soportan.
-4. **Distribución**: build `.app` para macOS, firma de código.
+**Próximo paso — Fase 4 (Comunidad, lanzamiento, credibilidad técnica):**
+1. Ícono real de Ocote (diseño propio)
+2. Landing page / sitio web
+3. Expandir CKB: 76 → 150+ comandos
+4. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
+5. Auto-updater (cuando el ícono y firma estén listos)
+6. Devlog público / blog técnico
 
 ## Cómo ayudar al desarrollador
 - Es developer en aprendizaje, usa IA como asistente principal

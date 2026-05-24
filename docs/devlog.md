@@ -5,6 +5,35 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-05-23 — Sesión 7: Fase 3 completa
+
+**Estado al inicio:** Fase 2 completada. Iniciando Fase 3.
+
+**Qué se hizo:**
+
+- **Detección de contexto** (`context.rs`): `detect_context(path)` detecta tipo de proyecto leyendo archivos centinela. Soporta Git, Node, Rust, Python, Docker, Go, Make. Múltiples tipos por directorio. 3 tests unitarios.
+- **Contexto en autocompletado** (`autocomplete.js`): consulta CKB y `detect_context` en paralelo. Sugerencias contextuales aparecen primero con badge naranja (ej. "Git · Node.js"). Cache por CWD para no llamar `detect_context` en cada tecla.
+- **Fix sync explorador**: click en carpeta con texto escrito en terminal causaba que el explorador regresara. Fix: `\x15` (Ctrl+U) limpia buffer ZLE antes de `cd`. `window.resetTerminalInput()` sincroniza estado.
+- **Onboarding** (`onboarding.js`): overlay animado al primer uso con grid 2×2 de features. `localStorage` persiste el estado. Ctrl+Shift+? para volver a ver. Ícono de la app via `frontend/icon.png` (placeholder, listo para swap).
+- **Soporte TUI** (`pty.rs`): `PtyState` guarda el master del PTY. `resize_pty(rows, cols)` llama `master.resize()` → kernel envía SIGWINCH → vim/htop/fzf se redibujan con dimensiones correctas.
+- **CKB ampliada** (69 → 76 comandos): `vim`, `nvim`, `nano`, `vi`, `htop`, `fzf`, `tmux` con modos, atajos de teclado y ejemplos en español.
+- **Distribución multiplataforma**: `tauri icon` generó `.icns` (macOS) e `.ico` (Windows). `tauri.conf.json` actualizado con metadatos, categoría, instaladores. `.github/workflows/release.yml`: matrix macOS/Ubuntu/Windows, se activa con `git tag vX.Y.Z`.
+
+**Decisiones tomadas:**
+- Contexto cacheado por CWD (no por sesión): si el usuario cambia de directorio, el cache se invalida naturalmente en el siguiente keypress.
+- `\x15` (Ctrl+U) en vez de `\x03` (Ctrl+C) para limpiar buffer ZLE antes de navegar desde el explorador: Ctrl+C cancela el proceso, Ctrl+U solo limpia la línea.
+- GitHub Actions con `releaseDraft: true`: el release no se publica automáticamente. El developer lo revisa y decide cuándo publicar.
+
+**Estado al final:**
+- Fase 3 completada ✅
+- 76 comandos en CKB ✅
+- TUI apps funcionales (vim, nano, htop, fzf, tmux) ✅
+- Pipeline de distribución listo: `git tag v0.6.0 && git push origin v0.6.0` genera los tres instaladores ✅
+
+**Próximo paso:** Fase 4 — ícono real, landing page, firma de código macOS, CKB 150+ comandos.
+
+---
+
 ## 2026-05-22 — Sesión 5: Diagnóstico de bugs + migración a xterm.js
 
 **Estado al inicio:** Fase 1 completada pero con 3 bugs persistentes: double-char (`ccd` al escribir `cd`), backspace errático, y comando que desaparece tras Enter. Se intentaron fixes con env vars (`ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE`, `POWERLEVEL9K_TRANSIENT_PROMPT`) e inyección post-.zshrc sin éxito.

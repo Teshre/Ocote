@@ -7,11 +7,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
-### En progreso
-- Fase 3: integrar contexto en autocompletado (priorizar sugerencias contextuales)
-- Fase 3: onboarding de primer uso
-- Fase 3: soporte de apps TUI (vim, htop, fzf)
-- Fase 3: distribución (build .app para macOS)
+### Fase 4 — En progreso
+- Ícono real de Ocote
+- Landing page / sitio web
+- CKB: 76 → 150+ comandos
+- Firma de código macOS (Apple Developer ID)
+- Auto-updater
 
 ---
 
