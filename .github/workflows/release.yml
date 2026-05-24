@@ -1,0 +1,109 @@
+# release.yml — Build y distribución multiplataforma de Ocote
+#
+# Se activa cuando haces push de un tag que empiece con "v" (ej. v0.6.0).
+# Crea tres builds en paralelo — uno por plataforma — y los sube como
+# artefactos a un GitHub Release en borrador listo para publicar.
+#
+# Cómo lanzar un release:
+#   1. git tag v0.6.0
+#   2. git push origin v0.6.0
+#   3. Esperar ~10 minutos a que los tres builds terminen
+#   4. Ir a GitHub → Releases → editar el borrador y publicarlo
+#
+# Artefactos generados:
+#   macOS   → Ocote_0.6.0_aarch64.dmg  (Apple Silicon)
+#             Ocote_0.6.0_x64.dmg       (Intel Mac, si se configura)
+#   Windows → Ocote_0.6.0_x64-setup.exe
+#   Linux   → Ocote_0.6.0_amd64.AppImage
+#             Ocote_0.6.0_amd64.deb
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'   # dispara en: v0.6.0, v1.0.0, v1.2.3-beta, etc.
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false   # si un build falla, los otros dos siguen corriendo
+      matrix:
+        platform:
+          - macos-latest      # compila .dmg (Apple Silicon + Intel)
+          - ubuntu-22.04      # compila .AppImage y .deb
+          - windows-latest    # compila .exe (NSIS installer)
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      # ── 2. Rust ──────────────────────────────────────────────────────────
+      - name: Instalar Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      # Cache de dependencias Rust para builds más rápidos en la segunda vez
+      - name: Cache de Cargo
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      # ── 3. Node.js + pnpm ────────────────────────────────────────────────
+      - name: Instalar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      # ── 4. Dependencias de sistema (solo Linux) ──────────────────────────
+      # WebKit2GTK y otras libs nativas que Tauri necesita en Linux.
+      # No se necesitan en macOS ni Windows porque usan webviews del SO.
+      - name: Dependencias de sistema (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libwebkit2gtk-4.0-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            libsoup2.4-dev \
+            libjavascriptcoregtk-4.0-dev
+
+      # ── 5. Dependencias de frontend ──────────────────────────────────────
+      - name: Instalar dependencias de frontend
+        run: pnpm install
+
+      # ── 6. Build Tauri ───────────────────────────────────────────────────
+      # tauri-action maneja todo: cargo build --release, empaquetado,
+      # creación del GitHub Release y subida de artefactos.
+      - name: Build y publicar release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}         # ej: v0.6.0
+          releaseName: 'Ocote ${{ github.ref_name }}'
+          releaseBody: |
+            ## Ocote ${{ github.ref_name }}
+
+            Terminal offline, sin IA, hecha para humanos.
+
+            ### Instalación
+            - **macOS**: descarga el `.dmg`, ábrelo y arrastra Ocote a Aplicaciones
+            - **Windows**: descarga el `.exe` y sigue el instalador
+            - **Linux**: descarga el `.AppImage`, dale permisos con `chmod +x` y ejecútalo
+
+            ---
+            Consulta [CHANGELOG.md](https://github.com/Teshre/Ocote/blob/main/CHANGELOG.md) para ver los cambios de esta versión.
+          releaseDraft: true      # crea el release como borrador — tú decides cuándo publicar
+          prerelease: false

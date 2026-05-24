@@ -1916,7 +1916,7 @@ dependencies = [
 
 [[package]]
 name = "ocote"
-version = "0.1.0"
+version = "0.5.4"
 dependencies = [
  "portable-pty",
  "rusqlite",

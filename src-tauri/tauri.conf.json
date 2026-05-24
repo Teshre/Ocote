@@ -9,7 +9,7 @@
   },
   "package": {
     "productName": "Ocote",
-    "version": "0.1.0"
+    "version": "0.5.4"
   },
   "tauri": {
     "allowlist": {
@@ -27,11 +27,47 @@
         "icons/32x32.png",
         "icons/128x128.png",
         "icons/128x128@2x.png",
-        "icons/icon.png"
-      ]
+        "icons/icon.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
+      ],
+      "copyright": "© 2026 Ocote. MIT License.",
+      "category": "DeveloperTool",
+      "shortDescription": "Terminal offline, sin IA, hecha para humanos",
+      "longDescription": "Ocote es una terminal de línea de comandos con explorador de archivos integrado, autocompletado contextual y tooltips educativos. 100% offline, sin IA, hecha para América Latina.",
+      "macOS": {
+        "frameworks": [],
+        "exceptionDomain": null,
+        "signingIdentity": null,
+        "providerShortName": null,
+        "entitlements": null,
+        "minimumSystemVersion": "10.15"
+      },
+      "windows": {
+        "certificateThumbprint": null,
+        "digestAlgorithm": "sha256",
+        "timestampUrl": "",
+        "wix": {
+          "language": "es-MX"
+        },
+        "nsis": {
+          "installMode": "currentUser",
+          "languages": ["SimpChinese"],
+          "displayLanguageSelector": false
+        }
+      },
+      "deb": {
+        "depends": []
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
     },
     "security": {
       "csp": null
+    },
+    "updater": {
+      "active": false
     },
     "windows": [
       {
