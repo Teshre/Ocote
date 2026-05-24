@@ -32,7 +32,7 @@ frontend/
   tooltip.js       ← card educativa de comandos
   theme.css        ← estilos
 ckb/
-  commands.json    ← fuente de datos de la CKB (62 comandos, objetivo 100-200)
+  commands.json    ← fuente de datos de la CKB (69 comandos, objetivo 100-200)
 ```
 
 ## Roadmap (4 fases, 12-18 meses)
@@ -50,7 +50,7 @@ ckb/
 - Tab-completion, historial, inline editing, Ctrl+C/D/L vía ZLE ✅
 - Explorador de archivos lateral con cache (`explorer.js` + `fs_explorer.rs`) ✅
 - Sincronización bidireccional terminal↔explorador (fast-path + polling) ✅
-- CKB en SQLite con 62 comandos (`ckb.rs` + `ckb/commands.json`) ✅
+- CKB en SQLite con 69 comandos (`ckb.rs` + `ckb/commands.json`) ✅
 - Autocompletado visual posicionado debajo del cursor (`autocomplete.js` + `window.ocoteTerminal`) ✅
 - Tooltip educativo funcional con argumentos (`tooltip.js`) ✅
 - ~20 commits en `main`, rama sin PRs pendientes
@@ -67,12 +67,15 @@ ckb/
 - Popup de autocompletado se posiciona dinámicamente debajo del cursor usando `cursorY` y `lineHeight` de xterm.js.
 - `get_command_info()` devuelve `Option<Command>` — `null` si no está en CKB.
 
-**Próximo paso — Fase 3 (Sugerencias contextuales, Onboarding, Distribución):**
-1. **Detección de contexto** (`context.rs`): detectar si el CWD actual es un repo git, proyecto node (package.json), python (requirements.txt), rust (Cargo.toml), docker, etc.
-2. **Sugerencias contextuales**: priorizar comandos relevantes en el autocompletado según el contexto detectado.
-3. **Onboarding**: flujo de bienvenida para primer uso, explicando explorador, breadcrumb, autocomplete y tooltip.
-4. **Soporte de apps TUI** (vim, htop, fzf): investigar si xterm.js + Tauri ya lo soportan o qué falta (screen buffer 2D, focus handling).
-5. **Distribución**: build de `.app` para macOS, investigar firma de código y auto-updater.
+**Fase 3 — En progreso:**
+
+✅ **Detección de contexto** (`context.rs` v1): `detect_context(path)` detecta Git, Node, Rust, Python, Docker, Go, Make. Devuelve `ContextInfo { project_type, project_types, suggestions, label }`. 3 tests pasando.
+
+🔜 **Próximos pasos Fase 3:**
+1. **Integrar contexto en autocompletado**: cuando el usuario escribe, llamar `detect_context(cwd)` y mezclar las sugerencias contextuales con los resultados de la CKB.
+2. **Onboarding**: flujo de bienvenida para primer uso (mostrar una vez, persistir flag en disco).
+3. **Soporte de apps TUI** (vim, htop, fzf): investigar si xterm.js + Tauri ya lo soportan.
+4. **Distribución**: build `.app` para macOS, firma de código.
 
 ## Cómo ayudar al desarrollador
 - Es developer en aprendizaje, usa IA como asistente principal

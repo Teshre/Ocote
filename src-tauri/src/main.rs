@@ -22,8 +22,8 @@ fn main() {
             ckb::get_command_info,
             // Fase 2 — activos
             pty::get_shell_cwd,
-            // Fase 3
-            // context::detect_context,
+            // Fase 3 — activos
+            context::detect_context,
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar Ocote");

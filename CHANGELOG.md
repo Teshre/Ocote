@@ -8,10 +8,35 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### En progreso
-- Fase 3: detección de contexto (git, node, python, etc.)
+- Fase 3: integrar contexto en autocompletado (priorizar sugerencias contextuales)
 - Fase 3: onboarding de primer uso
 - Fase 3: soporte de apps TUI (vim, htop, fzf)
 - Fase 3: distribución (build .app para macOS)
+
+---
+
+## [0.5.0] — 2026-05-23 — Detección de contexto (Fase 3 inicio)
+
+### Agregado
+- **`context.rs`** — detección de tipo de proyecto sin IA ni red, solo lectura de archivos centinela:
+  - `Git` → detecta `.git/`
+  - `Node` → detecta `package.json`
+  - `Rust` → detecta `Cargo.toml`
+  - `Python` → detecta `requirements.txt`, `pyproject.toml` o `setup.py`
+  - `Docker` → detecta `docker-compose.yml`, `docker-compose.yaml` o `Dockerfile`
+  - `Go` → detecta `go.mod`
+  - `Make` → detecta `Makefile`
+  - `Unknown` → directorio sin marcadores conocidos
+- **Tipos múltiples por directorio**: un repo puede ser `Git · Node.js` o `Git · Rust` simultáneamente
+- **`suggestions`**: lista ordenada de comandos relevantes por tipo (ej. `git status`, `cargo build`)
+- **`label`**: etiqueta legible para la UI (ej. `"Git · Node.js"`)
+- **Comando Tauri `detect_context(path)`**: expuesto al frontend vía `invoke`
+- **3 tests unitarios** (`cargo test context`): directorio raíz, directorio desconocido, label multi-tipo
+
+### Decisiones técnicas
+- Detección por existencia de archivos (`Path::exists()`): O(1) por archivo, sin leer contenidos
+- Prioridad fija: Git > Node > Rust > Python > Docker > Go > Make — el tipo principal es siempre el primero
+- Múltiples tipos en paralelo: `project_types: Vec<ProjectType>` en vez de un único enum, para que el frontend pueda combinar sugerencias
 
 ---
 
@@ -29,19 +54,19 @@ Ajustes finales de UX antes de cerrar Fase 2.
 
 ---
 
-## [0.4.3] — 2026-05-22 — CKB ampliada: 12 → 62 comandos
+## [0.4.3] — 2026-05-22 — CKB ampliada: 12 → 69 comandos
 
-Command Knowledge Base expandida de 12 a 62 comandos cubriendo filesystem, búsqueda, procesos, red, desarrollo, sistema y gestores de paquetes.
+Command Knowledge Base expandida de 12 a 69 comandos cubriendo filesystem, búsqueda, procesos, red, desarrollo, sistema y gestores de paquetes.
 
 ### Agregado
 - **CKB expandida** (`ckb/commands.json`): 50 comandos nuevos organizados por categoría
-  - **filesystem (12 nuevos)**: `touch`, `head`, `tail`, `less`, `find`, `which`, `chmod`, `chown`, `du`, `df`, `tar`, `gzip`, `zip`, `unzip`, `ln`
-  - **search (6 nuevos)**: `sed`, `awk`, `wc`, `sort`, `uniq`, `xargs`, `cut`
-  - **process (5 nuevos)**: `ps`, `top`, `kill`, `killall`, `jobs`, `fg`, `bg`
-  - **network (7 nuevos)**: `ping`, `curl`, `wget`, `ssh`, `scp`, `rsync`, `ifconfig`, `netstat`
-  - **development (5 nuevos)**: `node`, `python3`, `docker`, `make`, `gcc`, `rustc`
-  - **system (9 nuevos)**: `clear`, `history`, `man`, `sudo`, `uname`, `whoami`, `uptime`, `date`, `env`, `export`, `alias`, `exit`
-  - **package_manager (2 nuevos)**: `brew`, `apt`
+  - **filesystem (23)**: `ls`, `cd`, `pwd`, `mkdir`, `rm`, `cp`, `mv`, `cat`, `touch`, `head`, `tail`, `less`, `find`, `which`, `chmod`, `chown`, `du`, `df`, `tar`, `gzip`, `zip`, `unzip`, `ln`
+  - **search (8)**: `grep`, `sed`, `awk`, `wc`, `sort`, `uniq`, `xargs`, `cut`
+  - **process (7)**: `ps`, `top`, `kill`, `killall`, `jobs`, `fg`, `bg`
+  - **network (8)**: `ping`, `curl`, `wget`, `ssh`, `scp`, `rsync`, `ifconfig`, `netstat`
+  - **development (9)**: `git`, `node`, `npm`, `cargo`, `python3`, `docker`, `make`, `gcc`, `rustc`
+  - **system (12)**: `clear`, `history`, `man`, `sudo`, `uname`, `whoami`, `uptime`, `date`, `env`, `export`, `alias`, `exit`
+  - **package_manager (2)**: `brew`, `apt`
   - Todos con descripciones en español, flags comunes y ejemplos prácticos
 
 ---
