@@ -84,6 +84,8 @@ async function loadDirectory(path, options = {}) {
     
     currentPath = path;
     lastSyncedPath = path;
+    // Exponer el CWD globalmente para que autocomplete.js pueda leer el contexto
+    window.ocoteCwd = path;
     updateBreadcrumb(path);
     
     // 1. Intentar cache (renderizado instantáneo)
@@ -206,9 +208,24 @@ async function handleClick(e) {
     // Cargar directorio (con cache es instantáneo)
     await loadDirectory(path, { instant: true });
     
-    // Sincronizar con PTY
+    // Sincronizar con PTY:
+    // Problema: si el usuario tiene texto a medio escribir en la terminal,
+    // ZLE lo tiene en su buffer. Mandar `cd /ruta\r` directamente lo concatena
+    // con lo que ya está escrito → el comando falla → el explorador regresa al dir anterior.
+    //
+    // Solución:
+    //   1. \x15 = Ctrl+U → ZLE borra todo el buffer actual (igual que el usuario
+    //      presionara Ctrl+U). El texto en pantalla desaparece.
+    //   2. `cd "${path}"\r` → ahora el buffer está limpio y el cd se ejecuta solo.
+    //   3. Resetear el tracking de input en terminal.js para que el autocompletado
+    //      y el tooltip no queden con el estado del texto que se borró.
     try {
-        await window.__TAURI__.invoke('write_to_shell', { input: `cd "${path}"\n` });
+        await window.__TAURI__.invoke('write_to_shell', { input: '\x15' });
+        await window.__TAURI__.invoke('write_to_shell', { input: `cd "${path}"\r` });
+        // Notificar a terminal.js que el input fue reseteado externamente
+        if (window.resetTerminalInput) {
+            window.resetTerminalInput();
+        }
     } catch (err) {
         console.error('[Explorer] Error sincronizando con PTY:', err);
     }

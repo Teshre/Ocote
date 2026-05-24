@@ -128,6 +128,18 @@ function updateCurrentInput(data) {
   }
 }
 
+// ── Reset externo del tracking de input ─────────────────────────────────
+// explorer.js lo llama cuando navega a un directorio desde el panel lateral.
+// Mantiene sincronizado el estado de currentInput/currentCommandLine con lo
+// que realmente está en el buffer de ZLE (que quedó vacío tras el Ctrl+U).
+window.resetTerminalInput = function () {
+    currentInput = '';
+    currentCommandLine = '';
+    if (window.onTerminalInputChanged) {
+        window.onTerminalInputChanged('');  // cierra el popup de autocompletado
+    }
+};
+
 // ── Conectar input al PTY ────────────────────────────────────────────────
 term.onData((data) => {
   updateCurrentInput(data);

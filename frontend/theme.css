@@ -204,6 +204,20 @@ body {
   text-overflow: ellipsis;
 }
 
+/* Badge de contexto: aparece en ítems de sugerencia contextual.
+   Color naranja tenue para distinguirlos visualmente de los de la CKB,
+   sin ser intrusivo. Ej: "Git · Rust", "Node.js" */
+.autocomplete-context-badge {
+  margin-left: auto;           /* empuja el badge al extremo derecho */
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* Tooltip educativo */
 #tooltip-card {
   position: absolute;
