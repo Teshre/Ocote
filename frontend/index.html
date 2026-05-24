@@ -48,10 +48,72 @@
   <script src="lib/xterm.js"></script>
   <script src="lib/addon-fit.js"></script>
 
+  <!-- Onboarding: overlay de primer uso.
+       onboarding.js decide si mostrarlo según localStorage. -->
+  <div id="onboarding-overlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+    <div id="onboarding-card">
+
+      <!-- Encabezado -->
+      <div id="onboarding-header">
+        <!-- Ícono de la app. Reemplazar frontend/icon.png con el ícono real cuando esté listo. -->
+        <img id="onboarding-logo" src="icon.png" alt="Ocote" />
+        <div>
+          <h1 id="onboarding-title">Bienvenido a Ocote</h1>
+          <p id="onboarding-subtitle">Terminal offline · sin IA · hecha para humanos</p>
+        </div>
+      </div>
+
+      <!-- Grid de features -->
+      <div id="onboarding-features">
+
+        <div class="onboarding-feature">
+          <span class="onboarding-feature-icon">📁</span>
+          <div>
+            <strong>Explorador de archivos</strong>
+            <p>El panel izquierdo muestra tu directorio actual. Haz clic en una carpeta para navegar — la terminal se sincroniza automáticamente.</p>
+          </div>
+        </div>
+
+        <div class="onboarding-feature">
+          <span class="onboarding-feature-icon">⚡</span>
+          <div>
+            <strong>Autocompletado contextual</strong>
+            <p>Escribe el inicio de un comando y aparecen sugerencias. En un proyecto Rust verás <code>cargo build</code> primero; en uno Node, <code>npm run dev</code>.</p>
+          </div>
+        </div>
+
+        <div class="onboarding-feature">
+          <span class="onboarding-feature-icon">💡</span>
+          <div>
+            <strong>Tooltip educativo</strong>
+            <p>Al ejecutar un comando reconocido aparece una card con su descripción, flags comunes y un ejemplo. Se cierra solo o con <kbd>Esc</kbd>.</p>
+          </div>
+        </div>
+
+        <div class="onboarding-feature">
+          <span class="onboarding-feature-icon">🔒</span>
+          <div>
+            <strong>100% offline</strong>
+            <p>Toda la ayuda viene de una base de datos local. Ocote nunca hace peticiones de red. Lo que corre en tu máquina, se queda en tu máquina.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- CTA -->
+      <button id="onboarding-btn">Comenzar →</button>
+
+      <!-- Hint para volver a ver el onboarding -->
+      <p id="onboarding-hint">Puedes volver a ver esto en cualquier momento con <kbd>Ctrl+Shift+?</kbd></p>
+
+    </div>
+  </div>
+
   <!-- Nuestros módulos JS -->
   <script src="terminal.js"></script>
   <script src="explorer.js"></script>
   <script src="autocomplete.js"></script>
   <script src="tooltip.js"></script>
+  <script src="onboarding.js"></script>
 </body>
 </html>
