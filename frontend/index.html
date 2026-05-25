@@ -24,6 +24,12 @@
   <div id="breadcrumb">
     <span id="breadcrumb-path">~/</span>
 
+    <!-- Selector de tema de íconos del explorador -->
+    <div id="icon-theme-selector" title="Tema de íconos / Icon theme">
+      <button class="icon-theme-btn active" data-theme="seti" title="Íconos SVG (estilo VS Code)">⬛</button>
+      <button class="icon-theme-btn" data-theme="badge" title="Badges de texto compactos">⊞</button>
+    </div>
+
     <!-- Selector de idioma de la CKB.
          Guarda la preferencia en localStorage('ocote_lang').
          El valor se lee en autocomplete.js y tooltip.js vía getLang(). -->
@@ -128,6 +134,27 @@
   <script src="autocomplete.js"></script>
   <script src="tooltip.js"></script>
   <script src="onboarding.js"></script>
+
+  <!-- Selector de tema de íconos -->
+  <script>
+    (function () {
+      const savedTheme = localStorage.getItem('ocote_icon_theme') || 'seti';
+      document.querySelectorAll('.icon-theme-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.theme === savedTheme);
+      });
+
+      document.getElementById('icon-theme-selector').addEventListener('click', e => {
+        const btn = e.target.closest('.icon-theme-btn');
+        if (!btn) return;
+        const theme = btn.dataset.theme;
+        localStorage.setItem('ocote_icon_theme', theme);
+        document.querySelectorAll('.icon-theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
+        // Recargar íconos sin recargar el directorio completo
+        // explorer.js re-renderiza cuando ocoteCwd está disponible
+        if (window._explorerRefresh) window._explorerRefresh();
+      });
+    })();
+  </script>
 
   <!-- Selector de idioma: pequeño, no necesita archivo propio -->
   <script>

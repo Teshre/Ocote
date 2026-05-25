@@ -261,21 +261,239 @@ function truncateName(name, maxLen) {
     return name.length <= maxLen ? name : name.substring(0, maxLen - 3) + '...';
 }
 
-// ── Sistema de íconos dinámicos ──────────────────────────────────────────
+// ── Sistema de íconos dinámicos v2 ──────────────────────────────────────
 //
-// Cada archivo muestra un badge de color que refleja su tecnología,
-// igual que el Material Icon Theme de VS Code.
+// Dos temas seleccionables (guardado en localStorage('ocote_icon_theme')):
 //
-// Estructura del badge: <span class="file-icon" style="background:BG;color:FG">LABEL</span>
-// Las carpetas usan un triángulo coloreado según el nombre.
+//   "seti"  — íconos SVG con forma de documento, coloreados por tipo (default)
+//   "badge" — badges de texto compactos con color de fondo
 //
-// Jerarquía de resolución para archivos:
+// Jerarquía de resolución (igual para ambos temas):
 //   1. Nombre completo especial  (package.json, Cargo.toml, .env…)
 //   2. Doble extensión           (.d.ts, .tar.gz…)
 //   3. Extensión simple          (.js, .rs, .py…)
-//   4. Dotfiles sin extensión    (.gitconfig → CFG)
-//   5. Fallback genérico         (···)
+//   4. Dotfiles sin extensión    (.gitconfig → config genérico)
+//   5. Fallback genérico
 
+function getIconTheme() {
+    return localStorage.getItem('ocote_icon_theme') || 'seti';
+}
+
+// ── Tema "seti": SVG document icons ────────────────────────────────────
+//
+// Cada ícono es un SVG 16×16 con forma de documento (rectángulo + esquina
+// doblada). El color de relleno identifica la tecnología.
+// fold = color más oscuro para la esquina doblada (da profundidad).
+
+function svgFile(fill, fold) {
+    return `<svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2.5 1H9.5L13.5 5V15H2.5V1Z" fill="${fill}"/>
+        <path d="M9.5 1V5H13.5" fill="${fold}" opacity="0.7"/>
+    </svg>`;
+}
+
+// Carpeta SVG: pestaña superior + cuerpo
+function svgFolder(color) {
+    const tab  = shiftColor(color, 15);   // pestaña ligeramente más clara
+    const body = shiftColor(color, -10);  // cuerpo ligeramente más oscuro
+    return `<svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 5H6.5L8 3H15V5Z" fill="${tab}"/>
+        <path d="M1 5H15V14H1Z" fill="${body}"/>
+    </svg>`;
+}
+
+// Ajusta el brillo de un color hex (delta positivo = más claro, negativo = más oscuro)
+function shiftColor(hex, delta) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c+c).join('');
+    const r = Math.min(255, Math.max(0, parseInt(hex.slice(0,2),16) + delta));
+    const g = Math.min(255, Math.max(0, parseInt(hex.slice(2,4),16) + delta));
+    const b = Math.min(255, Math.max(0, parseInt(hex.slice(4,6),16) + delta));
+    return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+}
+
+// ── Mapa de colores: extensión → [fill, fold] ───────────────────────────
+// Mismo color que usábamos en badges, ahora aplicado a la forma SVG.
+const FILE_COLORS = {
+    // JavaScript
+    js:       ['#f1e05a','#c5b400'], mjs: ['#f1e05a','#c5b400'], cjs: ['#f1e05a','#c5b400'],
+    jsx:      ['#61dafb','#2ab5d9'],
+    // TypeScript
+    ts:       ['#3178c6','#1855a0'], tsx: ['#3178c6','#1855a0'],
+    // Rust
+    rs:       ['#ce412b','#a82a18'],
+    // Python
+    py:       ['#4584b6','#2d6898'], pyw: ['#4584b6','#2d6898'], ipynb: ['#4584b6','#2d6898'],
+    // Go
+    go:       ['#00add8','#0087aa'],
+    // Web
+    html:     ['#e34c26','#c03d1c'], htm: ['#e34c26','#c03d1c'],
+    css:      ['#563d7c','#3d285c'], scss: ['#bf4080','#9a2f66'], sass: ['#bf4080','#9a2f66'],
+    less:     ['#2a4f85','#1a3866'], styl: ['#ff6347','#d84422'],
+    // UI frameworks
+    vue:      ['#41b883','#2d9467'], svelte: ['#ff3e00','#cc3200'],
+    // Data / config
+    json:     ['#cbcb41','#a0a030'], jsonc: ['#cbcb41','#a0a030'],
+    yaml:     ['#cb171e','#a01218'], yml: ['#cb171e','#a01218'],
+    toml:     ['#9c4221','#7a3318'], xml: ['#e37933','#c06020'],
+    csv:      ['#237346','#185530'], sql: ['#e97b00','#c06400'],
+    graphql:  ['#e535ab','#b82889'], gql: ['#e535ab','#b82889'],
+    // Docs
+    md:       ['#4a6fa5','#2e5080'], mdx: ['#4a6fa5','#2e5080'],
+    txt:      ['#7a8a94','#5a6a74'], rst: ['#7a8a94','#5a6a74'],
+    // Shell
+    sh:       ['#4eaa25','#388018'], bash: ['#4eaa25','#388018'],
+    zsh:      ['#4eaa25','#388018'], fish: ['#4eaa25','#388018'],
+    ps1:      ['#5391fe','#3570cc'],
+    // C / C++
+    c:        ['#555a64','#404550'], h: ['#a074c4','#8058a8'],
+    cpp:      ['#f34b7d','#c8305c'], cc: ['#f34b7d','#c8305c'], hpp: ['#f34b7d','#c8305c'],
+    // Java / JVM
+    java:     ['#b07219','#886010'], jar: ['#b07219','#886010'],
+    kt:       ['#a97bff','#8055d8'], scala: ['#dc322f','#b02520'], groovy: ['#6298b3','#4a7892'],
+    // C# / .NET
+    cs:       ['#239120','#186018'],
+    // Ruby
+    rb:       ['#701516','#500f10'],
+    // PHP
+    php:      ['#777bb4','#5558a0'],
+    // Swift / Dart / otros
+    swift:    ['#fa7343','#d85a2a'], dart: ['#00b4ab','#009088'],
+    lua:      ['#2c2db0','#1c1d90'], r: ['#198ce7','#1070c0'],
+    ex:       ['#6e4a7e','#4e3060'], exs: ['#6e4a7e','#4e3060'],
+    hs:       ['#5e5086','#3e3466'], zig: ['#ec915c','#c87040'],
+    nim:      ['#ffe953','#c8b800'],
+    // Imágenes
+    png:      ['#7e57c2','#5a3aa8'], jpg: ['#7e57c2','#5a3aa8'], jpeg: ['#7e57c2','#5a3aa8'],
+    gif:      ['#7e57c2','#5a3aa8'], webp: ['#7e57c2','#5a3aa8'], avif: ['#7e57c2','#5a3aa8'],
+    svg:      ['#ffb13b','#d89020'], ico: ['#7e57c2','#5a3aa8'], bmp: ['#7e57c2','#5a3aa8'],
+    // Fuentes
+    ttf:      ['#e91e63','#c01050'], otf: ['#e91e63','#c01050'],
+    woff:     ['#e91e63','#c01050'], woff2: ['#e91e63','#c01050'],
+    // Media
+    mp3:      ['#e91e63','#c01050'], wav: ['#e91e63','#c01050'], ogg: ['#e91e63','#c01050'],
+    mp4:      ['#e53935','#c02820'], mov: ['#e53935','#c02820'],
+    avi:      ['#e53935','#c02820'], mkv: ['#e53935','#c02820'], webm: ['#e53935','#c02820'],
+    // Comprimidos
+    zip:      ['#f5a623','#d08010'], tar: ['#f5a623','#d08010'], gz: ['#f5a623','#d08010'],
+    bz2:      ['#f5a623','#d08010'], xz: ['#f5a623','#d08010'],
+    rar:      ['#f5a623','#d08010'], '7z': ['#f5a623','#d08010'],
+    dmg:      ['#9e9e9e','#7a7a7a'], deb: ['#d70a53','#a80840'], rpm: ['#ee0000','#cc0000'],
+    appimage: ['#52b038','#388028'],
+    // Documentos
+    pdf:      ['#e53935','#c02820'],
+    doc:      ['#2b579a','#1a3870'], docx: ['#2b579a','#1a3870'],
+    xls:      ['#217346','#175530'], xlsx: ['#217346','#175530'],
+    ppt:      ['#d24726','#a83518'], pptx: ['#d24726','#a83518'],
+    // Env / logs / config
+    env:      ['#eaed00','#b8bc00'], lock: ['#607d8b','#405560'], log: ['#546e7a','#384e56'],
+    // Binarios
+    exe:      ['#4caf50','#2e8030'], bin: ['#607d8b','#405560'],
+    so:       ['#607d8b','#405560'], dylib: ['#607d8b','#405560'], dll: ['#607d8b','#405560'],
+    // DevOps / infra
+    proto:    ['#5c6bc0','#3c50a0'], wasm: ['#654ff0','#4830d0'],
+    tf:       ['#7b42bc','#5a2898'], hcl: ['#7b42bc','#5a2898'],
+};
+
+// Archivos especiales por nombre completo (prioridad sobre extensión)
+const SPECIAL_FILE_COLORS = {
+    'dockerfile':           ['#2496ed','#1070c0'],
+    'docker-compose.yml':   ['#2496ed','#1070c0'],
+    'docker-compose.yaml':  ['#2496ed','#1070c0'],
+    'makefile':             ['#6d8086','#4a5a60'],
+    'gnumakefile':          ['#6d8086','#4a5a60'],
+    'cmakelists.txt':       ['#064f8c','#043a6a'],
+    'cargo.toml':           ['#ce412b','#a82a18'],
+    'cargo.lock':           ['#9c4221','#7a3318'],
+    'package.json':         ['#cc3534','#a02020'],
+    'package-lock.json':    ['#8b2222','#6a1515'],
+    'yarn.lock':            ['#2c8ebb','#1c6890'],
+    'pnpm-lock.yaml':       ['#f69220','#d07510'],
+    'tsconfig.json':        ['#3178c6','#1855a0'],
+    'jsconfig.json':        ['#f1e05a','#c5b400'],
+    'webpack.config.js':    ['#8dd6f9','#5aaccc'],
+    'vite.config.js':       ['#bd34fe','#9010d8'],
+    'vite.config.ts':       ['#bd34fe','#9010d8'],
+    'next.config.js':       ['#444444','#222222'],
+    'nuxt.config.js':       ['#00dc82','#00a862'],
+    '.gitignore':           ['#f05032','#c83820'],
+    '.gitattributes':       ['#f05032','#c83820'],
+    '.editorconfig':        ['#fff2c6','#c8c090'],
+    '.prettierrc':          ['#f7b93e','#d09010'],
+    '.prettierrc.json':     ['#f7b93e','#d09010'],
+    '.eslintrc':            ['#4b32c3','#3020a0'],
+    '.eslintrc.js':         ['#4b32c3','#3020a0'],
+    '.eslintrc.json':       ['#4b32c3','#3020a0'],
+    '.env':                 ['#eaed00','#b8bc00'],
+    '.env.local':           ['#eaed00','#b8bc00'],
+    '.env.example':         ['#eaed00','#b8bc00'],
+    '.env.production':      ['#eaed00','#b8bc00'],
+    'readme.md':            ['#4a6fa5','#2e5080'],
+    'changelog.md':         ['#4a6fa5','#2e5080'],
+    'license':              ['#5c8a5e','#3a6040'],
+    'licence':              ['#5c8a5e','#3a6040'],
+    '.bashrc':              ['#4eaa25','#388018'],
+    '.zshrc':               ['#4eaa25','#388018'],
+    '.bash_profile':        ['#4eaa25','#388018'],
+    '.profile':             ['#4eaa25','#388018'],
+    'gemfile':              ['#701516','#500f10'],
+    'rakefile':             ['#701516','#500f10'],
+    'requirements.txt':     ['#4584b6','#2d6898'],
+    'pyproject.toml':       ['#4584b6','#2d6898'],
+    'go.mod':               ['#00add8','#0087aa'],
+    'go.sum':               ['#00add8','#0087aa'],
+    'build.gradle':         ['#02303a','#011820'],
+    'pom.xml':              ['#c71a36','#a01028'],
+    'tauri.conf.json':      ['#ffc131','#d09810'],
+    'procfile':             ['#79589f','#5a3878'],
+};
+
+// ── Tema "badge": datos de badges de texto ──────────────────────────────
+// Usamos los mismos colores de FILE_COLORS pero mostramos una etiqueta corta
+const BADGE_LABELS = {
+    js:'JS', mjs:'MJS', cjs:'CJS', jsx:'JSX',
+    ts:'TS', tsx:'TSX',
+    rs:'RS', py:'PY', pyw:'PY', ipynb:'NB', go:'GO',
+    html:'HTM', htm:'HTM', css:'CSS', scss:'CSS', sass:'CSS', less:'CSS', styl:'STL',
+    vue:'VUE', svelte:'SVL',
+    json:'JSON', jsonc:'JSON', yaml:'YML', yml:'YML', toml:'TOML', xml:'XML',
+    csv:'CSV', sql:'SQL', graphql:'GQL', gql:'GQL',
+    md:'MD', mdx:'MDX', txt:'TXT', rst:'RST',
+    sh:'SH', bash:'SH', zsh:'ZSH', fish:'FSH', ps1:'PS',
+    c:'C', h:'H', cpp:'C++', cc:'C++', hpp:'HPP',
+    java:'JV', jar:'JAR', kt:'KT', scala:'SC', groovy:'GRV',
+    cs:'C#', rb:'RB', php:'PHP', swift:'SWT', dart:'DRT',
+    lua:'LUA', r:'R', ex:'EX', exs:'EX', hs:'HS', zig:'ZIG',
+    png:'▪', jpg:'▪', jpeg:'▪', gif:'▪', webp:'▪', svg:'SVG', ico:'ICO',
+    ttf:'TTF', otf:'OTF', woff:'WOF', woff2:'WOF',
+    mp3:'♪', wav:'♪', mp4:'▶', mov:'▶', mkv:'▶',
+    zip:'ZIP', tar:'TAR', gz:'GZ', bz2:'BZ2', xz:'XZ', rar:'RAR', '7z':'7Z',
+    dmg:'DMG', deb:'DEB', appimage:'APP',
+    pdf:'PDF', doc:'DOC', docx:'DOC', xls:'XLS', xlsx:'XLS', ppt:'PPT', pptx:'PPT',
+    env:'ENV', lock:'LCK', log:'LOG',
+    exe:'EXE', bin:'BIN', wasm:'WSM', proto:'PB', tf:'TF', hcl:'HCL',
+};
+// Etiquetas de badges para archivos especiales
+const SPECIAL_BADGE_LABELS = {
+    'dockerfile':'DCK', 'docker-compose.yml':'DCK', 'docker-compose.yaml':'DCK',
+    'makefile':'MK', 'cmakelists.txt':'MK',
+    'cargo.toml':'RS', 'cargo.lock':'LCK',
+    'package.json':'PKG', 'package-lock.json':'LCK',
+    'yarn.lock':'LCK', 'pnpm-lock.yaml':'LCK',
+    'tsconfig.json':'TS', 'jsconfig.json':'JS',
+    'vite.config.js':'VTE', 'vite.config.ts':'VTE',
+    '.gitignore':'GIT', '.gitattributes':'GIT',
+    '.editorconfig':'CFG', '.prettierrc':'PRT', '.prettierrc.json':'PRT',
+    '.eslintrc':'ESL', '.eslintrc.js':'ESL', '.eslintrc.json':'ESL',
+    '.env':'ENV', '.env.local':'ENV', '.env.example':'ENV', '.env.production':'ENV',
+    'readme.md':'MD', 'changelog.md':'LOG', 'license':'LIC', 'licence':'LIC',
+    '.bashrc':'SH', '.zshrc':'ZSH', '.bash_profile':'SH',
+    'requirements.txt':'PY', 'pyproject.toml':'PY',
+    'go.mod':'GO', 'go.sum':'GO',
+    'cargo.toml':'RS', 'tauri.conf.json':'TAU',
+};
+
+// ── Colores de carpetas ─────────────────────────────────────────────────
 // Colores de carpetas especiales por nombre
 const FOLDER_COLORS = {
     'src': '#4fc3f7', 'lib': '#4fc3f7', 'app': '#4fc3f7', 'source': '#4fc3f7',
@@ -298,8 +516,8 @@ const FOLDER_COLORS = {
     'migrations': '#a1887f', 'seeds': '#a1887f',
 };
 
-// Íconos de archivos por extensión: { label, bg, fg? }
-const FILE_ICONS = {
+// (FILE_ICONS y SPECIAL_FILES eliminados en v2 — reemplazados por FILE_COLORS/SPECIAL_FILE_COLORS)
+const FILE_ICONS_LEGACY = {
     // JavaScript
     'js':     { label: 'JS',   bg: '#f7df1e', fg: '#000' },
     'mjs':    { label: 'MJS',  bg: '#f7df1e', fg: '#000' },
@@ -443,8 +661,8 @@ const FILE_ICONS = {
     'hcl':    { label: 'HCL',  bg: '#7b42bc' },
 };
 
-// Archivos especiales reconocidos por nombre completo (priority sobre extensión)
-const SPECIAL_FILES = {
+// (SPECIAL_FILES eliminado en v2 — reemplazado por SPECIAL_FILE_COLORS)
+const SPECIAL_FILES_LEGACY = {
     'dockerfile':          { label: 'DCK',  bg: '#2496ed' },
     'docker-compose.yml':  { label: 'DCK',  bg: '#2496ed' },
     'docker-compose.yaml': { label: 'DCK',  bg: '#2496ed' },
@@ -496,54 +714,81 @@ const SPECIAL_FILES = {
     'tauri.conf.json':     { label: 'TAU',  bg: '#ffc131', fg: '#000' },
 };
 
+// ── Resolución de colores ────────────────────────────────────────────────
+
+function resolveFileColors(nameLower) {
+    if (SPECIAL_FILE_COLORS[nameLower]) return SPECIAL_FILE_COLORS[nameLower];
+    const parts = nameLower.split('.');
+    if (parts.length >= 3) {
+        const d = parts.slice(-2).join('.');
+        if (FILE_COLORS[d]) return FILE_COLORS[d];
+    }
+    if (parts.length >= 2) {
+        const ext = parts[parts.length - 1];
+        if (FILE_COLORS[ext]) return FILE_COLORS[ext];
+    }
+    if (nameLower.startsWith('.')) return ['#78909c','#4a6070'];
+    return ['#546e7a','#364e56'];
+}
+
+// ── Punto de entrada público ─────────────────────────────────────────────
+
 /**
- * Devuelve el HTML del badge de ícono para un archivo dado.
+ * Devuelve el HTML del ícono de archivo.
+ * Tema "seti"  → SVG con forma de documento
+ * Tema "badge" → badge de texto coloreado
  */
 function getFileIconHtml(filename) {
     const nameLower = filename.toLowerCase();
+    const theme = getIconTheme();
+    const [fill, fold] = resolveFileColors(nameLower);
 
-    // 1. Nombre completo especial
-    const special = SPECIAL_FILES[nameLower];
-    if (special) return makeIconBadge(special);
-
-    // 2. Doble extensión (.d.ts, .tar.gz, .min.js…)
-    const parts = nameLower.split('.');
-    if (parts.length >= 3) {
-        const doubleExt = parts.slice(-2).join('.');
-        if (FILE_ICONS[doubleExt]) return makeIconBadge(FILE_ICONS[doubleExt]);
+    if (theme === 'badge') {
+        // Buscar etiqueta: nombre especial → extensión → fallback
+        const label = SPECIAL_BADGE_LABELS[nameLower]
+            || (() => {
+                const parts = nameLower.split('.');
+                if (parts.length >= 3) {
+                    const d = parts.slice(-2).join('.');
+                    if (BADGE_LABELS[d]) return BADGE_LABELS[d];
+                }
+                if (parts.length >= 2) return BADGE_LABELS[parts[parts.length - 1]] || null;
+                return null;
+            })()
+            || (nameLower.startsWith('.') ? 'CFG' : '···');
+        const fg = ['#f1e05a','#eaed00','#cbcb41','#ffe953','#8dd6f9','#ededed','#fff2c6'].includes(fill) ? '#000' : '#fff';
+        return `<span class="file-icon" style="background:${fill};color:${fg}">${escapeHtml(label)}</span>`;
     }
 
-    // 3. Extensión simple
-    if (parts.length >= 2) {
-        const ext = parts[parts.length - 1];
-        if (FILE_ICONS[ext]) return makeIconBadge(FILE_ICONS[ext]);
-    }
-
-    // 4. Dotfiles sin extensión conocida (.gitconfig, .npmrc…)
-    if (filename.startsWith('.')) {
-        return makeIconBadge({ label: 'CFG', bg: '#78909c' });
-    }
-
-    // 5. Fallback genérico
-    return makeIconBadge({ label: '···', bg: '#455a64' });
+    // Tema seti: SVG
+    return svgFile(fill, fold);
 }
 
 /**
  * Devuelve el HTML del ícono de carpeta, con color según el nombre.
- * Carpetas especiales (src, test, node_modules…) tienen su propio color.
- * El resto usa el naranja Ocote por defecto.
  */
 function getFolderIconHtml(name) {
     const color = FOLDER_COLORS[name.toLowerCase()] || '#f5a623';
-    return `<span class="folder-icon" style="color:${color}">▶</span>`;
-}
+    const theme = getIconTheme();
 
-/** Construye el HTML del badge dado un objeto { label, bg, fg }. */
-function makeIconBadge({ label, bg, fg = '#fff' }) {
-    return `<span class="file-icon" style="background:${bg};color:${fg}">${escapeHtml(label)}</span>`;
+    if (theme === 'badge') {
+        return `<span class="folder-icon" style="color:${color}">▶</span>`;
+    }
+    return svgFolder(color);
 }
 
 // ── Iniciar ───────────────────────────────────────────────────────────────
+
+// Exponer función de re-render para que el selector de tema de íconos
+// pueda forzar una actualización visual sin hacer fetch al backend.
+// Cuando el usuario cambia de tema, simplemente re-renderizamos las entradas
+// ya cacheadas del directorio actual.
+window._explorerRefresh = function () {
+    const cached = dirCache.get(currentPath);
+    if (cached) {
+        renderEntries(cached.entries, currentPath);
+    }
+};
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initExplorer);

@@ -168,7 +168,15 @@ body {
   justify-content: center;
 }
 
-/* Badge de tipo de archivo — rectángulo coloreado con etiqueta corta */
+/* ── Tema "seti": íconos SVG en forma de documento ── */
+.icon-svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  display: block;
+}
+
+/* ── Tema "badge": rectángulo coloreado con etiqueta corta ── */
 .file-icon {
   display: inline-flex;
   align-items: center;
@@ -186,17 +194,46 @@ body {
   font-family: var(--font-mono, monospace);
 }
 
-/* Ícono de carpeta — triángulo coloreado según el tipo de carpeta */
+/* Ícono de carpeta badge — triángulo coloreado según el tipo */
 .folder-icon {
   font-size: 10px;
   line-height: 1;
-  /* El color se aplica inline desde JS */
 }
 
 /* Flecha del botón "subir directorio" */
 .up-icon {
   font-size: 12px;
   color: var(--text-dim);
+}
+
+/* Selector de tema de íconos — mismo estilo que lang-selector */
+#icon-theme-selector {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.icon-theme-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  line-height: 1.4;
+}
+
+.icon-theme-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.icon-theme-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 .explorer-name {
