@@ -162,9 +162,41 @@ body {
 
 .explorer-icon {
   flex-shrink: 0;
-  font-size: 14px;
-  width: 20px;
-  text-align: center;
+  width: 22px;         /* ancho fijo para alinear todos los nombres */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Badge de tipo de archivo — rectángulo coloreado con etiqueta corta */
+.file-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 2px;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: var(--font-mono, monospace);
+}
+
+/* Ícono de carpeta — triángulo coloreado según el tipo de carpeta */
+.folder-icon {
+  font-size: 10px;
+  line-height: 1;
+  /* El color se aplica inline desde JS */
+}
+
+/* Flecha del botón "subir directorio" */
+.up-icon {
+  font-size: 12px;
+  color: var(--text-dim);
 }
 
 .explorer-name {
