@@ -20,26 +20,9 @@
     └────────────┴────────────────────────────────┘
   -->
 
-  <!-- Barra superior: ruta actual + selector de idioma -->
+  <!-- Barra superior: breadcrumb con ruta actual -->
   <div id="breadcrumb">
     <span id="breadcrumb-path">~/</span>
-
-    <!-- Selector de tema de íconos del explorador -->
-    <div id="icon-theme-selector" title="Tema de íconos / Icon theme">
-      <button class="icon-theme-btn active" data-theme="seti" title="Íconos SVG (estilo VS Code)">⬛</button>
-      <button class="icon-theme-btn" data-theme="badge" title="Badges de texto compactos">⊞</button>
-    </div>
-
-    <!-- Selector de idioma de la CKB.
-         Guarda la preferencia en localStorage('ocote_lang').
-         El valor se lee en autocomplete.js y tooltip.js vía getLang(). -->
-    <div id="lang-selector" title="Idioma de la ayuda / Help language">
-      <button class="lang-btn active" data-lang="es">ES</button>
-      <button class="lang-btn" data-lang="en">EN</button>
-      <button class="lang-btn" data-lang="pt">PT</button>
-      <button class="lang-btn" data-lang="fr">FR</button>
-      <button class="lang-btn" data-lang="de">DE</button>
-    </div>
   </div>
 
   <div id="main-layout">
@@ -138,50 +121,5 @@
   <script src="tooltip.js"></script>
   <script src="onboarding.js"></script>
 
-  <!-- Selector de tema de íconos -->
-  <script>
-    (function () {
-      const savedTheme = localStorage.getItem('ocote_icon_theme') || 'seti';
-      document.querySelectorAll('.icon-theme-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.theme === savedTheme);
-      });
-
-      document.getElementById('icon-theme-selector').addEventListener('click', e => {
-        const btn = e.target.closest('.icon-theme-btn');
-        if (!btn) return;
-        const theme = btn.dataset.theme;
-        localStorage.setItem('ocote_icon_theme', theme);
-        document.querySelectorAll('.icon-theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
-        // Recargar íconos sin recargar el directorio completo
-        // explorer.js re-renderiza cuando ocoteCwd está disponible
-        if (window._explorerRefresh) window._explorerRefresh();
-      });
-    })();
-  </script>
-
-  <!-- Selector de idioma: pequeño, no necesita archivo propio -->
-  <script>
-    (function () {
-      // Inicializar con el idioma guardado (o 'es' por defecto)
-      const saved = localStorage.getItem('ocote_lang') || 'es';
-      document.querySelectorAll('.lang-btn').forEach(btn => {
-        if (btn.dataset.lang === saved) btn.classList.add('active');
-        else btn.classList.remove('active');
-      });
-
-      // Manejar clicks en los botones de idioma
-      document.getElementById('lang-selector').addEventListener('click', e => {
-        const btn = e.target.closest('.lang-btn');
-        if (!btn) return;
-
-        const lang = btn.dataset.lang;
-        localStorage.setItem('ocote_lang', lang);
-
-        // Actualizar estado visual
-        document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      });
-    })();
-  </script>
 </body>
 </html>
