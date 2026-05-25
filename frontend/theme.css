@@ -17,6 +17,8 @@
   --border:         rgba(255,255,255,0.08);
   --border-strong:  rgba(255,255,255,0.15);
 
+  --hover-bg:       rgba(255,255,255,0.07);
+
   /* Colores ANSI estándar */
   --ansi-black:   #1a1a1a;
   --ansi-red:     #e06c75;
@@ -53,14 +55,55 @@ body {
 
 /* Breadcrumb superior */
 #breadcrumb {
-  padding: 6px 16px;
+  padding: 4px 12px 4px 16px;
   font-size: 12px;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border);
   background: var(--bg-sidebar);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+}
+
+#breadcrumb-path {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+}
+
+/* Selector de idioma: botones pequeños a la derecha del breadcrumb */
+#lang-selector {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.lang-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 3px;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  line-height: 1.4;
+}
+
+.lang-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.lang-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 /* Layout principal: sidebar + terminal */

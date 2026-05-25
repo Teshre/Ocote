@@ -6,7 +6,8 @@
 
 // ── Referencias DOM ───────────────────────────────────────────────────────
 const panel = document.getElementById('explorer-panel');
-const breadcrumb = document.getElementById('breadcrumb');
+// Apuntamos al span interno del breadcrumb para no borrar el selector de idioma
+const breadcrumb = document.getElementById('breadcrumb-path');
 
 // ── Estado ────────────────────────────────────────────────────────────────
 let currentPath = '';

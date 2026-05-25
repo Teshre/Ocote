@@ -4,6 +4,9 @@
     "category": "system",
     "description_es": "Crea un atajo (alias) para un comando largo",
     "description_en": "Create a shortcut for a long command",
+    "description_pt": "Cria um atalho (alias) para um comando longo",
+    "description_fr": "Crée un raccourci (alias) pour une longue commande",
+    "description_de": "Erstellt einen Alias (Kürzel) für einen langen Befehl",
     "flags": [],
     "examples": [
       {
@@ -21,6 +24,9 @@
     "category": "package_manager",
     "description_es": "Gestor de paquetes para Debian/Ubuntu",
     "description_en": "Package manager for Debian/Ubuntu",
+    "description_pt": "Gerenciador de pacotes para Debian/Ubuntu",
+    "description_fr": "Gestionnaire de paquets pour Debian/Ubuntu",
+    "description_de": "Paketverwaltung für Debian/Ubuntu",
     "flags": [],
     "examples": [
       {
@@ -42,10 +48,33 @@
     ]
   },
   {
+    "name": "at",
+    "category": "system",
+    "description_es": "Programa un comando para ejecutarse una vez en un momento futuro",
+    "description_en": "Schedule a command to run once at a future time",
+    "description_pt": "Agenda um comando para executar uma vez em um momento futuro",
+    "description_fr": "Planifie une commande à exécuter une fois à un moment futur",
+    "description_de": "Plant einen Befehl zur einmaligen Ausführung zu einem zukünftigen Zeitpunkt",
+    "flags": [],
+    "examples": [
+      {
+        "command": "echo 'backup.sh' | at 03:00",
+        "description": "Ejecutar script a las 3 AM"
+      },
+      {
+        "command": "at -l",
+        "description": "Ver trabajos programados"
+      }
+    ]
+  },
+  {
     "name": "awk",
     "category": "search",
     "description_es": "Procesa y extrae columnas de texto",
     "description_en": "Text processing and column extraction",
+    "description_pt": "Processa e extrai colunas de texto",
+    "description_fr": "Traite et extrait des colonnes de texte",
+    "description_de": "Verarbeitet Text und extrahiert Spalten",
     "flags": [],
     "examples": [
       {
@@ -54,7 +83,52 @@
       },
       {
         "command": "awk -F: '{print $1}' /etc/passwd",
-        "description": "Usar : como separador y mostrar columna 1"
+        "description": "Usar : como separador"
+      }
+    ]
+  },
+  {
+    "name": "basename",
+    "category": "filesystem",
+    "description_es": "Extrae el nombre de archivo de una ruta completa",
+    "description_en": "Extract filename from a full path",
+    "description_pt": "Extrai o nome do arquivo de um caminho completo",
+    "description_fr": "Extrait le nom de fichier d'un chemin complet",
+    "description_de": "Extrahiert den Dateinamen aus einem vollständigen Pfad",
+    "flags": [],
+    "examples": [
+      {
+        "command": "basename /ruta/al/archivo.txt",
+        "description": "Obtener solo 'archivo.txt'"
+      },
+      {
+        "command": "basename /usr/bin/node",
+        "description": "Obtener 'node' de la ruta"
+      }
+    ]
+  },
+  {
+    "name": "bc",
+    "category": "system",
+    "description_es": "Calculadora de precisión arbitraria en la terminal",
+    "description_en": "Arbitrary precision calculator in the terminal",
+    "description_pt": "Calculadora de precisão arbitrária no terminal",
+    "description_fr": "Calculatrice à précision arbitraire dans le terminal",
+    "description_de": "Taschenrechner mit beliebiger Genauigkeit im Terminal",
+    "flags": [
+      {
+        "flag": "-l",
+        "description": "Carga librería matemática (sin, cos, sqrt...)"
+      }
+    ],
+    "examples": [
+      {
+        "command": "echo '2^10' | bc",
+        "description": "Calcular 2 elevado a 10"
+      },
+      {
+        "command": "echo 'scale=4; 22/7' | bc",
+        "description": "División con 4 decimales"
       }
     ]
   },
@@ -63,6 +137,9 @@
     "category": "process",
     "description_es": "Continúa un proceso detenido en segundo plano",
     "description_en": "Resume a stopped job in the background",
+    "description_pt": "Continua um processo parado em segundo plano",
+    "description_fr": "Reprend un processus arrêté en arrière-plan",
+    "description_de": "Setzt einen angehaltenen Job im Hintergrund fort",
     "flags": [],
     "examples": [
       {
@@ -76,6 +153,9 @@
     "category": "package_manager",
     "description_es": "Gestor de paquetes para macOS (Homebrew)",
     "description_en": "Package manager for macOS (Homebrew)",
+    "description_pt": "Gerenciador de pacotes para macOS (Homebrew)",
+    "description_fr": "Gestionnaire de paquets pour macOS (Homebrew)",
+    "description_de": "Paketverwaltung für macOS (Homebrew)",
     "flags": [],
     "examples": [
       {
@@ -97,10 +177,71 @@
     ]
   },
   {
+    "name": "bzip2",
+    "category": "filesystem",
+    "description_es": "Comprime archivos con mayor compresión que gzip",
+    "description_en": "Compress files with better compression than gzip",
+    "description_pt": "Comprime arquivos com melhor compressão que gzip",
+    "description_fr": "Compresse des fichiers avec une meilleure compression que gzip",
+    "description_de": "Komprimiert Dateien mit besserer Kompression als gzip",
+    "flags": [
+      {
+        "flag": "-d",
+        "description": "Descomprimir"
+      },
+      {
+        "flag": "-k",
+        "description": "Mantener el archivo original"
+      }
+    ],
+    "examples": [
+      {
+        "command": "bzip2 archivo.txt",
+        "description": "Comprimir a .bz2"
+      },
+      {
+        "command": "bzip2 -d archivo.txt.bz2",
+        "description": "Descomprimir .bz2"
+      }
+    ]
+  },
+  {
+    "name": "cal",
+    "category": "system",
+    "description_es": "Muestra un calendario en la terminal",
+    "description_en": "Display a calendar in the terminal",
+    "description_pt": "Exibe um calendário no terminal",
+    "description_fr": "Affiche un calendrier dans le terminal",
+    "description_de": "Zeigt einen Kalender im Terminal an",
+    "flags": [
+      {
+        "flag": "-3",
+        "description": "Muestra mes anterior, actual y siguiente"
+      }
+    ],
+    "examples": [
+      {
+        "command": "cal",
+        "description": "Ver el mes actual"
+      },
+      {
+        "command": "cal -3",
+        "description": "Ver 3 meses"
+      },
+      {
+        "command": "cal 2025",
+        "description": "Ver el calendario del año 2025"
+      }
+    ]
+  },
+  {
     "name": "cargo",
     "category": "development",
     "description_es": "Gestor de paquetes y herramienta de build de Rust",
     "description_en": "Rust's package manager and build tool",
+    "description_pt": "Gerenciador de pacotes e ferramenta de build do Rust",
+    "description_fr": "Gestionnaire de paquets et outil de build pour Rust",
+    "description_de": "Paketmanager und Build-Tool für Rust",
     "flags": [],
     "examples": [
       {
@@ -130,6 +271,9 @@
     "category": "filesystem",
     "description_es": "Muestra el contenido de un archivo",
     "description_en": "Concatenate and print file contents",
+    "description_pt": "Exibe o conteúdo de um arquivo",
+    "description_fr": "Affiche le contenu d'un fichier",
+    "description_de": "Gibt den Inhalt einer Datei aus",
     "flags": [
       {
         "flag": "-n",
@@ -152,6 +296,9 @@
     "category": "filesystem",
     "description_es": "Cambia el directorio de trabajo actual",
     "description_en": "Change the current working directory",
+    "description_pt": "Muda o diretório de trabalho atual",
+    "description_fr": "Change le répertoire de travail courant",
+    "description_de": "Wechselt das aktuelle Arbeitsverzeichnis",
     "flags": [],
     "examples": [
       {
@@ -177,6 +324,9 @@
     "category": "filesystem",
     "description_es": "Cambia los permisos de archivos y carpetas",
     "description_en": "Change file permissions",
+    "description_pt": "Altera as permissões de arquivos e pastas",
+    "description_fr": "Modifie les permissions des fichiers et dossiers",
+    "description_de": "Ändert Dateiberechtigungen",
     "flags": [
       {
         "flag": "+x",
@@ -203,6 +353,9 @@
     "category": "filesystem",
     "description_es": "Cambia el dueño de un archivo o carpeta",
     "description_en": "Change file owner",
+    "description_pt": "Altera o proprietário de um arquivo ou pasta",
+    "description_fr": "Change le propriétaire d'un fichier ou dossier",
+    "description_de": "Ändert den Eigentümer einer Datei oder eines Ordners",
     "flags": [
       {
         "flag": "-R",
@@ -221,10 +374,38 @@
     ]
   },
   {
+    "name": "chsh",
+    "category": "system",
+    "description_es": "Cambia el shell predeterminado del usuario",
+    "description_en": "Change the default shell for a user",
+    "description_pt": "Altera o shell padrão do usuário",
+    "description_fr": "Change le shell par défaut de l'utilisateur",
+    "description_de": "Ändert die Standard-Shell des Benutzers",
+    "flags": [
+      {
+        "flag": "-s",
+        "description": "Especifica el nuevo shell"
+      }
+    ],
+    "examples": [
+      {
+        "command": "chsh -s /bin/zsh",
+        "description": "Cambiar a zsh como shell predeterminado"
+      },
+      {
+        "command": "chsh -s /bin/bash",
+        "description": "Cambiar a bash"
+      }
+    ]
+  },
+  {
     "name": "clear",
     "category": "system",
     "description_es": "Limpia la pantalla de la terminal",
     "description_en": "Clear the terminal screen",
+    "description_pt": "Limpa a tela do terminal",
+    "description_fr": "Efface l'écran du terminal",
+    "description_de": "Löscht den Terminal-Bildschirm",
     "flags": [],
     "examples": [
       {
@@ -234,10 +415,120 @@
     ]
   },
   {
+    "name": "cmp",
+    "category": "filesystem",
+    "description_es": "Compara dos archivos byte a byte",
+    "description_en": "Compare two files byte by byte",
+    "description_pt": "Compara dois arquivos byte a byte",
+    "description_fr": "Compare deux fichiers octet par octet",
+    "description_de": "Vergleicht zwei Dateien byteweise",
+    "flags": [
+      {
+        "flag": "-l",
+        "description": "Muestra todas las diferencias"
+      }
+    ],
+    "examples": [
+      {
+        "command": "cmp archivo1.txt archivo2.txt",
+        "description": "Comparar dos archivos"
+      }
+    ]
+  },
+  {
+    "name": "code",
+    "category": "editor",
+    "description_es": "Abre Visual Studio Code desde la terminal",
+    "description_en": "Open Visual Studio Code from the terminal",
+    "description_pt": "Abre o Visual Studio Code pelo terminal",
+    "description_fr": "Ouvre Visual Studio Code depuis le terminal",
+    "description_de": "Öffnet Visual Studio Code vom Terminal aus",
+    "flags": [
+      {
+        "flag": "--new-window",
+        "description": "Abrir en nueva ventana"
+      }
+    ],
+    "examples": [
+      {
+        "command": "code .",
+        "description": "Abrir el directorio actual en VS Code"
+      },
+      {
+        "command": "code archivo.txt",
+        "description": "Abrir un archivo específico"
+      },
+      {
+        "command": "code --diff a.txt b.txt",
+        "description": "Ver diferencias entre dos archivos"
+      }
+    ]
+  },
+  {
+    "name": "column",
+    "category": "search",
+    "description_es": "Formatea texto en columnas alineadas",
+    "description_en": "Format text into aligned columns",
+    "description_pt": "Formata texto em colunas alinhadas",
+    "description_fr": "Formate le texte en colonnes alignées",
+    "description_de": "Formatiert Text in ausgerichtete Spalten",
+    "flags": [
+      {
+        "flag": "-t",
+        "description": "Crear tabla con columnas alineadas"
+      },
+      {
+        "flag": "-s",
+        "description": "Especificar separador"
+      }
+    ],
+    "examples": [
+      {
+        "command": "mount | column -t",
+        "description": "Ver mount formateado en tabla"
+      },
+      {
+        "command": "cat data.csv | column -t -s,",
+        "description": "Formatear CSV como tabla"
+      }
+    ]
+  },
+  {
+    "name": "conda",
+    "category": "development",
+    "description_es": "Gestor de entornos y paquetes para Python/Data Science",
+    "description_en": "Environment and package manager for Python/Data Science",
+    "description_pt": "Gerenciador de ambientes e pacotes para Python/Data Science",
+    "description_fr": "Gestionnaire d'environnements et paquets Python/Data Science",
+    "description_de": "Umgebungs- und Paketmanager für Python/Data Science",
+    "flags": [],
+    "examples": [
+      {
+        "command": "conda create -n mi-env python=3.11",
+        "description": "Crear entorno virtual"
+      },
+      {
+        "command": "conda activate mi-env",
+        "description": "Activar entorno"
+      },
+      {
+        "command": "conda install numpy",
+        "description": "Instalar paquete"
+      },
+      {
+        "command": "conda list",
+        "description": "Ver paquetes instalados"
+      }
+    ]
+  },
+  {
     "name": "cp",
     "category": "filesystem",
     "description_es": "Copia archivos o carpetas",
     "description_en": "Copy files or directories",
+    "description_pt": "Copia arquivos ou pastas",
+    "description_fr": "Copie des fichiers ou dossiers",
+    "description_de": "Kopiert Dateien oder Verzeichnisse",
     "flags": [
       {
         "flag": "-r",
@@ -260,10 +551,46 @@
     ]
   },
   {
+    "name": "crontab",
+    "category": "system",
+    "description_es": "Programa tareas para que se ejecuten automáticamente",
+    "description_en": "Schedule tasks to run automatically",
+    "description_pt": "Agenda tarefas para execução automática",
+    "description_fr": "Planifie des tâches à exécuter automatiquement",
+    "description_de": "Plant Aufgaben zur automatischen Ausführung",
+    "flags": [
+      {
+        "flag": "-e",
+        "description": "Editar la tabla de tareas programadas"
+      },
+      {
+        "flag": "-l",
+        "description": "Listar tareas programadas"
+      },
+      {
+        "flag": "-r",
+        "description": "Eliminar todas las tareas"
+      }
+    ],
+    "examples": [
+      {
+        "command": "crontab -l",
+        "description": "Ver tareas programadas"
+      },
+      {
+        "command": "crontab -e",
+        "description": "Editar tareas programadas"
+      }
+    ]
+  },
+  {
     "name": "curl",
     "category": "network",
     "description_es": "Descarga contenido de URLs o hace peticiones HTTP",
     "description_en": "Download content from URLs or make HTTP requests",
+    "description_pt": "Baixa conteúdo de URLs ou faz requisições HTTP",
+    "description_fr": "Télécharge du contenu depuis des URLs ou effectue des requêtes HTTP",
+    "description_de": "Lädt Inhalte von URLs herunter oder sendet HTTP-Anfragen",
     "flags": [
       {
         "flag": "-O",
@@ -294,6 +621,9 @@
     "category": "search",
     "description_es": "Extrae columnas o campos de cada línea de texto",
     "description_en": "Extract columns or fields from each line",
+    "description_pt": "Extrai colunas ou campos de cada linha de texto",
+    "description_fr": "Extrait des colonnes ou champs de chaque ligne",
+    "description_de": "Extrahiert Spalten oder Felder aus jeder Textzeile",
     "flags": [
       {
         "flag": "-d",
@@ -307,7 +637,7 @@
     "examples": [
       {
         "command": "cut -d: -f1 /etc/passwd",
-        "description": "Extraer primer campo de /etc/passwd (usuarios)"
+        "description": "Extraer usuarios de /etc/passwd"
       },
       {
         "command": "ls -l | cut -d' ' -f9",
@@ -320,6 +650,9 @@
     "category": "system",
     "description_es": "Muestra la fecha y hora actual",
     "description_en": "Show current date and time",
+    "description_pt": "Exibe a data e hora atual",
+    "description_fr": "Affiche la date et l'heure actuelle",
+    "description_de": "Zeigt das aktuelle Datum und die Uhrzeit an",
     "flags": [],
     "examples": [
       {
@@ -333,6 +666,9 @@
     "category": "filesystem",
     "description_es": "Muestra el espacio libre en los discos",
     "description_en": "Disk free — show available disk space",
+    "description_pt": "Exibe o espaço livre nos discos",
+    "description_fr": "Affiche l'espace disque disponible",
+    "description_de": "Zeigt den freien Speicherplatz auf den Festplatten",
     "flags": [
       {
         "flag": "-h",
@@ -347,10 +683,87 @@
     ]
   },
   {
+    "name": "diff",
+    "category": "filesystem",
+    "description_es": "Compara el contenido de dos archivos línea por línea",
+    "description_en": "Compare two files line by line",
+    "description_pt": "Compara o conteúdo de dois arquivos linha por linha",
+    "description_fr": "Compare le contenu de deux fichiers ligne par ligne",
+    "description_de": "Vergleicht zwei Dateien zeilenweise",
+    "flags": [
+      {
+        "flag": "-u",
+        "description": "Formato unificado (más legible)"
+      },
+      {
+        "flag": "-r",
+        "description": "Comparar directorios recursivamente"
+      }
+    ],
+    "examples": [
+      {
+        "command": "diff archivo1.txt archivo2.txt",
+        "description": "Ver diferencias entre archivos"
+      },
+      {
+        "command": "diff -u original.txt modificado.txt",
+        "description": "Diff en formato unificado"
+      }
+    ]
+  },
+  {
+    "name": "dig",
+    "category": "network",
+    "description_es": "Consulta registros DNS de un dominio",
+    "description_en": "Query DNS records for a domain",
+    "description_pt": "Consulta registros DNS de um domínio",
+    "description_fr": "Interroge les enregistrements DNS d'un domaine",
+    "description_de": "Fragt DNS-Einträge einer Domain ab",
+    "flags": [
+      {
+        "flag": "A",
+        "description": "Registro de dirección IPv4"
+      },
+      {
+        "flag": "MX",
+        "description": "Registros de correo"
+      }
+    ],
+    "examples": [
+      {
+        "command": "dig google.com",
+        "description": "Consultar DNS de google.com"
+      },
+      {
+        "command": "dig google.com MX",
+        "description": "Ver servidores de correo"
+      }
+    ]
+  },
+  {
+    "name": "dirname",
+    "category": "filesystem",
+    "description_es": "Extrae el directorio de una ruta completa",
+    "description_en": "Extract directory from a full path",
+    "description_pt": "Extrai o diretório de um caminho completo",
+    "description_fr": "Extrait le répertoire d'un chemin complet",
+    "description_de": "Extrahiert das Verzeichnis aus einem vollständigen Pfad",
+    "flags": [],
+    "examples": [
+      {
+        "command": "dirname /ruta/al/archivo.txt",
+        "description": "Obtener '/ruta/al'"
+      }
+    ]
+  },
+  {
     "name": "docker",
     "category": "development",
     "description_es": "Gestiona contenedores de aplicaciones",
     "description_en": "Manage application containers",
+    "description_pt": "Gerencia contêineres de aplicações",
+    "description_fr": "Gère les conteneurs d'applications",
+    "description_de": "Verwaltet Anwendungscontainer",
     "flags": [],
     "examples": [
       {
@@ -367,7 +780,35 @@
       },
       {
         "command": "docker-compose up",
-        "description": "Levantar servicios definidos en docker-compose.yml"
+        "description": "Levantar servicios con docker-compose"
+      }
+    ]
+  },
+  {
+    "name": "docker-compose",
+    "category": "development",
+    "description_es": "Gestiona aplicaciones multi-contenedor con Docker",
+    "description_en": "Manage multi-container applications with Docker",
+    "description_pt": "Gerencia aplicações multi-contêiner com Docker",
+    "description_fr": "Gère des applications multi-conteneurs avec Docker",
+    "description_de": "Verwaltet Multi-Container-Anwendungen mit Docker",
+    "flags": [],
+    "examples": [
+      {
+        "command": "docker-compose up -d",
+        "description": "Levantar servicios en background"
+      },
+      {
+        "command": "docker-compose down",
+        "description": "Detener y eliminar contenedores"
+      },
+      {
+        "command": "docker-compose logs -f",
+        "description": "Ver logs en tiempo real"
+      },
+      {
+        "command": "docker-compose ps",
+        "description": "Ver estado de los servicios"
       }
     ]
   },
@@ -376,6 +817,9 @@
     "category": "filesystem",
     "description_es": "Muestra el espacio que ocupan archivos y carpetas",
     "description_en": "Disk usage — show space used by files/folders",
+    "description_pt": "Exibe o espaço ocupado por arquivos e pastas",
+    "description_fr": "Affiche l'espace occupé par les fichiers et dossiers",
+    "description_de": "Zeigt den Speicherbedarf von Dateien und Ordnern",
     "flags": [
       {
         "flag": "-h",
@@ -398,10 +842,79 @@
     ]
   },
   {
+    "name": "echo",
+    "category": "system",
+    "description_es": "Imprime texto o el valor de una variable",
+    "description_en": "Print text or a variable value",
+    "description_pt": "Imprime texto ou o valor de uma variável",
+    "description_fr": "Affiche du texte ou la valeur d'une variable",
+    "description_de": "Gibt Text oder einen Variablenwert aus",
+    "flags": [
+      {
+        "flag": "-n",
+        "description": "No agrega salto de línea al final"
+      },
+      {
+        "flag": "-e",
+        "description": "Interpreta secuencias de escape (\\n, \\t)"
+      }
+    ],
+    "examples": [
+      {
+        "command": "echo 'Hola mundo'",
+        "description": "Imprimir texto"
+      },
+      {
+        "command": "echo $HOME",
+        "description": "Ver el valor de la variable HOME"
+      },
+      {
+        "command": "echo $PATH",
+        "description": "Ver el PATH actual"
+      }
+    ]
+  },
+  {
+    "name": "emacs",
+    "category": "editor",
+    "description_es": "Editor de texto extensible con entorno de trabajo completo",
+    "description_en": "Extensible text editor with full work environment",
+    "description_pt": "Editor de texto extensível com ambiente de trabalho completo",
+    "description_fr": "Éditeur de texte extensible avec environnement de travail complet",
+    "description_de": "Erweiterbarer Texteditor mit vollständiger Arbeitsumgebung",
+    "flags": [
+      {
+        "flag": "Ctrl+x Ctrl+s",
+        "description": "Guardar archivo"
+      },
+      {
+        "flag": "Ctrl+x Ctrl+c",
+        "description": "Salir de Emacs"
+      },
+      {
+        "flag": "Ctrl+g",
+        "description": "Cancelar comando actual"
+      }
+    ],
+    "examples": [
+      {
+        "command": "emacs archivo.txt",
+        "description": "Abrir archivo en Emacs"
+      },
+      {
+        "command": "emacs -nw archivo.txt",
+        "description": "Abrir en modo terminal (sin GUI)"
+      }
+    ]
+  },
+  {
     "name": "env",
     "category": "system",
     "description_es": "Muestra las variables de entorno del sistema",
     "description_en": "Show environment variables",
+    "description_pt": "Exibe as variáveis de ambiente do sistema",
+    "description_fr": "Affiche les variables d'environnement du système",
+    "description_de": "Zeigt die Umgebungsvariablen des Systems an",
     "flags": [],
     "examples": [
       {
@@ -419,6 +932,9 @@
     "category": "system",
     "description_es": "Cierra la sesión de terminal actual",
     "description_en": "Close the current terminal session",
+    "description_pt": "Fecha a sessão de terminal atual",
+    "description_fr": "Ferme la session terminal actuelle",
+    "description_de": "Schließt die aktuelle Terminal-Sitzung",
     "flags": [],
     "examples": [
       {
@@ -432,6 +948,9 @@
     "category": "system",
     "description_es": "Crea o modifica una variable de entorno",
     "description_en": "Create or modify an environment variable",
+    "description_pt": "Cria ou modifica uma variável de ambiente",
+    "description_fr": "Crée ou modifie une variable d'environnement",
+    "description_de": "Erstellt oder ändert eine Umgebungsvariable",
     "flags": [],
     "examples": [
       {
@@ -449,6 +968,9 @@
     "category": "process",
     "description_es": "Trae un proceso en segundo plano al frente",
     "description_en": "Bring a background job to the foreground",
+    "description_pt": "Traz um processo em segundo plano para o primeiro plano",
+    "description_fr": "Ramène un processus en arrière-plan au premier plan",
+    "description_de": "Bringt einen Hintergrundjob in den Vordergrund",
     "flags": [],
     "examples": [
       {
@@ -462,10 +984,33 @@
     ]
   },
   {
+    "name": "file",
+    "category": "filesystem",
+    "description_es": "Detecta el tipo de un archivo",
+    "description_en": "Detect the type of a file",
+    "description_pt": "Detecta o tipo de um arquivo",
+    "description_fr": "Détecte le type d'un fichier",
+    "description_de": "Erkennt den Typ einer Datei",
+    "flags": [],
+    "examples": [
+      {
+        "command": "file imagen.png",
+        "description": "Ver qué tipo de archivo es"
+      },
+      {
+        "command": "file *",
+        "description": "Ver tipo de todos los archivos del directorio"
+      }
+    ]
+  },
+  {
     "name": "find",
     "category": "filesystem",
     "description_es": "Busca archivos por nombre en el sistema",
     "description_en": "Find files by name in the system",
+    "description_pt": "Busca arquivos por nome no sistema",
+    "description_fr": "Recherche des fichiers par nom dans le système",
+    "description_de": "Sucht Dateien nach Namen im System",
     "flags": [
       {
         "flag": "-name",
@@ -492,10 +1037,34 @@
     ]
   },
   {
+    "name": "free",
+    "category": "system",
+    "description_es": "Muestra el uso de la memoria RAM y swap",
+    "description_en": "Show RAM and swap memory usage",
+    "description_pt": "Exibe o uso de memória RAM e swap",
+    "description_fr": "Affiche l'utilisation de la mémoire RAM et du swap",
+    "description_de": "Zeigt die Nutzung von RAM und Swap-Speicher",
+    "flags": [
+      {
+        "flag": "-h",
+        "description": "Tamaños legibles (MB, GB)"
+      }
+    ],
+    "examples": [
+      {
+        "command": "free -h",
+        "description": "Ver uso de memoria de forma legible"
+      }
+    ]
+  },
+  {
     "name": "fzf",
     "category": "search",
     "description_es": "Buscador fuzzy interactivo — filtra cualquier lista en tiempo real",
     "description_en": "Interactive fuzzy finder — filter any list in real time",
+    "description_pt": "Buscador fuzzy interativo — filtra qualquer lista em tempo real",
+    "description_fr": "Recherche floue interactive — filtre toute liste en temps réel",
+    "description_de": "Interaktive Fuzzy-Suche — filtert jede Liste in Echtzeit",
     "flags": [
       {
         "flag": "↑ ↓",
@@ -538,6 +1107,9 @@
     "category": "development",
     "description_es": "Compilador de C/C++",
     "description_en": "C/C++ compiler",
+    "description_pt": "Compilador de C/C++",
+    "description_fr": "Compilateur C/C++",
+    "description_de": "C/C++-Compiler",
     "flags": [
       {
         "flag": "-o",
@@ -552,10 +1124,41 @@
     ]
   },
   {
+    "name": "gh",
+    "category": "development",
+    "description_es": "CLI oficial de GitHub para gestionar repos, PRs e issues",
+    "description_en": "Official GitHub CLI for managing repos, PRs and issues",
+    "description_pt": "CLI oficial do GitHub para gerenciar repos, PRs e issues",
+    "description_fr": "CLI officielle de GitHub pour gérer les dépôts, PRs et issues",
+    "description_de": "Offizielle GitHub-CLI für Repos, PRs und Issues",
+    "flags": [],
+    "examples": [
+      {
+        "command": "gh repo clone usuario/repo",
+        "description": "Clonar un repositorio"
+      },
+      {
+        "command": "gh pr create",
+        "description": "Crear un Pull Request"
+      },
+      {
+        "command": "gh issue list",
+        "description": "Ver issues abiertos"
+      },
+      {
+        "command": "gh workflow run",
+        "description": "Disparar un workflow de GitHub Actions"
+      }
+    ]
+  },
+  {
     "name": "git",
     "category": "development",
     "description_es": "Control de versiones: rastrea cambios en tu código",
     "description_en": "Version control system for tracking code changes",
+    "description_pt": "Controle de versão: rastreia mudanças no seu código",
+    "description_fr": "Système de contrôle de version pour suivre les changements",
+    "description_de": "Versionskontrolle: verfolgt Änderungen in deinem Code",
     "flags": [],
     "examples": [
       {
@@ -593,10 +1196,41 @@
     ]
   },
   {
+    "name": "go",
+    "category": "development",
+    "description_es": "Herramienta de build y gestión para proyectos Go",
+    "description_en": "Build and management tool for Go projects",
+    "description_pt": "Ferramenta de build e gerenciamento para projetos Go",
+    "description_fr": "Outil de build et de gestion pour les projets Go",
+    "description_de": "Build- und Verwaltungswerkzeug für Go-Projekte",
+    "flags": [],
+    "examples": [
+      {
+        "command": "go run main.go",
+        "description": "Ejecutar programa Go"
+      },
+      {
+        "command": "go build",
+        "description": "Compilar el proyecto"
+      },
+      {
+        "command": "go test ./...",
+        "description": "Ejecutar todos los tests"
+      },
+      {
+        "command": "go mod tidy",
+        "description": "Limpiar dependencias"
+      }
+    ]
+  },
+  {
     "name": "grep",
     "category": "search",
     "description_es": "Busca texto dentro de archivos",
     "description_en": "Search for text patterns inside files",
+    "description_pt": "Busca texto dentro de arquivos",
+    "description_fr": "Recherche des motifs texte dans des fichiers",
+    "description_de": "Sucht nach Textmustern in Dateien",
     "flags": [
       {
         "flag": "-r",
@@ -631,6 +1265,9 @@
     "category": "filesystem",
     "description_es": "Comprime archivos individuales",
     "description_en": "Compress individual files",
+    "description_pt": "Comprime arquivos individuais",
+    "description_fr": "Compresse des fichiers individuels",
+    "description_de": "Komprimiert einzelne Dateien",
     "flags": [
       {
         "flag": "-d",
@@ -657,6 +1294,9 @@
     "category": "filesystem",
     "description_es": "Muestra las primeras líneas de un archivo",
     "description_en": "Show first lines of a file",
+    "description_pt": "Exibe as primeiras linhas de um arquivo",
+    "description_fr": "Affiche les premières lignes d'un fichier",
+    "description_de": "Zeigt die ersten Zeilen einer Datei an",
     "flags": [
       {
         "flag": "-n",
@@ -675,10 +1315,66 @@
     ]
   },
   {
+    "name": "helm",
+    "category": "development",
+    "description_es": "Gestor de paquetes (charts) para Kubernetes",
+    "description_en": "Package manager (charts) for Kubernetes",
+    "description_pt": "Gerenciador de pacotes (charts) para Kubernetes",
+    "description_fr": "Gestionnaire de paquets (charts) pour Kubernetes",
+    "description_de": "Paketmanager (Charts) für Kubernetes",
+    "flags": [],
+    "examples": [
+      {
+        "command": "helm install mi-app ./chart",
+        "description": "Instalar un chart"
+      },
+      {
+        "command": "helm list",
+        "description": "Ver releases instalados"
+      },
+      {
+        "command": "helm upgrade mi-app ./chart",
+        "description": "Actualizar release"
+      },
+      {
+        "command": "helm uninstall mi-app",
+        "description": "Desinstalar release"
+      }
+    ]
+  },
+  {
+    "name": "hexdump",
+    "category": "filesystem",
+    "description_es": "Muestra el contenido binario de un archivo en hexadecimal",
+    "description_en": "Display binary content of a file in hexadecimal",
+    "description_pt": "Exibe o conteúdo binário de um arquivo em hexadecimal",
+    "description_fr": "Affiche le contenu binaire d'un fichier en hexadécimal",
+    "description_de": "Zeigt den binären Inhalt einer Datei in Hexadezimal an",
+    "flags": [
+      {
+        "flag": "-C",
+        "description": "Mostrar tanto hex como ASCII"
+      }
+    ],
+    "examples": [
+      {
+        "command": "hexdump -C archivo.bin",
+        "description": "Ver archivo en hex y ASCII"
+      },
+      {
+        "command": "hexdump -C imagen.png | head",
+        "description": "Ver cabecera PNG"
+      }
+    ]
+  },
+  {
     "name": "history",
     "category": "system",
     "description_es": "Muestra los comandos que has ejecutado recientemente",
     "description_en": "Show recently executed commands",
+    "description_pt": "Exibe os comandos executados recentemente",
+    "description_fr": "Affiche les commandes récemment exécutées",
+    "description_de": "Zeigt zuletzt ausgeführte Befehle an",
     "flags": [],
     "examples": [
       {
@@ -692,10 +1388,33 @@
     ]
   },
   {
+    "name": "host",
+    "category": "network",
+    "description_es": "Realiza búsquedas DNS simples",
+    "description_en": "Perform simple DNS lookups",
+    "description_pt": "Realiza buscas DNS simples",
+    "description_fr": "Effectue des recherches DNS simples",
+    "description_de": "Führt einfache DNS-Suchen durch",
+    "flags": [],
+    "examples": [
+      {
+        "command": "host google.com",
+        "description": "Resolver IP de google.com"
+      },
+      {
+        "command": "host 8.8.8.8",
+        "description": "Resolver nombre de una IP (PTR)"
+      }
+    ]
+  },
+  {
     "name": "htop",
     "category": "process",
     "description_es": "Monitor de procesos interactivo con interfaz visual en color",
     "description_en": "Interactive process monitor with colorful visual interface",
+    "description_pt": "Monitor de processos interativo com interface visual colorida",
+    "description_fr": "Moniteur de processus interactif avec interface visuelle colorée",
+    "description_de": "Interaktiver Prozessmonitor mit bunter visueller Oberfläche",
     "flags": [
       {
         "flag": "F2",
@@ -730,10 +1449,33 @@
     ]
   },
   {
+    "name": "id",
+    "category": "system",
+    "description_es": "Muestra el UID, GID y grupos del usuario actual",
+    "description_en": "Show UID, GID and groups of current user",
+    "description_pt": "Exibe o UID, GID e grupos do usuário atual",
+    "description_fr": "Affiche l'UID, GID et groupes de l'utilisateur courant",
+    "description_de": "Zeigt UID, GID und Gruppen des aktuellen Benutzers",
+    "flags": [],
+    "examples": [
+      {
+        "command": "id",
+        "description": "Ver identidad del usuario actual"
+      },
+      {
+        "command": "id usuario",
+        "description": "Ver identidad de otro usuario"
+      }
+    ]
+  },
+  {
     "name": "ifconfig",
     "category": "network",
     "description_es": "Muestra la configuración de red de tu máquina",
     "description_en": "Show network configuration",
+    "description_pt": "Exibe a configuração de rede da máquina",
+    "description_fr": "Affiche la configuration réseau de la machine",
+    "description_de": "Zeigt die Netzwerkkonfiguration des Rechners",
     "flags": [],
     "examples": [
       {
@@ -743,10 +1485,87 @@
     ]
   },
   {
+    "name": "iostat",
+    "category": "system",
+    "description_es": "Muestra estadísticas de uso de CPU y discos",
+    "description_en": "Show CPU and disk I/O statistics",
+    "description_pt": "Exibe estatísticas de uso de CPU e discos",
+    "description_fr": "Affiche les statistiques d'utilisation CPU et des disques",
+    "description_de": "Zeigt CPU- und Festplatten-I/O-Statistiken",
+    "flags": [
+      {
+        "flag": "-x",
+        "description": "Estadísticas extendidas de disco"
+      }
+    ],
+    "examples": [
+      {
+        "command": "iostat",
+        "description": "Ver estadísticas de CPU y disco"
+      },
+      {
+        "command": "iostat -x 2",
+        "description": "Estadísticas extendidas cada 2 segundos"
+      }
+    ]
+  },
+  {
+    "name": "ip",
+    "category": "network",
+    "description_es": "Gestiona interfaces de red, rutas y direcciones IP (Linux moderno)",
+    "description_en": "Manage network interfaces, routes and IPs (modern Linux)",
+    "description_pt": "Gerencia interfaces de rede, rotas e IPs (Linux moderno)",
+    "description_fr": "Gère les interfaces réseau, routes et IPs (Linux moderne)",
+    "description_de": "Verwaltet Netzwerkschnittstellen, Routen und IPs (modernes Linux)",
+    "flags": [],
+    "examples": [
+      {
+        "command": "ip addr",
+        "description": "Ver direcciones IP de todas las interfaces"
+      },
+      {
+        "command": "ip route",
+        "description": "Ver tabla de rutas"
+      },
+      {
+        "command": "ip link",
+        "description": "Ver estado de interfaces de red"
+      }
+    ]
+  },
+  {
+    "name": "java",
+    "category": "development",
+    "description_es": "Ejecuta programas Java",
+    "description_en": "Run Java programs",
+    "description_pt": "Executa programas Java",
+    "description_fr": "Exécute des programmes Java",
+    "description_de": "Führt Java-Programme aus",
+    "flags": [
+      {
+        "flag": "-version",
+        "description": "Ver versión de Java instalada"
+      }
+    ],
+    "examples": [
+      {
+        "command": "java -jar app.jar",
+        "description": "Ejecutar un archivo JAR"
+      },
+      {
+        "command": "java -version",
+        "description": "Ver versión de Java"
+      }
+    ]
+  },
+  {
     "name": "jobs",
     "category": "process",
     "description_es": "Muestra los procesos en segundo plano de la sesión actual",
     "description_en": "Show background jobs in current session",
+    "description_pt": "Exibe os processos em segundo plano da sessão atual",
+    "description_fr": "Affiche les processus en arrière-plan de la session",
+    "description_de": "Zeigt Hintergrundjobs der aktuellen Sitzung",
     "flags": [],
     "examples": [
       {
@@ -756,10 +1575,46 @@
     ]
   },
   {
+    "name": "jq",
+    "category": "search",
+    "description_es": "Procesa y formatea JSON desde la línea de comandos",
+    "description_en": "Process and format JSON from command line",
+    "description_pt": "Processa e formata JSON na linha de comando",
+    "description_fr": "Traite et formate du JSON en ligne de commande",
+    "description_de": "Verarbeitet und formatiert JSON in der Kommandozeile",
+    "flags": [
+      {
+        "flag": ".",
+        "description": "Formatea JSON completo con indentación"
+      },
+      {
+        "flag": ".campo",
+        "description": "Extrae un campo específico"
+      }
+    ],
+    "examples": [
+      {
+        "command": "cat data.json | jq '.'",
+        "description": "Formatear JSON"
+      },
+      {
+        "command": "curl api.com | jq '.name'",
+        "description": "Extraer campo 'name' de respuesta API"
+      },
+      {
+        "command": "jq '.[] | .id' data.json",
+        "description": "Extraer campo de array JSON"
+      }
+    ]
+  },
+  {
     "name": "kill",
     "category": "process",
     "description_es": "Termina un proceso por su ID (PID)",
     "description_en": "Terminate a process by its ID (PID)",
+    "description_pt": "Encerra um processo pelo seu ID (PID)",
+    "description_fr": "Termine un processus par son ID (PID)",
+    "description_de": "Beendet einen Prozess anhand seiner ID (PID)",
     "flags": [
       {
         "flag": "-9",
@@ -782,6 +1637,9 @@
     "category": "process",
     "description_es": "Termina todos los procesos con un nombre dado",
     "description_en": "Kill all processes with a given name",
+    "description_pt": "Encerra todos os processos com um nome específico",
+    "description_fr": "Termine tous les processus portant un nom donné",
+    "description_de": "Beendet alle Prozesse mit einem bestimmten Namen",
     "flags": [],
     "examples": [
       {
@@ -795,10 +1653,61 @@
     ]
   },
   {
+    "name": "kubectl",
+    "category": "development",
+    "description_es": "Gestiona clústeres de Kubernetes",
+    "description_en": "Manage Kubernetes clusters",
+    "description_pt": "Gerencia clusters Kubernetes",
+    "description_fr": "Gère les clusters Kubernetes",
+    "description_de": "Verwaltet Kubernetes-Cluster",
+    "flags": [],
+    "examples": [
+      {
+        "command": "kubectl get pods",
+        "description": "Ver pods en ejecución"
+      },
+      {
+        "command": "kubectl apply -f deployment.yaml",
+        "description": "Aplicar configuración"
+      },
+      {
+        "command": "kubectl logs mi-pod",
+        "description": "Ver logs de un pod"
+      },
+      {
+        "command": "kubectl get services",
+        "description": "Ver servicios del clúster"
+      }
+    ]
+  },
+  {
+    "name": "last",
+    "category": "system",
+    "description_es": "Muestra los últimos inicios de sesión del sistema",
+    "description_en": "Show last login sessions",
+    "description_pt": "Exibe os últimos logins do sistema",
+    "description_fr": "Affiche les dernières connexions au système",
+    "description_de": "Zeigt die letzten Anmeldesitzungen",
+    "flags": [],
+    "examples": [
+      {
+        "command": "last",
+        "description": "Ver últimos logins"
+      },
+      {
+        "command": "last -n 10",
+        "description": "Ver los últimos 10 logins"
+      }
+    ]
+  },
+  {
     "name": "less",
     "category": "filesystem",
     "description_es": "Visualizador de archivos largos con scroll",
     "description_en": "File viewer with scroll for long files",
+    "description_pt": "Visualizador de arquivos longos com scroll",
+    "description_fr": "Visualiseur de fichiers longs avec défilement",
+    "description_de": "Dateiansicht mit Scroll für lange Dateien",
     "flags": [],
     "examples": [
       {
@@ -816,6 +1725,9 @@
     "category": "filesystem",
     "description_es": "Crea enlaces (atajos) a archivos",
     "description_en": "Create links to files",
+    "description_pt": "Cria links (atalhos) para arquivos",
+    "description_fr": "Crée des liens (raccourcis) vers des fichiers",
+    "description_de": "Erstellt Links (Verknüpfungen) zu Dateien",
     "flags": [
       {
         "flag": "-s",
@@ -830,10 +1742,33 @@
     ]
   },
   {
+    "name": "locale",
+    "category": "system",
+    "description_es": "Muestra la configuración regional (idioma, formato de fechas)",
+    "description_en": "Show locale configuration (language, date format)",
+    "description_pt": "Exibe a configuração regional (idioma, formato de datas)",
+    "description_fr": "Affiche la configuration locale (langue, format de dates)",
+    "description_de": "Zeigt die Gebietsschema-Konfiguration (Sprache, Datumsformat)",
+    "flags": [],
+    "examples": [
+      {
+        "command": "locale",
+        "description": "Ver configuración regional actual"
+      },
+      {
+        "command": "locale -a",
+        "description": "Listar todos los locales disponibles"
+      }
+    ]
+  },
+  {
     "name": "ls",
     "category": "filesystem",
     "description_es": "Lista los archivos y carpetas del directorio actual",
     "description_en": "List files and folders in the current directory",
+    "description_pt": "Lista arquivos e pastas do diretório atual",
+    "description_fr": "Liste les fichiers et dossiers du répertoire courant",
+    "description_de": "Listet Dateien und Ordner des aktuellen Verzeichnisses auf",
     "flags": [
       {
         "flag": "-l",
@@ -868,10 +1803,42 @@
     ]
   },
   {
+    "name": "lsof",
+    "category": "process",
+    "description_es": "Lista archivos abiertos y puertos en uso por procesos",
+    "description_en": "List open files and ports used by processes",
+    "description_pt": "Lista arquivos abertos e portas em uso por processos",
+    "description_fr": "Liste les fichiers ouverts et ports utilisés par les processus",
+    "description_de": "Listet offene Dateien und Ports, die von Prozessen verwendet werden",
+    "flags": [
+      {
+        "flag": "-i",
+        "description": "Muestra conexiones de red"
+      },
+      {
+        "flag": "-p",
+        "description": "Filtrar por PID"
+      }
+    ],
+    "examples": [
+      {
+        "command": "lsof -i :3000",
+        "description": "Ver qué proceso usa el puerto 3000"
+      },
+      {
+        "command": "lsof -p 1234",
+        "description": "Ver archivos abiertos por PID 1234"
+      }
+    ]
+  },
+  {
     "name": "make",
     "category": "development",
     "description_es": "Ejecuta tareas definidas en un Makefile",
     "description_en": "Execute tasks defined in a Makefile",
+    "description_pt": "Executa tarefas definidas em um Makefile",
+    "description_fr": "Exécute les tâches définies dans un Makefile",
+    "description_de": "Führt in einem Makefile definierte Aufgaben aus",
     "flags": [],
     "examples": [
       {
@@ -889,6 +1856,9 @@
     "category": "system",
     "description_es": "Muestra el manual de un comando (presiona q para salir)",
     "description_en": "Show the manual for a command (press q to quit)",
+    "description_pt": "Exibe o manual de um comando (pressione q para sair)",
+    "description_fr": "Affiche le manuel d'une commande (appuyer sur q pour quitter)",
+    "description_de": "Zeigt das Handbuch eines Befehls (q zum Beenden drücken)",
     "flags": [],
     "examples": [
       {
@@ -906,6 +1876,9 @@
     "category": "filesystem",
     "description_es": "Crea una nueva carpeta",
     "description_en": "Make directory — create a new folder",
+    "description_pt": "Cria uma nova pasta",
+    "description_fr": "Crée un nouveau dossier",
+    "description_de": "Erstellt ein neues Verzeichnis",
     "flags": [
       {
         "flag": "-p",
@@ -924,10 +1897,58 @@
     ]
   },
   {
+    "name": "mktemp",
+    "category": "filesystem",
+    "description_es": "Crea un archivo temporal con nombre único",
+    "description_en": "Create a temporary file with a unique name",
+    "description_pt": "Cria um arquivo temporário com nome único",
+    "description_fr": "Crée un fichier temporaire avec un nom unique",
+    "description_de": "Erstellt eine temporäre Datei mit eindeutigem Namen",
+    "flags": [
+      {
+        "flag": "-d",
+        "description": "Crear directorio temporal en lugar de archivo"
+      }
+    ],
+    "examples": [
+      {
+        "command": "mktemp",
+        "description": "Crear archivo temporal en /tmp"
+      },
+      {
+        "command": "mktemp -d",
+        "description": "Crear directorio temporal"
+      }
+    ]
+  },
+  {
+    "name": "mount",
+    "category": "filesystem",
+    "description_es": "Monta un dispositivo o sistema de archivos",
+    "description_en": "Mount a device or filesystem",
+    "description_pt": "Monta um dispositivo ou sistema de arquivos",
+    "description_fr": "Monte un périphérique ou un système de fichiers",
+    "description_de": "Bindet ein Gerät oder Dateisystem ein",
+    "flags": [],
+    "examples": [
+      {
+        "command": "mount",
+        "description": "Ver todos los sistemas de archivos montados"
+      },
+      {
+        "command": "sudo mount /dev/sdb1 /mnt",
+        "description": "Montar dispositivo en /mnt"
+      }
+    ]
+  },
+  {
     "name": "mv",
     "category": "filesystem",
     "description_es": "Mueve o renombra archivos y carpetas",
     "description_en": "Move or rename files and directories",
+    "description_pt": "Move ou renomeia arquivos e pastas",
+    "description_fr": "Déplace ou renomme des fichiers et dossiers",
+    "description_de": "Verschiebt oder benennt Dateien und Ordner um",
     "flags": [
       {
         "flag": "-i",
@@ -946,10 +1967,41 @@
     ]
   },
   {
+    "name": "mvn",
+    "category": "development",
+    "description_es": "Herramienta de build y gestión para proyectos Java (Maven)",
+    "description_en": "Build and project management tool for Java (Maven)",
+    "description_pt": "Ferramenta de build e gerenciamento para projetos Java (Maven)",
+    "description_fr": "Outil de build et gestion de projets Java (Maven)",
+    "description_de": "Build- und Projektverwaltungswerkzeug für Java (Maven)",
+    "flags": [],
+    "examples": [
+      {
+        "command": "mvn compile",
+        "description": "Compilar el proyecto"
+      },
+      {
+        "command": "mvn test",
+        "description": "Ejecutar tests"
+      },
+      {
+        "command": "mvn package",
+        "description": "Empaquetar en JAR/WAR"
+      },
+      {
+        "command": "mvn clean install",
+        "description": "Limpiar y construir el proyecto"
+      }
+    ]
+  },
+  {
     "name": "nano",
     "category": "editor",
     "description_es": "Editor de texto simple — los atajos se muestran en pantalla",
     "description_en": "Simple text editor — shortcuts shown on screen",
+    "description_pt": "Editor de texto simples — atalhos exibidos na tela",
+    "description_fr": "Éditeur de texte simple — raccourcis affichés à l'écran",
+    "description_de": "Einfacher Texteditor — Tastenkürzel werden auf dem Bildschirm angezeigt",
     "flags": [
       {
         "flag": "Ctrl+O",
@@ -984,10 +2036,42 @@
     ]
   },
   {
+    "name": "nc",
+    "category": "network",
+    "description_es": "Netcat — abre conexiones TCP/UDP de forma manual",
+    "description_en": "Netcat — open TCP/UDP connections manually",
+    "description_pt": "Netcat — abre conexões TCP/UDP manualmente",
+    "description_fr": "Netcat — ouvre des connexions TCP/UDP manuellement",
+    "description_de": "Netcat — öffnet TCP/UDP-Verbindungen manuell",
+    "flags": [
+      {
+        "flag": "-l",
+        "description": "Escuchar conexiones entrantes"
+      },
+      {
+        "flag": "-z",
+        "description": "Escanear puertos sin enviar datos"
+      }
+    ],
+    "examples": [
+      {
+        "command": "nc -zv servidor.com 80",
+        "description": "Verificar si el puerto 80 está abierto"
+      },
+      {
+        "command": "nc -l 9999",
+        "description": "Escuchar en el puerto 9999"
+      }
+    ]
+  },
+  {
     "name": "netstat",
     "category": "network",
     "description_es": "Muestra conexiones de red activas",
     "description_en": "Show active network connections",
+    "description_pt": "Exibe conexões de rede ativas",
+    "description_fr": "Affiche les connexions réseau actives",
+    "description_de": "Zeigt aktive Netzwerkverbindungen an",
     "flags": [
       {
         "flag": "-tuln",
@@ -1002,10 +2086,38 @@
     ]
   },
   {
+    "name": "nice",
+    "category": "process",
+    "description_es": "Ejecuta un proceso con prioridad ajustada de CPU",
+    "description_en": "Run a process with adjusted CPU priority",
+    "description_pt": "Executa um processo com prioridade de CPU ajustada",
+    "description_fr": "Exécute un processus avec priorité CPU ajustée",
+    "description_de": "Führt einen Prozess mit angepasster CPU-Priorität aus",
+    "flags": [
+      {
+        "flag": "-n",
+        "description": "Valor de prioridad (-20 a 19, menor = más prioritario)"
+      }
+    ],
+    "examples": [
+      {
+        "command": "nice -n 10 make",
+        "description": "Compilar con baja prioridad"
+      },
+      {
+        "command": "nice -n -5 ./mi-proceso",
+        "description": "Ejecutar con alta prioridad"
+      }
+    ]
+  },
+  {
     "name": "node",
     "category": "development",
     "description_es": "Ejecuta código JavaScript (runtime de Node.js)",
     "description_en": "Execute JavaScript code (Node.js runtime)",
+    "description_pt": "Executa código JavaScript (runtime do Node.js)",
+    "description_fr": "Exécute du code JavaScript (runtime Node.js)",
+    "description_de": "Führt JavaScript-Code aus (Node.js-Runtime)",
     "flags": [
       {
         "flag": "-v",
@@ -1024,10 +2136,33 @@
     ]
   },
   {
+    "name": "nohup",
+    "category": "process",
+    "description_es": "Ejecuta un proceso que sobrevive al cierre de la terminal",
+    "description_en": "Run a process that survives terminal close",
+    "description_pt": "Executa um processo que sobrevive ao fechamento do terminal",
+    "description_fr": "Exécute un processus qui survit à la fermeture du terminal",
+    "description_de": "Führt einen Prozess aus, der das Schließen des Terminals überlebt",
+    "flags": [],
+    "examples": [
+      {
+        "command": "nohup python3 server.py &",
+        "description": "Ejecutar servidor en segundo plano"
+      },
+      {
+        "command": "nohup ./mi-script.sh > salida.log 2>&1 &",
+        "description": "Guardar salida en log"
+      }
+    ]
+  },
+  {
     "name": "npm",
     "category": "development",
     "description_es": "Gestor de paquetes de Node.js",
     "description_en": "Node.js package manager",
+    "description_pt": "Gerenciador de pacotes do Node.js",
+    "description_fr": "Gestionnaire de paquets Node.js",
+    "description_de": "Node.js-Paketmanager",
     "flags": [],
     "examples": [
       {
@@ -1049,10 +2184,33 @@
     ]
   },
   {
+    "name": "nslookup",
+    "category": "network",
+    "description_es": "Consulta servidores DNS para resolver nombres de dominio",
+    "description_en": "Query DNS servers to resolve domain names",
+    "description_pt": "Consulta servidores DNS para resolver nomes de domínio",
+    "description_fr": "Interroge les serveurs DNS pour résoudre les noms de domaine",
+    "description_de": "Fragt DNS-Server ab, um Domainnamen aufzulösen",
+    "flags": [],
+    "examples": [
+      {
+        "command": "nslookup google.com",
+        "description": "Resolver dirección IP de google.com"
+      },
+      {
+        "command": "nslookup -type=MX gmail.com",
+        "description": "Ver registros MX de gmail.com"
+      }
+    ]
+  },
+  {
     "name": "nvim",
     "category": "editor",
     "description_es": "Neovim: versión moderna de vim con mejor extensibilidad",
     "description_en": "Neovim: modern vim fork with better extensibility",
+    "description_pt": "Neovim: versão moderna do vim com melhor extensibilidade",
+    "description_fr": "Neovim : fork moderne de vim avec meilleure extensibilité",
+    "description_de": "Neovim: moderner vim-Fork mit besserer Erweiterbarkeit",
     "flags": [
       {
         "flag": "i",
@@ -1087,10 +2245,107 @@
     ]
   },
   {
+    "name": "openssl",
+    "category": "network",
+    "description_es": "Herramienta criptográfica: genera claves, certifica, cifra",
+    "description_en": "Cryptographic tool: generate keys, certificates, encrypt",
+    "description_pt": "Ferramenta criptográfica: gera chaves, certificados, cifra",
+    "description_fr": "Outil cryptographique : génère clés, certificats, chiffre",
+    "description_de": "Kryptografie-Tool: Schlüssel, Zertifikate, Verschlüsselung",
+    "flags": [],
+    "examples": [
+      {
+        "command": "openssl rand -hex 32",
+        "description": "Generar token seguro de 32 bytes"
+      },
+      {
+        "command": "openssl genrsa -out clave.pem 2048",
+        "description": "Generar clave RSA 2048 bits"
+      },
+      {
+        "command": "openssl s_client -connect google.com:443",
+        "description": "Inspeccionar certificado SSL"
+      }
+    ]
+  },
+  {
+    "name": "passwd",
+    "category": "system",
+    "description_es": "Cambia la contraseña del usuario actual",
+    "description_en": "Change the current user's password",
+    "description_pt": "Altera a senha do usuário atual",
+    "description_fr": "Change le mot de passe de l'utilisateur courant",
+    "description_de": "Ändert das Passwort des aktuellen Benutzers",
+    "flags": [],
+    "examples": [
+      {
+        "command": "passwd",
+        "description": "Cambiar tu propia contraseña"
+      },
+      {
+        "command": "sudo passwd usuario",
+        "description": "Cambiar contraseña de otro usuario (admin)"
+      }
+    ]
+  },
+  {
+    "name": "paste",
+    "category": "search",
+    "description_es": "Une líneas de archivos en columnas paralelas",
+    "description_en": "Merge lines of files into parallel columns",
+    "description_pt": "Une linhas de arquivos em colunas paralelas",
+    "description_fr": "Fusionne les lignes de fichiers en colonnes parallèles",
+    "description_de": "Verbindet Zeilen von Dateien in parallele Spalten",
+    "flags": [
+      {
+        "flag": "-d",
+        "description": "Delimitador entre columnas"
+      }
+    ],
+    "examples": [
+      {
+        "command": "paste nombres.txt apellidos.txt",
+        "description": "Unir dos archivos en columnas"
+      },
+      {
+        "command": "paste -d',' col1.txt col2.txt",
+        "description": "Unir con coma como separador"
+      }
+    ]
+  },
+  {
+    "name": "pgrep",
+    "category": "process",
+    "description_es": "Busca procesos por nombre y devuelve sus PIDs",
+    "description_en": "Find processes by name and return their PIDs",
+    "description_pt": "Busca processos por nome e retorna seus PIDs",
+    "description_fr": "Recherche des processus par nom et retourne leurs PIDs",
+    "description_de": "Sucht Prozesse nach Name und gibt ihre PIDs zurück",
+    "flags": [
+      {
+        "flag": "-l",
+        "description": "Muestra el nombre del proceso además del PID"
+      }
+    ],
+    "examples": [
+      {
+        "command": "pgrep node",
+        "description": "Encontrar PIDs de procesos Node.js"
+      },
+      {
+        "command": "pgrep -l python",
+        "description": "Ver PIDs y nombres de procesos Python"
+      }
+    ]
+  },
+  {
     "name": "ping",
     "category": "network",
     "description_es": "Verifica si un servidor responde (prueba de conectividad)",
     "description_en": "Check if a server responds (connectivity test)",
+    "description_pt": "Verifica se um servidor responde (teste de conectividade)",
+    "description_fr": "Vérifie si un serveur répond (test de connectivité)",
+    "description_de": "Prüft ob ein Server antwortet (Konnektivitätstest)",
     "flags": [
       {
         "flag": "-c",
@@ -1109,10 +2364,114 @@
     ]
   },
   {
+    "name": "pip",
+    "category": "development",
+    "description_es": "Gestor de paquetes de Python",
+    "description_en": "Python package manager",
+    "description_pt": "Gerenciador de pacotes Python",
+    "description_fr": "Gestionnaire de paquets Python",
+    "description_de": "Python-Paketmanager",
+    "flags": [],
+    "examples": [
+      {
+        "command": "pip install requests",
+        "description": "Instalar paquete"
+      },
+      {
+        "command": "pip install -r requirements.txt",
+        "description": "Instalar desde requirements"
+      },
+      {
+        "command": "pip list",
+        "description": "Ver paquetes instalados"
+      },
+      {
+        "command": "pip freeze > requirements.txt",
+        "description": "Exportar dependencias"
+      }
+    ]
+  },
+  {
+    "name": "pkill",
+    "category": "process",
+    "description_es": "Termina procesos por nombre (más fácil que kill + PID)",
+    "description_en": "Kill processes by name (easier than kill + PID)",
+    "description_pt": "Encerra processos por nome (mais fácil que kill + PID)",
+    "description_fr": "Termine des processus par nom (plus facile que kill + PID)",
+    "description_de": "Beendet Prozesse nach Name (einfacher als kill + PID)",
+    "flags": [
+      {
+        "flag": "-9",
+        "description": "Fuerza la terminación"
+      }
+    ],
+    "examples": [
+      {
+        "command": "pkill firefox",
+        "description": "Cerrar Firefox"
+      },
+      {
+        "command": "pkill -9 node",
+        "description": "Forzar cierre de procesos Node"
+      }
+    ]
+  },
+  {
+    "name": "pnpm",
+    "category": "development",
+    "description_es": "Gestor de paquetes rápido para Node.js con ahorro de espacio en disco",
+    "description_en": "Fast Node.js package manager with disk space savings",
+    "description_pt": "Gerenciador de pacotes rápido para Node.js com economia de espaço",
+    "description_fr": "Gestionnaire de paquets rapide pour Node.js avec économie d'espace",
+    "description_de": "Schneller Node.js-Paketmanager mit Festplatteneinsparung",
+    "flags": [],
+    "examples": [
+      {
+        "command": "pnpm install",
+        "description": "Instalar dependencias"
+      },
+      {
+        "command": "pnpm add axios",
+        "description": "Agregar paquete"
+      },
+      {
+        "command": "pnpm run dev",
+        "description": "Ejecutar script dev"
+      },
+      {
+        "command": "pnpm remove axios",
+        "description": "Eliminar paquete"
+      }
+    ]
+  },
+  {
+    "name": "printenv",
+    "category": "system",
+    "description_es": "Imprime el valor de una variable de entorno específica",
+    "description_en": "Print the value of a specific environment variable",
+    "description_pt": "Imprime o valor de uma variável de ambiente específica",
+    "description_fr": "Affiche la valeur d'une variable d'environnement spécifique",
+    "description_de": "Gibt den Wert einer bestimmten Umgebungsvariable aus",
+    "flags": [],
+    "examples": [
+      {
+        "command": "printenv HOME",
+        "description": "Ver la ruta del directorio home"
+      },
+      {
+        "command": "printenv PATH",
+        "description": "Ver el PATH actual"
+      }
+    ]
+  },
+  {
     "name": "ps",
     "category": "process",
     "description_es": "Muestra los procesos que están corriendo",
     "description_en": "Show running processes",
+    "description_pt": "Exibe os processos em execução",
+    "description_fr": "Affiche les processus en cours d'exécution",
+    "description_de": "Zeigt laufende Prozesse an",
     "flags": [
       {
         "flag": "aux",
@@ -1135,6 +2494,9 @@
     "category": "filesystem",
     "description_es": "Muestra la ruta completa del directorio actual",
     "description_en": "Print working directory — shows your current location",
+    "description_pt": "Exibe o caminho completo do diretório atual",
+    "description_fr": "Affiche le chemin complet du répertoire courant",
+    "description_de": "Zeigt den vollständigen Pfad des aktuellen Verzeichnisses",
     "flags": [],
     "examples": [
       {
@@ -1148,6 +2510,9 @@
     "category": "development",
     "description_es": "Ejecuta código Python 3",
     "description_en": "Execute Python 3 code",
+    "description_pt": "Executa código Python 3",
+    "description_fr": "Exécute du code Python 3",
+    "description_de": "Führt Python-3-Code aus",
     "flags": [
       {
         "flag": "-m venv",
@@ -1174,10 +2539,95 @@
     ]
   },
   {
+    "name": "readlink",
+    "category": "filesystem",
+    "description_es": "Muestra el destino real de un enlace simbólico",
+    "description_en": "Show the real target of a symbolic link",
+    "description_pt": "Exibe o destino real de um link simbólico",
+    "description_fr": "Affiche la cible réelle d'un lien symbolique",
+    "description_de": "Zeigt das echte Ziel eines symbolischen Links",
+    "flags": [
+      {
+        "flag": "-f",
+        "description": "Resuelve toda la cadena de symlinks"
+      }
+    ],
+    "examples": [
+      {
+        "command": "readlink enlace",
+        "description": "Ver a dónde apunta el enlace"
+      },
+      {
+        "command": "readlink -f /usr/bin/python3",
+        "description": "Ver ruta real de python3"
+      }
+    ]
+  },
+  {
+    "name": "renice",
+    "category": "process",
+    "description_es": "Cambia la prioridad de un proceso en ejecución",
+    "description_en": "Change the priority of a running process",
+    "description_pt": "Altera a prioridade de um processo em execução",
+    "description_fr": "Change la priorité d'un processus en cours d'exécution",
+    "description_de": "Ändert die Priorität eines laufenden Prozesses",
+    "flags": [],
+    "examples": [
+      {
+        "command": "renice -n 10 -p 1234",
+        "description": "Bajar prioridad del proceso 1234"
+      },
+      {
+        "command": "renice -n -5 -p 1234",
+        "description": "Subir prioridad del proceso 1234"
+      }
+    ]
+  },
+  {
+    "name": "rg",
+    "category": "search",
+    "description_es": "ripgrep — búsqueda de texto ultrarrápida en archivos",
+    "description_en": "ripgrep — ultra-fast text search in files",
+    "description_pt": "ripgrep — busca de texto ultrarrápida em arquivos",
+    "description_fr": "ripgrep — recherche de texte ultra-rapide dans les fichiers",
+    "description_de": "ripgrep — ultraschnelle Textsuche in Dateien",
+    "flags": [
+      {
+        "flag": "-i",
+        "description": "Ignora mayúsculas/minúsculas"
+      },
+      {
+        "flag": "-l",
+        "description": "Muestra solo nombres de archivo"
+      },
+      {
+        "flag": "--type",
+        "description": "Filtrar por tipo de archivo"
+      }
+    ],
+    "examples": [
+      {
+        "command": "rg 'function'",
+        "description": "Buscar 'function' en todos los archivos"
+      },
+      {
+        "command": "rg -i 'todo' src/",
+        "description": "Buscar TODO sin importar mayúsculas"
+      },
+      {
+        "command": "rg --type js 'import'",
+        "description": "Buscar solo en archivos .js"
+      }
+    ]
+  },
+  {
     "name": "rm",
     "category": "filesystem",
     "description_es": "Elimina archivos o carpetas (¡sin papelera!)",
     "description_en": "Remove files or directories — WARNING: no trash bin",
+    "description_pt": "Remove arquivos ou pastas (sem lixeira!)",
+    "description_fr": "Supprime des fichiers ou dossiers (sans corbeille !)",
+    "description_de": "Löscht Dateien oder Ordner (kein Papierkorb!)",
     "flags": [
       {
         "flag": "-r",
@@ -1204,6 +2654,9 @@
     "category": "network",
     "description_es": "Sincroniza archivos entre carpetas o máquinas (más rápido que cp/scp)",
     "description_en": "Synchronize files between folders or machines",
+    "description_pt": "Sincroniza arquivos entre pastas ou máquinas",
+    "description_fr": "Synchronise des fichiers entre dossiers ou machines",
+    "description_de": "Synchronisiert Dateien zwischen Ordnern oder Rechnern",
     "flags": [
       {
         "flag": "-avz",
@@ -1217,7 +2670,7 @@
     "examples": [
       {
         "command": "rsync -avz carpeta/ usuario@servidor:/ruta/",
-        "description": "Sincronizar carpeta con servidor"
+        "description": "Sincronizar con servidor"
       },
       {
         "command": "rsync -avz --progress origen/ destino/",
@@ -1230,6 +2683,9 @@
     "category": "development",
     "description_es": "Compilador de Rust",
     "description_en": "Rust compiler",
+    "description_pt": "Compilador Rust",
+    "description_fr": "Compilateur Rust",
+    "description_de": "Rust-Compiler",
     "flags": [
       {
         "flag": "-o",
@@ -1248,6 +2704,9 @@
     "category": "network",
     "description_es": "Copia archivos entre tu máquina y un servidor remoto",
     "description_en": "Copy files between local and remote machines",
+    "description_pt": "Copia arquivos entre sua máquina e um servidor remoto",
+    "description_fr": "Copie des fichiers entre votre machine et un serveur distant",
+    "description_de": "Kopiert Dateien zwischen lokalem und Remote-Rechner",
     "flags": [
       {
         "flag": "-r",
@@ -1266,10 +2725,46 @@
     ]
   },
   {
+    "name": "screen",
+    "category": "system",
+    "description_es": "Multiplexor de terminal clásico — sesiones persistentes",
+    "description_en": "Classic terminal multiplexer — persistent sessions",
+    "description_pt": "Multiplexador de terminal clássico — sessões persistentes",
+    "description_fr": "Multiplexeur de terminal classique — sessions persistantes",
+    "description_de": "Klassischer Terminal-Multiplexer — persistente Sitzungen",
+    "flags": [
+      {
+        "flag": "Ctrl+a d",
+        "description": "Desconectarse (sesión sigue corriendo)"
+      },
+      {
+        "flag": "Ctrl+a c",
+        "description": "Crear nueva ventana"
+      }
+    ],
+    "examples": [
+      {
+        "command": "screen",
+        "description": "Iniciar nueva sesión screen"
+      },
+      {
+        "command": "screen -r",
+        "description": "Reconectarse a sesión existente"
+      },
+      {
+        "command": "screen -ls",
+        "description": "Ver sesiones activas"
+      }
+    ]
+  },
+  {
     "name": "sed",
     "category": "search",
     "description_es": "Editor de flujo: reemplaza texto en archivos",
     "description_en": "Stream editor — find and replace text",
+    "description_pt": "Editor de fluxo: substitui texto em arquivos",
+    "description_fr": "Éditeur de flux : trouve et remplace du texte",
+    "description_de": "Stream-Editor — sucht und ersetzt Text",
     "flags": [
       {
         "flag": "-i",
@@ -1288,10 +2783,37 @@
     ]
   },
   {
+    "name": "sleep",
+    "category": "system",
+    "description_es": "Pausa la ejecución durante un número de segundos",
+    "description_en": "Pause execution for a number of seconds",
+    "description_pt": "Pausa a execução por um número de segundos",
+    "description_fr": "Met en pause l'exécution pendant un nombre de secondes",
+    "description_de": "Pausiert die Ausführung für eine Anzahl von Sekunden",
+    "flags": [],
+    "examples": [
+      {
+        "command": "sleep 5",
+        "description": "Esperar 5 segundos"
+      },
+      {
+        "command": "sleep 0.5",
+        "description": "Esperar medio segundo"
+      },
+      {
+        "command": "sleep 1m",
+        "description": "Esperar 1 minuto"
+      }
+    ]
+  },
+  {
     "name": "sort",
     "category": "search",
     "description_es": "Ordena líneas de texto alfabéticamente",
     "description_en": "Sort lines alphabetically",
+    "description_pt": "Ordena linhas de texto alfabeticamente",
+    "description_fr": "Trie les lignes de texte alphabétiquement",
+    "description_de": "Sortiert Textzeilen alphabetisch",
     "flags": [
       {
         "flag": "-r",
@@ -1318,10 +2840,66 @@
     ]
   },
   {
+    "name": "source",
+    "category": "system",
+    "description_es": "Ejecuta un archivo de shell en la sesión actual (aplica cambios)",
+    "description_en": "Execute a shell file in the current session (apply changes)",
+    "description_pt": "Executa um arquivo shell na sessão atual (aplica mudanças)",
+    "description_fr": "Exécute un fichier shell dans la session actuelle (applique les changements)",
+    "description_de": "Führt eine Shell-Datei in der aktuellen Sitzung aus (wendet Änderungen an)",
+    "flags": [],
+    "examples": [
+      {
+        "command": "source ~/.zshrc",
+        "description": "Recargar la configuración de zsh"
+      },
+      {
+        "command": "source .env",
+        "description": "Cargar variables de un archivo .env"
+      },
+      {
+        "command": ". ~/.bashrc",
+        "description": "Recargar bashrc (. es alias de source)"
+      }
+    ]
+  },
+  {
+    "name": "ss",
+    "category": "network",
+    "description_es": "Muestra conexiones de red (reemplazo moderno de netstat)",
+    "description_en": "Show network connections (modern replacement for netstat)",
+    "description_pt": "Exibe conexões de rede (substituto moderno do netstat)",
+    "description_fr": "Affiche les connexions réseau (remplacement moderne de netstat)",
+    "description_de": "Zeigt Netzwerkverbindungen (moderner Ersatz für netstat)",
+    "flags": [
+      {
+        "flag": "-tuln",
+        "description": "Puertos TCP/UDP en escucha"
+      },
+      {
+        "flag": "-tp",
+        "description": "Conexiones TCP con PID del proceso"
+      }
+    ],
+    "examples": [
+      {
+        "command": "ss -tuln",
+        "description": "Ver puertos en escucha"
+      },
+      {
+        "command": "ss -tp | grep :80",
+        "description": "Ver qué usa el puerto 80"
+      }
+    ]
+  },
+  {
     "name": "ssh",
     "category": "network",
     "description_es": "Conecta a una máquina remota de forma segura",
     "description_en": "Connect to a remote machine securely",
+    "description_pt": "Conecta a uma máquina remota de forma segura",
+    "description_fr": "Se connecte à une machine distante de façon sécurisée",
+    "description_de": "Verbindet sich sicher mit einem Remote-Rechner",
     "flags": [
       {
         "flag": "-p",
@@ -1340,10 +2918,83 @@
     ]
   },
   {
+    "name": "stat",
+    "category": "filesystem",
+    "description_es": "Muestra información detallada de un archivo (tamaño, permisos, fechas)",
+    "description_en": "Show detailed file information (size, permissions, dates)",
+    "description_pt": "Exibe informações detalhadas de um arquivo (tamanho, permissões, datas)",
+    "description_fr": "Affiche des informations détaillées d'un fichier (taille, permissions, dates)",
+    "description_de": "Zeigt detaillierte Dateiinformationen (Größe, Berechtigungen, Datum)",
+    "flags": [],
+    "examples": [
+      {
+        "command": "stat archivo.txt",
+        "description": "Ver metadata completa del archivo"
+      }
+    ]
+  },
+  {
+    "name": "strace",
+    "category": "process",
+    "description_es": "Traza las llamadas al sistema de un proceso (debug avanzado)",
+    "description_en": "Trace system calls of a process (advanced debugging)",
+    "description_pt": "Rastreia as chamadas de sistema de um processo (debug avançado)",
+    "description_fr": "Trace les appels système d'un processus (débogage avancé)",
+    "description_de": "Verfolgt Systemaufrufe eines Prozesses (erweitertes Debugging)",
+    "flags": [
+      {
+        "flag": "-p",
+        "description": "Adjuntar a proceso en ejecución por PID"
+      },
+      {
+        "flag": "-e",
+        "description": "Filtrar por tipo de llamada"
+      }
+    ],
+    "examples": [
+      {
+        "command": "strace ls",
+        "description": "Ver llamadas al sistema de ls"
+      },
+      {
+        "command": "strace -p 1234",
+        "description": "Adjuntar a proceso existente"
+      }
+    ]
+  },
+  {
+    "name": "su",
+    "category": "system",
+    "description_es": "Cambia al usuario root u otro usuario",
+    "description_en": "Switch to root or another user",
+    "description_pt": "Muda para o usuário root ou outro usuário",
+    "description_fr": "Bascule vers l'utilisateur root ou un autre utilisateur",
+    "description_de": "Wechselt zum Root- oder einem anderen Benutzer",
+    "flags": [
+      {
+        "flag": "-",
+        "description": "Carga el entorno completo del usuario destino"
+      }
+    ],
+    "examples": [
+      {
+        "command": "su -",
+        "description": "Cambiar a usuario root"
+      },
+      {
+        "command": "su - usuario",
+        "description": "Cambiar a otro usuario"
+      }
+    ]
+  },
+  {
     "name": "sudo",
     "category": "system",
     "description_es": "Ejecuta un comando con privilegios de administrador",
     "description_en": "Run a command with administrator privileges",
+    "description_pt": "Executa um comando com privilégios de administrador",
+    "description_fr": "Exécute une commande avec des privilèges d'administrateur",
+    "description_de": "Führt einen Befehl mit Administratorrechten aus",
     "flags": [],
     "examples": [
       {
@@ -1357,10 +3008,38 @@
     ]
   },
   {
+    "name": "sysctl",
+    "category": "system",
+    "description_es": "Lee o modifica parámetros del kernel en tiempo de ejecución",
+    "description_en": "Read or modify kernel parameters at runtime",
+    "description_pt": "Lê ou modifica parâmetros do kernel em tempo de execução",
+    "description_fr": "Lit ou modifie les paramètres du noyau en temps d'exécution",
+    "description_de": "Liest oder ändert Kernel-Parameter zur Laufzeit",
+    "flags": [
+      {
+        "flag": "-a",
+        "description": "Mostrar todos los parámetros"
+      }
+    ],
+    "examples": [
+      {
+        "command": "sysctl vm.swappiness",
+        "description": "Ver agresividad del swap"
+      },
+      {
+        "command": "sudo sysctl -w vm.swappiness=10",
+        "description": "Modificar parámetro del kernel"
+      }
+    ]
+  },
+  {
     "name": "tail",
     "category": "filesystem",
     "description_es": "Muestra las últimas líneas de un archivo",
     "description_en": "Show last lines of a file",
+    "description_pt": "Exibe as últimas linhas de um arquivo",
+    "description_fr": "Affiche les dernières lignes d'un fichier",
+    "description_de": "Zeigt die letzten Zeilen einer Datei an",
     "flags": [
       {
         "flag": "-n",
@@ -1387,6 +3066,9 @@
     "category": "filesystem",
     "description_es": "Crea o extrae archivos comprimidos .tar",
     "description_en": "Create or extract .tar archives",
+    "description_pt": "Cria ou extrai arquivos comprimidos .tar",
+    "description_fr": "Crée ou extrait des archives .tar",
+    "description_de": "Erstellt oder entpackt .tar-Archive",
     "flags": [
       {
         "flag": "-cvf",
@@ -1417,10 +3099,126 @@
     ]
   },
   {
+    "name": "tee",
+    "category": "filesystem",
+    "description_es": "Lee de stdin y escribe a stdout y a un archivo simultáneamente",
+    "description_en": "Read from stdin and write to both stdout and a file",
+    "description_pt": "Lê do stdin e escreve no stdout e em um arquivo simultaneamente",
+    "description_fr": "Lit depuis stdin et écrit simultanément sur stdout et un fichier",
+    "description_de": "Liest von stdin und schreibt gleichzeitig auf stdout und in eine Datei",
+    "flags": [
+      {
+        "flag": "-a",
+        "description": "Agregar al archivo (no sobrescribir)"
+      }
+    ],
+    "examples": [
+      {
+        "command": "ls | tee lista.txt",
+        "description": "Ver salida y guardar en archivo"
+      },
+      {
+        "command": "make 2>&1 | tee build.log",
+        "description": "Ver y guardar log de compilación"
+      }
+    ]
+  },
+  {
+    "name": "terraform",
+    "category": "development",
+    "description_es": "Gestiona infraestructura como código (IaC)",
+    "description_en": "Manage infrastructure as code (IaC)",
+    "description_pt": "Gerencia infraestrutura como código (IaC)",
+    "description_fr": "Gère l'infrastructure en tant que code (IaC)",
+    "description_de": "Verwaltet Infrastruktur als Code (IaC)",
+    "flags": [],
+    "examples": [
+      {
+        "command": "terraform init",
+        "description": "Inicializar directorio de trabajo"
+      },
+      {
+        "command": "terraform plan",
+        "description": "Ver qué cambios se aplicarán"
+      },
+      {
+        "command": "terraform apply",
+        "description": "Aplicar cambios de infraestructura"
+      },
+      {
+        "command": "terraform destroy",
+        "description": "Destruir infraestructura"
+      }
+    ]
+  },
+  {
+    "name": "time",
+    "category": "process",
+    "description_es": "Mide el tiempo de ejecución de un comando",
+    "description_en": "Measure execution time of a command",
+    "description_pt": "Mede o tempo de execução de um comando",
+    "description_fr": "Mesure le temps d'exécution d'une commande",
+    "description_de": "Misst die Ausführungszeit eines Befehls",
+    "flags": [],
+    "examples": [
+      {
+        "command": "time ls -la",
+        "description": "Medir cuánto tarda ls -la"
+      },
+      {
+        "command": "time cargo build",
+        "description": "Medir tiempo de compilación"
+      }
+    ]
+  },
+  {
+    "name": "timeout",
+    "category": "process",
+    "description_es": "Ejecuta un comando y lo mata si tarda más de N segundos",
+    "description_en": "Run a command and kill it if it takes more than N seconds",
+    "description_pt": "Executa um comando e o encerra se demorar mais de N segundos",
+    "description_fr": "Exécute une commande et la tue si elle dépasse N secondes",
+    "description_de": "Führt einen Befehl aus und beendet ihn nach N Sekunden",
+    "flags": [],
+    "examples": [
+      {
+        "command": "timeout 5 ping google.com",
+        "description": "Ping por máximo 5 segundos"
+      },
+      {
+        "command": "timeout 30 ./mi-script.sh",
+        "description": "Script con límite de 30 segundos"
+      }
+    ]
+  },
+  {
+    "name": "tldr",
+    "category": "system",
+    "description_es": "Muestra ejemplos prácticos de comandos (man simplificado)",
+    "description_en": "Show practical examples of commands (simplified man)",
+    "description_pt": "Exibe exemplos práticos de comandos (man simplificado)",
+    "description_fr": "Affiche des exemples pratiques de commandes (man simplifié)",
+    "description_de": "Zeigt praktische Beispiele für Befehle (vereinfachtes man)",
+    "flags": [],
+    "examples": [
+      {
+        "command": "tldr tar",
+        "description": "Ver ejemplos prácticos de tar"
+      },
+      {
+        "command": "tldr git",
+        "description": "Ver ejemplos prácticos de git"
+      }
+    ]
+  },
+  {
     "name": "tmux",
     "category": "system",
     "description_es": "Multiplexor de terminal: varias sesiones y paneles en una ventana",
     "description_en": "Terminal multiplexer: multiple sessions and panes in one window",
+    "description_pt": "Multiplexador de terminal: várias sessões e painéis em uma janela",
+    "description_fr": "Multiplexeur de terminal : plusieurs sessions et panneaux en une fenêtre",
+    "description_de": "Terminal-Multiplexer: mehrere Sitzungen und Bereiche in einem Fenster",
     "flags": [
       {
         "flag": "Ctrl+b c",
@@ -1463,6 +3261,9 @@
     "category": "process",
     "description_es": "Monitor de procesos en tiempo real (presiona q para salir)",
     "description_en": "Real-time process monitor (press q to quit)",
+    "description_pt": "Monitor de processos em tempo real (pressione q para sair)",
+    "description_fr": "Moniteur de processus en temps réel (appuyer sur q pour quitter)",
+    "description_de": "Echtzeit-Prozessmonitor (q zum Beenden drücken)",
     "flags": [],
     "examples": [
       {
@@ -1480,6 +3281,9 @@
     "category": "filesystem",
     "description_es": "Crea un archivo vacío o actualiza su fecha de modificación",
     "description_en": "Create empty file or update timestamp",
+    "description_pt": "Cria um arquivo vazio ou atualiza sua data de modificação",
+    "description_fr": "Crée un fichier vide ou met à jour sa date de modification",
+    "description_de": "Erstellt eine leere Datei oder aktualisiert den Zeitstempel",
     "flags": [],
     "examples": [
       {
@@ -1493,10 +3297,164 @@
     ]
   },
   {
+    "name": "tr",
+    "category": "search",
+    "description_es": "Traduce o elimina caracteres de texto",
+    "description_en": "Translate or delete characters from text",
+    "description_pt": "Traduz ou remove caracteres de texto",
+    "description_fr": "Traduit ou supprime des caractères dans du texte",
+    "description_de": "Übersetzt oder löscht Zeichen im Text",
+    "flags": [
+      {
+        "flag": "-d",
+        "description": "Eliminar caracteres especificados"
+      }
+    ],
+    "examples": [
+      {
+        "command": "echo 'hola' | tr 'a-z' 'A-Z'",
+        "description": "Convertir a mayúsculas"
+      },
+      {
+        "command": "echo 'hola mundo' | tr -d ' '",
+        "description": "Eliminar espacios"
+      }
+    ]
+  },
+  {
+    "name": "traceroute",
+    "category": "network",
+    "description_es": "Muestra la ruta de red que siguen los paquetes hasta un destino",
+    "description_en": "Show network path packets take to a destination",
+    "description_pt": "Exibe o caminho de rede que os pacotes seguem até um destino",
+    "description_fr": "Affiche le chemin réseau emprunté par les paquets vers une destination",
+    "description_de": "Zeigt den Netzwerkpfad, den Pakete zu einem Ziel nehmen",
+    "flags": [],
+    "examples": [
+      {
+        "command": "traceroute google.com",
+        "description": "Ver ruta de red a Google"
+      },
+      {
+        "command": "traceroute 8.8.8.8",
+        "description": "Trazar ruta a DNS de Google"
+      }
+    ]
+  },
+  {
+    "name": "tree",
+    "category": "filesystem",
+    "description_es": "Muestra la estructura de directorios en forma de árbol",
+    "description_en": "Display directory structure as a tree",
+    "description_pt": "Exibe a estrutura de diretórios em forma de árvore",
+    "description_fr": "Affiche la structure des répertoires sous forme d'arbre",
+    "description_de": "Zeigt die Verzeichnisstruktur als Baum an",
+    "flags": [
+      {
+        "flag": "-L",
+        "description": "Profundidad máxima del árbol"
+      },
+      {
+        "flag": "-a",
+        "description": "Incluir archivos ocultos"
+      },
+      {
+        "flag": "-I",
+        "description": "Ignorar patrones (ej: node_modules)"
+      }
+    ],
+    "examples": [
+      {
+        "command": "tree",
+        "description": "Ver árbol del directorio actual"
+      },
+      {
+        "command": "tree -L 2",
+        "description": "Ver árbol con máximo 2 niveles"
+      },
+      {
+        "command": "tree -I 'node_modules'",
+        "description": "Excluir node_modules"
+      }
+    ]
+  },
+  {
+    "name": "type",
+    "category": "system",
+    "description_es": "Muestra cómo se interpreta un comando (builtin, alias, archivo)",
+    "description_en": "Show how a command is interpreted (builtin, alias, file)",
+    "description_pt": "Mostra como um comando é interpretado (builtin, alias, arquivo)",
+    "description_fr": "Montre comment une commande est interprétée (builtin, alias, fichier)",
+    "description_de": "Zeigt wie ein Befehl interpretiert wird (builtin, alias, Datei)",
+    "flags": [],
+    "examples": [
+      {
+        "command": "type ls",
+        "description": "Ver si ls es un alias o comando real"
+      },
+      {
+        "command": "type cd",
+        "description": "Ver que cd es un builtin del shell"
+      }
+    ]
+  },
+  {
+    "name": "ulimit",
+    "category": "system",
+    "description_es": "Controla los recursos disponibles para procesos del shell",
+    "description_en": "Control resource limits for shell processes",
+    "description_pt": "Controla os recursos disponíveis para processos do shell",
+    "description_fr": "Contrôle les limites de ressources pour les processus shell",
+    "description_de": "Steuert die Ressourcenlimits für Shell-Prozesse",
+    "flags": [
+      {
+        "flag": "-n",
+        "description": "Límite de archivos abiertos"
+      },
+      {
+        "flag": "-a",
+        "description": "Ver todos los límites"
+      }
+    ],
+    "examples": [
+      {
+        "command": "ulimit -a",
+        "description": "Ver todos los límites actuales"
+      },
+      {
+        "command": "ulimit -n 4096",
+        "description": "Aumentar límite de archivos abiertos"
+      }
+    ]
+  },
+  {
+    "name": "umount",
+    "category": "filesystem",
+    "description_es": "Desmonta un sistema de archivos o dispositivo",
+    "description_en": "Unmount a filesystem or device",
+    "description_pt": "Desmonta um sistema de arquivos ou dispositivo",
+    "description_fr": "Démonte un système de fichiers ou un périphérique",
+    "description_de": "Hängt ein Dateisystem oder Gerät aus",
+    "flags": [],
+    "examples": [
+      {
+        "command": "sudo umount /mnt",
+        "description": "Desmontar /mnt"
+      },
+      {
+        "command": "sudo umount /dev/sdb1",
+        "description": "Desmontar dispositivo"
+      }
+    ]
+  },
+  {
     "name": "uname",
     "category": "system",
     "description_es": "Muestra información sobre el sistema operativo",
     "description_en": "Show operating system information",
+    "description_pt": "Exibe informações sobre o sistema operacional",
+    "description_fr": "Affiche des informations sur le système d'exploitation",
+    "description_de": "Zeigt Informationen über das Betriebssystem",
     "flags": [
       {
         "flag": "-a",
@@ -1515,6 +3473,9 @@
     "category": "search",
     "description_es": "Elimina o cuenta líneas duplicadas consecutivas",
     "description_en": "Remove or count duplicate consecutive lines",
+    "description_pt": "Remove ou conta linhas duplicadas consecutivas",
+    "description_fr": "Supprime ou compte les lignes dupliquées consécutives",
+    "description_de": "Entfernt oder zählt aufeinanderfolgende doppelte Zeilen",
     "flags": [
       {
         "flag": "-c",
@@ -1541,6 +3502,9 @@
     "category": "filesystem",
     "description_es": "Extrae archivos .zip",
     "description_en": "Extract .zip archives",
+    "description_pt": "Extrai arquivos .zip",
+    "description_fr": "Extrait des archives .zip",
+    "description_de": "Entpackt .zip-Archive",
     "flags": [
       {
         "flag": "-d",
@@ -1563,6 +3527,9 @@
     "category": "system",
     "description_es": "Muestra cuánto tiempo lleva encendida la máquina",
     "description_en": "Show how long the machine has been running",
+    "description_pt": "Exibe há quanto tempo a máquina está ligada",
+    "description_fr": "Affiche depuis combien de temps la machine fonctionne",
+    "description_de": "Zeigt wie lange der Rechner läuft",
     "flags": [],
     "examples": [
       {
@@ -1576,6 +3543,9 @@
     "category": "editor",
     "description_es": "Editor de texto clásico, disponible en cualquier sistema Unix",
     "description_en": "Classic text editor available on every Unix system",
+    "description_pt": "Editor de texto clássico, disponível em qualquer sistema Unix",
+    "description_fr": "Éditeur de texte classique, disponible sur tout système Unix",
+    "description_de": "Klassischer Texteditor, auf jedem Unix-System verfügbar",
     "flags": [
       {
         "flag": "i",
@@ -1606,6 +3576,9 @@
     "category": "editor",
     "description_es": "Editor de texto modal en la terminal (Normal/Insert/Visual)",
     "description_en": "Modal terminal text editor (Normal/Insert/Visual modes)",
+    "description_pt": "Editor de texto modal no terminal (modos Normal/Insert/Visual)",
+    "description_fr": "Éditeur de texte modal en terminal (modes Normal/Insert/Visual)",
+    "description_de": "Modaler Terminal-Texteditor (Normal/Einfüge/Visuell-Modus)",
     "flags": [
       {
         "flag": "i",
@@ -1648,10 +3621,82 @@
     ]
   },
   {
+    "name": "vmstat",
+    "category": "system",
+    "description_es": "Muestra estadísticas de memoria, CPU, I/O y swap",
+    "description_en": "Show memory, CPU, I/O and swap statistics",
+    "description_pt": "Exibe estatísticas de memória, CPU, I/O e swap",
+    "description_fr": "Affiche les statistiques mémoire, CPU, I/O et swap",
+    "description_de": "Zeigt Speicher-, CPU-, I/O- und Swap-Statistiken",
+    "flags": [],
+    "examples": [
+      {
+        "command": "vmstat",
+        "description": "Ver estadísticas del sistema"
+      },
+      {
+        "command": "vmstat 2 5",
+        "description": "Mostrar 5 mediciones cada 2 segundos"
+      }
+    ]
+  },
+  {
+    "name": "wait",
+    "category": "process",
+    "description_es": "Espera a que terminen procesos en segundo plano",
+    "description_en": "Wait for background processes to finish",
+    "description_pt": "Aguarda o término de processos em segundo plano",
+    "description_fr": "Attend la fin des processus en arrière-plan",
+    "description_de": "Wartet auf den Abschluss von Hintergrundprozessen",
+    "flags": [],
+    "examples": [
+      {
+        "command": "proceso1 & proceso2 & wait",
+        "description": "Ejecutar dos procesos y esperar ambos"
+      },
+      {
+        "command": "wait 1234",
+        "description": "Esperar al proceso con PID 1234"
+      }
+    ]
+  },
+  {
+    "name": "watch",
+    "category": "process",
+    "description_es": "Ejecuta un comando repetidamente y muestra su salida en tiempo real",
+    "description_en": "Run a command repeatedly and show its output in real time",
+    "description_pt": "Executa um comando repetidamente e exibe a saída em tempo real",
+    "description_fr": "Exécute une commande répétitivement et affiche sa sortie en temps réel",
+    "description_de": "Führt einen Befehl wiederholt aus und zeigt die Ausgabe in Echtzeit",
+    "flags": [
+      {
+        "flag": "-n",
+        "description": "Intervalo en segundos (por defecto 2)"
+      },
+      {
+        "flag": "-d",
+        "description": "Resalta los cambios entre ejecuciones"
+      }
+    ],
+    "examples": [
+      {
+        "command": "watch -n 1 df -h",
+        "description": "Ver espacio en disco cada segundo"
+      },
+      {
+        "command": "watch -d ps aux",
+        "description": "Monitorear procesos con cambios resaltados"
+      }
+    ]
+  },
+  {
     "name": "wc",
     "category": "search",
     "description_es": "Cuenta líneas, palabras y bytes de un archivo",
     "description_en": "Count lines, words, and bytes",
+    "description_pt": "Conta linhas, palavras e bytes de um arquivo",
+    "description_fr": "Compte lignes, mots et octets d'un fichier",
+    "description_de": "Zählt Zeilen, Wörter und Bytes einer Datei",
     "flags": [
       {
         "flag": "-l",
@@ -1678,6 +3723,9 @@
     "category": "network",
     "description_es": "Descarga archivos desde internet",
     "description_en": "Download files from the internet",
+    "description_pt": "Baixa arquivos da internet",
+    "description_fr": "Télécharge des fichiers depuis Internet",
+    "description_de": "Lädt Dateien aus dem Internet herunter",
     "flags": [
       {
         "flag": "-O",
@@ -1696,6 +3744,9 @@
     "category": "filesystem",
     "description_es": "Muestra la ruta completa de un programa",
     "description_en": "Show full path of a program",
+    "description_pt": "Exibe o caminho completo de um programa",
+    "description_fr": "Affiche le chemin complet d'un programme",
+    "description_de": "Zeigt den vollständigen Pfad eines Programms",
     "flags": [],
     "examples": [
       {
@@ -1713,6 +3764,9 @@
     "category": "system",
     "description_es": "Muestra el nombre de usuario actual",
     "description_en": "Show current username",
+    "description_pt": "Exibe o nome de usuário atual",
+    "description_fr": "Affiche le nom de l'utilisateur courant",
+    "description_de": "Zeigt den aktuellen Benutzernamen an",
     "flags": [],
     "examples": [
       {
@@ -1722,10 +3776,33 @@
     ]
   },
   {
+    "name": "whois",
+    "category": "network",
+    "description_es": "Consulta información de registro de un dominio",
+    "description_en": "Query registration information for a domain",
+    "description_pt": "Consulta informações de registro de um domínio",
+    "description_fr": "Interroge les informations d'enregistrement d'un domaine",
+    "description_de": "Fragt Registrierungsinformationen für eine Domain ab",
+    "flags": [],
+    "examples": [
+      {
+        "command": "whois google.com",
+        "description": "Ver info de registro de google.com"
+      },
+      {
+        "command": "whois 8.8.8.8",
+        "description": "Ver info de una dirección IP"
+      }
+    ]
+  },
+  {
     "name": "xargs",
     "category": "search",
     "description_es": "Convierte output de texto en argumentos para otro comando",
     "description_en": "Convert text output into arguments for another command",
+    "description_pt": "Converte saída de texto em argumentos para outro comando",
+    "description_fr": "Convertit la sortie texte en arguments pour une autre commande",
+    "description_de": "Wandelt Textausgabe in Argumente für einen anderen Befehl um",
     "flags": [
       {
         "flag": "-I {}",
@@ -1744,10 +3821,90 @@
     ]
   },
   {
+    "name": "xz",
+    "category": "filesystem",
+    "description_es": "Comprime archivos con alta tasa de compresión",
+    "description_en": "Compress files with high compression ratio",
+    "description_pt": "Comprime arquivos com alta taxa de compressão",
+    "description_fr": "Compresse des fichiers avec un taux de compression élevé",
+    "description_de": "Komprimiert Dateien mit hohem Kompressionsgrad",
+    "flags": [
+      {
+        "flag": "-d",
+        "description": "Descomprimir"
+      },
+      {
+        "flag": "-k",
+        "description": "Mantener archivo original"
+      }
+    ],
+    "examples": [
+      {
+        "command": "xz archivo.txt",
+        "description": "Comprimir a .xz"
+      },
+      {
+        "command": "xz -d archivo.txt.xz",
+        "description": "Descomprimir .xz"
+      }
+    ]
+  },
+  {
+    "name": "yarn",
+    "category": "development",
+    "description_es": "Gestor de paquetes alternativo para Node.js",
+    "description_en": "Alternative package manager for Node.js",
+    "description_pt": "Gerenciador de pacotes alternativo para Node.js",
+    "description_fr": "Gestionnaire de paquets alternatif pour Node.js",
+    "description_de": "Alternativer Paketmanager für Node.js",
+    "flags": [],
+    "examples": [
+      {
+        "command": "yarn install",
+        "description": "Instalar dependencias"
+      },
+      {
+        "command": "yarn add axios",
+        "description": "Agregar paquete"
+      },
+      {
+        "command": "yarn dev",
+        "description": "Ejecutar script dev"
+      },
+      {
+        "command": "yarn remove axios",
+        "description": "Eliminar paquete"
+      }
+    ]
+  },
+  {
+    "name": "yes",
+    "category": "system",
+    "description_es": "Imprime 'y' continuamente (útil para automatizar confirmaciones)",
+    "description_en": "Print 'y' continuously (useful to automate confirmations)",
+    "description_pt": "Imprime 'y' continuamente (útil para automatizar confirmações)",
+    "description_fr": "Affiche 'y' en continu (utile pour automatiser les confirmations)",
+    "description_de": "Gibt kontinuierlich 'y' aus (nützlich für automatische Bestätigungen)",
+    "flags": [],
+    "examples": [
+      {
+        "command": "yes | rm -i *.tmp",
+        "description": "Confirmar automáticamente eliminación"
+      },
+      {
+        "command": "yes 'texto' | head -5",
+        "description": "Imprimir texto 5 veces"
+      }
+    ]
+  },
+  {
     "name": "zip",
     "category": "filesystem",
     "description_es": "Crea archivos .zip",
     "description_en": "Create .zip archives",
+    "description_pt": "Cria arquivos .zip",
+    "description_fr": "Crée des archives .zip",
+    "description_de": "Erstellt .zip-Archive",
     "flags": [
       {
         "flag": "-r",

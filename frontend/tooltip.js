@@ -8,6 +8,12 @@
 
 const tooltipEl = document.getElementById('tooltip-card');
 
+// Lee el idioma activo del localStorage (escrito por el selector de idioma).
+// Fallback: 'es'.
+function getLang() {
+  return localStorage.getItem('ocote_lang') || 'es';
+}
+
 let currentTooltipCommand = null;
 let tooltipTimeout = null;
 
@@ -28,7 +34,7 @@ window.onTerminalCommandExecuted = async function (cmdName) {
   }
   
   try {
-    const info = await window.__TAURI__.invoke('get_command_info', { name: cmdName });
+    const info = await window.__TAURI__.invoke('get_command_info', { name: cmdName, lang: getLang() });
     if (info) {
       showTooltip(info);
     } else {
@@ -58,9 +64,9 @@ function showTooltip(info) {
   }
   html += `</div>`;
   
-  // Descripción
-  if (info.description_es) {
-    html += `<div class="tooltip-description">${escapeHtml(info.description_es)}</div>`;
+  // Descripción (ya resuelta en el idioma activo por el backend)
+  if (info.description) {
+    html += `<div class="tooltip-description">${escapeHtml(info.description)}</div>`;
   }
   
   // Flags (top 3)

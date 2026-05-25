@@ -1,10 +1,10 @@
-// autocomplete.js — Autocompletado visual con CKB + contexto (Fase 3)
+// autocomplete.js — Autocompletado visual con CKB + contexto (Fase 4: multilenguaje)
 //
 // Cuando el usuario escribe en la terminal (sin espacios), este módulo
 // consulta DOS fuentes en paralelo y muestra un popup unificado:
 //
 //   1. CKB (SQLite) → comandos que coinciden con el prefijo tipado
-//      Ej: "ca" → { name: "cat", description_es: "..." }
+//      El backend devuelve `description` ya resuelta en el idioma activo.
 //
 //   2. Contexto del directorio → sugerencias relevantes al proyecto actual
 //      Ej: en un repo Rust, "ca" → "cargo build", "cargo run", "cargo test"
@@ -17,6 +17,13 @@
 //   - Máximo 8 ítems en total para no saturar visualmente
 
 const popup = document.getElementById('autocomplete-popup');
+
+// ── Idioma activo ────────────────────────────────────────────────────────
+// Lee el idioma guardado en localStorage. El selector de idioma (index.html)
+// escribe en 'ocote_lang'. Fallback: 'es'.
+function getLang() {
+  return localStorage.getItem('ocote_lang') || 'es';
+}
 
 let debounceTimer = null;
 let currentSuggestions = [];
@@ -49,7 +56,7 @@ async function getContext() {
 }
 
 // Filtra las sugerencias de contexto por el prefijo que escribió el usuario.
-// Devuelve objetos compatibles con el formato de la CKB { name, description_es }.
+// Devuelve objetos compatibles con el formato de la CKB { name, description }.
 // El campo `isContext: true` le dice a renderPopup que use el badge de contexto.
 function filterContextSuggestions(contextInfo, prefix) {
   if (!contextInfo || !prefix) return [];
@@ -59,10 +66,11 @@ function filterContextSuggestions(contextInfo, prefix) {
   return contextInfo.suggestions
     // Solo las que empiezan con el prefijo (igual que la CKB)
     .filter(s => s.toLowerCase().startsWith(lowerPrefix))
-    // Convertir al formato de renderPopup
+    // Convertir al formato de renderPopup — usamos `description` (no `description_es`)
+    // para ser consistentes con los objetos que devuelve la CKB
     .map(s => ({
       name: s,
-      description_es: contextInfo.label,   // "Git · Rust", "Node.js", etc.
+      description: contextInfo.label,   // "Git · Rust", "Node.js", etc.
       isContext: true,
     }))
     // Máximo 4 sugerencias de contexto para no ahogar las de la CKB
@@ -91,7 +99,7 @@ window.onTerminalInputChanged = function (input) {
       // Consultar CKB y contexto en paralelo — ambas son rápidas pero
       // no queremos que una bloquee a la otra
       const [ckbResults, contextInfo] = await Promise.all([
-        window.__TAURI__.invoke('get_suggestions', { prefix: input }),
+        window.__TAURI__.invoke('get_suggestions', { prefix: input, lang: getLang() }),
         getContext(),
       ]);
 
@@ -138,9 +146,10 @@ function renderPopup(suggestions, prefix) {
 
     // Badge de contexto: muestra el tipo de proyecto en pequeño a la derecha
     // Solo aparece en ítems que vienen del contexto (isContext: true)
+    // cmd.description viene resuelto en el idioma activo (via getLang())
     const badge = cmd.isContext
-      ? `<span class="autocomplete-context-badge">${escapeHtml(cmd.description_es)}</span>`
-      : `<span class="autocomplete-desc">${escapeHtml(cmd.description_es)}</span>`;
+      ? `<span class="autocomplete-context-badge">${escapeHtml(cmd.description)}</span>`
+      : `<span class="autocomplete-desc">${escapeHtml(cmd.description)}</span>`;
 
     html += `
       <div

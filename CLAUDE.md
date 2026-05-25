@@ -41,8 +41,8 @@ ckb/
 - **Fase 3 (Meses 8-12):** Tooltip educativo, sugerencias contextuales, onboarding, distribución
 - **Fase 4 (Meses 12-18):** Comunidad, devlog, lanzamiento, credibilidad técnica
 
-## Estado actual — 2026-05-22
-**Fase 2 COMPLETADA.** Terminal funcional con xterm.js, explorador de archivos, CKB SQLite (62 comandos), autocompletado visual y tooltip educativo.
+## Estado actual — 2026-05-24
+**Fases 2 y 3 COMPLETADAS. Fase 4 iniciada.**
 
 - zsh/bash conectado al PTY (`pty.rs` con `portable-pty`) ✅
 - xterm.js renderizado (migrado desde parser VT custom) ✅
@@ -50,10 +50,10 @@ ckb/
 - Tab-completion, historial, inline editing, Ctrl+C/D/L vía ZLE ✅
 - Explorador de archivos lateral con cache (`explorer.js` + `fs_explorer.rs`) ✅
 - Sincronización bidireccional terminal↔explorador (fast-path + polling) ✅
-- CKB en SQLite con 76 comandos (`ckb.rs` + `ckb/commands.json`) ✅
+- CKB en SQLite con **153 comandos** en **5 idiomas** (ES/EN/PT/FR/DE) ✅
 - Autocompletado visual posicionado debajo del cursor (`autocomplete.js` + `window.ocoteTerminal`) ✅
 - Tooltip educativo funcional con argumentos (`tooltip.js`) ✅
-- ~20 commits en `main`, rama sin PRs pendientes
+- Selector de idioma en el breadcrumb (ES/EN/PT/FR/DE), persiste en `localStorage('ocote_lang')` ✅
 
 **Notas importantes para próximo agente:**
 - `vt_parser.js` fue eliminado por completo en v0.3.0. xterm.js maneja todo el renderizado.
@@ -65,23 +65,32 @@ ckb/
 - Tooltip aparece al ejecutar comando (Enter). Funciona con argumentos (`cd`, `git status`) gracias a `currentCommandLine`.
 - `terminal.js` expone `window.ocoteTerminal` para que `autocomplete.js` lea coordenadas del cursor (posicionamiento dinámico).
 - Popup de autocompletado se posiciona dinámicamente debajo del cursor usando `cursorY` y `lineHeight` de xterm.js.
-- `get_command_info()` devuelve `Option<Command>` — `null` si no está en CKB.
+- `get_command_info(name, lang)` devuelve `Option<CommandResponse>` — `null` si no está en CKB.
+- `get_suggestions(prefix, lang)` devuelve `Vec<CommandResponse>` — `description` ya resuelta en el idioma pedido.
+- `lang_column(lang)` en `ckb.rs` es whitelist explícita: nunca interpola user input en SQL.
+- `explorer.js` apunta a `#breadcrumb-path` (span dentro de `#breadcrumb`), no a `#breadcrumb`.
+- Selector de idioma es un script inline en `index.html` (no necesita archivo separado).
 
 **Fase 3 COMPLETADA — 2026-05-23:**
 
 ✅ **Detección de contexto** (`context.rs`): `detect_context(path)` detecta Git, Node, Rust, Python, Docker, Go, Make. 3 tests pasando.
 ✅ **Contexto en autocompletado**: sugerencias contextuales primero (badge naranja), luego CKB. Cache por CWD.
 ✅ **Onboarding**: overlay animado al primer uso, grid 2×2 de features, `localStorage`. Ctrl+Shift+? para volver a verlo.
-✅ **Soporte TUI**: `resize_pty(rows, cols)` sincroniza tamaño PTY↔xterm.js vía SIGWINCH. vim, nano, htop, fzf, tmux en CKB (76 comandos).
+✅ **Soporte TUI**: `resize_pty(rows, cols)` sincroniza tamaño PTY↔xterm.js vía SIGWINCH. vim, nano, htop, fzf, tmux en CKB.
 ✅ **Distribución**: GitHub Actions compila macOS (.dmg), Windows (.exe NSIS), Linux (.AppImage/.deb) al hacer `git tag vX.Y.Z && git push origin vX.Y.Z`.
 
-**Próximo paso — Fase 4 (Comunidad, lanzamiento, credibilidad técnica):**
+**Fase 4 en progreso — 2026-05-24:**
+
+✅ **CKB multilenguaje**: 153 comandos × 5 idiomas (ES/EN/PT/FR/DE) en SQLite.
+✅ **Selector de idioma** en breadcrumb — botones ES/EN/PT/FR/DE, preferencia en localStorage.
+
+**Próximo paso — Fase 4 (continúa):**
 1. Ícono real de Ocote (diseño propio)
 2. Landing page / sitio web
-3. Expandir CKB: 76 → 150+ comandos
-4. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
-5. Auto-updater (cuando el ícono y firma estén listos)
-6. Devlog público / blog técnico
+3. Iconos dinámicos en explorador de archivos por tipo de documento
+4. Selector de tipografía desde la UI
+5. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
+6. Auto-updater (cuando el ícono y firma estén listos)
 
 ## Cómo ayudar al desarrollador
 - Es developer en aprendizaje, usa IA como asistente principal

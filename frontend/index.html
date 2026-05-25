@@ -20,8 +20,21 @@
     └────────────┴────────────────────────────────┘
   -->
 
-  <!-- Barra superior con ruta actual -->
-  <div id="breadcrumb">~/</div>
+  <!-- Barra superior: ruta actual + selector de idioma -->
+  <div id="breadcrumb">
+    <span id="breadcrumb-path">~/</span>
+
+    <!-- Selector de idioma de la CKB.
+         Guarda la preferencia en localStorage('ocote_lang').
+         El valor se lee en autocomplete.js y tooltip.js vía getLang(). -->
+    <div id="lang-selector" title="Idioma de la ayuda / Help language">
+      <button class="lang-btn active" data-lang="es">ES</button>
+      <button class="lang-btn" data-lang="en">EN</button>
+      <button class="lang-btn" data-lang="pt">PT</button>
+      <button class="lang-btn" data-lang="fr">FR</button>
+      <button class="lang-btn" data-lang="de">DE</button>
+    </div>
+  </div>
 
   <div id="main-layout">
     <!-- Panel izquierdo: explorador de archivos -->
@@ -115,5 +128,30 @@
   <script src="autocomplete.js"></script>
   <script src="tooltip.js"></script>
   <script src="onboarding.js"></script>
+
+  <!-- Selector de idioma: pequeño, no necesita archivo propio -->
+  <script>
+    (function () {
+      // Inicializar con el idioma guardado (o 'es' por defecto)
+      const saved = localStorage.getItem('ocote_lang') || 'es';
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        if (btn.dataset.lang === saved) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+
+      // Manejar clicks en los botones de idioma
+      document.getElementById('lang-selector').addEventListener('click', e => {
+        const btn = e.target.closest('.lang-btn');
+        if (!btn) return;
+
+        const lang = btn.dataset.lang;
+        localStorage.setItem('ocote_lang', lang);
+
+        // Actualizar estado visual
+        document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    })();
+  </script>
 </body>
 </html>
