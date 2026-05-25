@@ -40,7 +40,7 @@ const ICONS = {
 
 // ── Colores y mapeo de extensiones ─────────────────────────────────────
 
-const FILE_COLORS = {
+const ICON_FILE_MAP = {
   // Lenguajes de programación
   js:         { icon: 'fileCode', color: '#f7df1e' },
   mjs:        { icon: 'fileCode', color: '#f7df1e' },
@@ -233,7 +233,7 @@ const FILE_COLORS = {
 
 // ── Colores de carpeta por nombre ────────────────────────────────────────
 
-const FOLDER_COLORS = {
+const ICON_FOLDER_MAP = {
   // Source
   src:        '#3498db',
   source:     '#3498db',
@@ -468,7 +468,7 @@ const FOLDER_COLORS = {
 
 function getIconForFile(filename) {
   const ext = filename.split('.').pop().toLowerCase();
-  const info = FILE_COLORS[ext] || FILE_COLORS.default;
+  const info = ICON_FILE_MAP[ext] || ICON_FILE_MAP.default;
   return {
     svg: ICONS[info.icon] || ICONS.file,
     color: info.color,
@@ -477,7 +477,7 @@ function getIconForFile(filename) {
 
 function getIconForFolder(name) {
   const lower = name.toLowerCase();
-  const color = FOLDER_COLORS[lower] || FOLDER_COLORS.default;
+  const color = ICON_FOLDER_MAP[lower] || ICON_FOLDER_MAP.default;
   return {
     svg: ICONS.folder,
     color,
@@ -487,8 +487,8 @@ function getIconForFolder(name) {
 // Exponer para explorer.js
 window.ICON_SET = {
   ICONS,
-  FILE_COLORS,
-  FOLDER_COLORS,
+  FILE_COLORS: ICON_FILE_MAP,
+  FOLDER_COLORS: ICON_FOLDER_MAP,
   getIconForFile,
   getIconForFolder,
 };
