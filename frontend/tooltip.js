@@ -17,6 +17,44 @@ function getLang() {
 let currentTooltipCommand = null;
 let tooltipTimeout = null;
 
+// ── Strings de UI traducidos ──────────────────────────────────────────────
+// Todas las etiquetas visibles del tooltip en los 5 idiomas.
+// Las descripciones de ejemplos y flags se mantienen en su idioma original
+// (son texto técnico breve y autoexplicativo junto al código).
+const UI_STRINGS = {
+  es: {
+    commonFlags:  'Flags comunes',
+    example:      'Ejemplo',
+    closeHint:    'Esc o clic fuera para cerrar',
+  },
+  en: {
+    commonFlags:  'Common flags',
+    example:      'Example',
+    closeHint:    'Esc or click outside to close',
+  },
+  pt: {
+    commonFlags:  'Flags comuns',
+    example:      'Exemplo',
+    closeHint:    'Esc ou clique fora para fechar',
+  },
+  fr: {
+    commonFlags:  'Options courantes',
+    example:      'Exemple',
+    closeHint:    'Échap ou clic en dehors pour fermer',
+  },
+  de: {
+    commonFlags:  'Häufige Flags',
+    example:      'Beispiel',
+    closeHint:    'Esc oder außerhalb klicken zum Schließen',
+  },
+};
+
+// Devuelve las strings de UI para el idioma activo.
+// Si el idioma no existe en el mapa, cae a español.
+function getUI() {
+  return UI_STRINGS[getLang()] || UI_STRINGS['es'];
+}
+
 /**
  * Callback invocado desde terminal.js cuando el usuario ejecuta un comando.
  * Consulta la CKB y muestra el tooltip si el comando existe.
@@ -69,9 +107,12 @@ function showTooltip(info) {
     html += `<div class="tooltip-description">${escapeHtml(info.description)}</div>`;
   }
   
+  // Etiquetas de UI en el idioma activo
+  const ui = getUI();
+
   // Flags (top 3)
   if (info.flags && info.flags.length > 0) {
-    html += `<div class="tooltip-section-title">Flags comunes</div>`;
+    html += `<div class="tooltip-section-title">${ui.commonFlags}</div>`;
     html += `<div class="tooltip-flags">`;
     const topFlags = info.flags.slice(0, 3);
     for (const flag of topFlags) {
@@ -84,19 +125,19 @@ function showTooltip(info) {
     }
     html += `</div>`;
   }
-  
+
   // Ejemplo
   if (info.examples && info.examples.length > 0) {
     const example = info.examples[0];
-    html += `<div class="tooltip-section-title">Ejemplo</div>`;
+    html += `<div class="tooltip-section-title">${ui.example}</div>`;
     html += `<div class="tooltip-example">$ ${escapeHtml(example.command)}</div>`;
     if (example.description) {
       html += `<div class="tooltip-example-desc">${escapeHtml(example.description)}</div>`;
     }
   }
-  
+
   // Hint de cierre
-  html += `<div class="tooltip-close-hint">Esc o click fuera para cerrar</div>`;
+  html += `<div class="tooltip-close-hint">${ui.closeHint}</div>`;
   
   tooltipEl.innerHTML = html;
   tooltipEl.classList.remove('hidden');
