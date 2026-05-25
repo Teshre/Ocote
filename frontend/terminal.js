@@ -34,7 +34,7 @@ const OCOTE_THEME = {
 // ── Inicializar xterm.js ─────────────────────────────────────────────────
 const term = new Terminal({
   theme: OCOTE_THEME,
-  fontFamily: "'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
+  fontFamily: "'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
   fontSize: 14,
   lineHeight: 1.5,
   cursorBlink: true,

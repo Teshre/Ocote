@@ -8,7 +8,7 @@
   // ── Defaults ────────────────────────────────────────────────────────────
   const DEFAULTS = {
     theme:     'dark',
-    font:      "'SF Mono', 'Menlo', 'Fira Code', 'Cascadia Code', monospace",
+    font:      "'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
     iconTheme: 'seti',
     lang:      'es',
   };
