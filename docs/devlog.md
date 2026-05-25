@@ -5,6 +5,111 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-05-24 — Sesión 8: Fase 4 inicio — CKB multilenguaje, tooltip traducido, íconos dinámicos
+
+**Estado al inicio:** Fase 3 completada. CKB tenía 76 comandos solo en español. El tooltip mostraba etiquetas hardcodeadas en español sin importar el idioma activo. El explorador usaba emojis de texto plano como íconos.
+
+**Qué se hizo:**
+
+### CKB multilenguaje — 76 → 153 comandos × 5 idiomas
+
+- Se expandió `ckb/commands.json` de 76 a **153 comandos**.
+- Cada comando tiene ahora: `description_es`, `description_en`, `description_pt`, `description_fr`, `description_de`.
+- Nuevas categorías representadas: `development`, `network`, `search`, `editor`, herramientas DevOps (`kubectl`, `terraform`, `helm`, `docker-compose`).
+- En `ckb.rs`:
+  - `CommandRaw` tiene los 5 campos de descripción con `#[serde(default)]` para pt/fr/de (compatibilidad hacia atrás).
+  - `CommandResponse` expone un solo campo `description` — el backend resuelve el idioma, el frontend nunca sabe qué columna se consultó.
+  - `lang_column(lang: &str) -> &'static str`: whitelist explícita para evitar SQL injection. Solo devuelve literales conocidos.
+  - `get_suggestions(prefix, lang, state)` y `get_command_info(name, lang, state)` usan `format!("SELECT name, {col}, category...")` donde `col` viene de `lang_column()`.
+- En `autocomplete.js`: `getLang()` lee `localStorage('ocote_lang')`. Pasa `lang` en cada `invoke('get_suggestions', ...)`. Usa `cmd.description` en vez de `cmd.description_es`.
+
+### Selector de idioma en breadcrumb
+
+- `index.html`: 5 botones `<button class="lang-btn" data-lang="…">` en `#lang-selector`.
+- Script inline maneja clicks, actualiza clase `active`, guarda en `localStorage('ocote_lang')`.
+- `autocomplete.js` y `tooltip.js` leen `localStorage` en cada llamada — cambio de idioma activo inmediatamente sin recargar.
+
+### Tooltip traducido
+
+- `tooltip.js` tenía "EJEMPLO", "Flags comunes" y "Esc o click fuera" hardcodeados en español.
+- Fix: se agregó el objeto `UI_STRINGS` con los 5 idiomas:
+  ```js
+  const UI_STRINGS = {
+    es: { commonFlags: 'Flags comunes', example: 'Ejemplo', closeHint: 'Esc o clic fuera para cerrar' },
+    en: { commonFlags: 'Common flags', example: 'Example', closeHint: 'Esc or click outside to close' },
+    // … pt, fr, de
+  };
+  ```
+- `getUI()` devuelve el mapa activo con fallback a `'es'`.
+- Nota: las descripciones de ejemplos en `commands.json` quedaron en español (demasiado verboso añadir 5 traducciones por cada ejemplo de cada comando).
+
+### Bug crítico: lang selector se borraba al navegar en el explorador
+
+- **Síntoma**: los botones ES/EN/PT/FR/DE desaparecían al hacer click en cualquier carpeta.
+- **Causa**: `explorer.js` hacía `breadcrumb.textContent = path`, que reemplazaba el contenido interno de `#breadcrumb` (incluyendo los botones del lang selector).
+- **Fix**: Cambiar la referencia a `document.getElementById('breadcrumb-path')` — un `<span>` específico dentro del breadcrumb. Ahora solo se actualiza el texto de la ruta.
+
+### Sistema dual de íconos en el explorador
+
+Se reemplazó el sistema de emojis por un sistema con dos temas:
+
+**Tema `seti` (SVG):**
+- `svgFile(fill, fold)`: genera SVG de rectángulo con esquina doblada (`path d="M2.5 1H9.5L13.5 5V15H2.5V1Z"`). El "fold" usa `shiftColor(hex, delta)` para aclarar/oscurecer el color base.
+- `svgFolder(color)`: genera SVG de carpeta con solapa superior y cuerpo diferenciado en color.
+- `FILE_COLORS`: ~80 extensiones → `[fill, fold]` (colores reales por tipo: verde para .py, naranja para .rs, amarillo para .js, etc.)
+- `SPECIAL_FILE_COLORS`: ~40 archivos especiales (Cargo.toml, Dockerfile, .env, etc.)
+- `FOLDER_COLORS`: ~40 nombres de carpeta → color (src→azul, test→verde, .git→rojo-naranja, etc.)
+
+**Tema `badge` (texto):**
+- `BADGE_LABELS` + `SPECIAL_BADGE_LABELS`: etiquetas cortas (`.PY`, `.RS`, `ENV`, `PKG`)
+- Fondo de color + texto blanco monoespaciado 7px
+
+**Infraestructura:**
+- `getIconTheme()` lee `localStorage('ocote_icon_theme')`.
+- `window._explorerRefresh()`: re-renderiza la vista actual sin ir al backend (usa el caché `dirCache`). Expuesto para que el selector de tema pueda llamarlo.
+- Selector de tema en `index.html`: botones ⬛ y ⊞, script inline análogo al de idioma.
+
+### ⚠️ Problema abierto — calidad visual de los íconos SVG
+
+Los íconos SVG actuales son bloques de color con esquina doblada — visualmente no son reconocibles como "íconos de archivo" tipo VS Code o Terax. El usuario confirmó "todavía no se ve bien".
+
+**Causa**: `svgFile()` usa `path` básico, no SVG paths detallados de librerías de íconos.
+
+**Soluciones a evaluar para la próxima sesión:**
+1. **Seti UI font** (MIT, ~120KB): la misma fuente que usa VS Code. Requiere descargar el archivo de fuente y mapear extensiones a glifos unicode.
+2. **SVG paths de Phosphor Icons** (MIT): embeber los `<path d="...">` reales para cada tipo de archivo. Más trabajo pero sin dependencia de fuentes.
+3. **Material File Icons**: otra alternativa con buena cobertura de tipos de archivo.
+
+El tema `badge` (⊞) es la alternativa limpia mientras se resuelve esto.
+
+**Decisiones tomadas:**
+
+- **Un solo campo `description` en `CommandResponse`**: el frontend no necesita saber qué idioma se consultó. Simplifica el frontend y evita que futuro código accidentalmente use `description_es`.
+- **`lang_column()` como whitelist**: la forma más segura de parametrizar el nombre de la columna SQL sin usar `rusqlite::params!` (que no acepta nombres de columna, solo valores).
+- **`#[serde(default)]` en campos pt/fr/de**: permite que `commands.json` con solo `description_es/en` siga siendo válido. Retrocompatibilidad sin código adicional.
+- **`window._explorerRefresh()` global**: patrón de "publicación de función" — el script inline de `index.html` puede llamar a una función definida en `explorer.js` sin imports ni eventos personalizados.
+- **Emojis → SVG pero tema badge como respaldo**: no eliminar el sistema de badge hasta que los SVG sean visualmente aceptables.
+
+**Problemas encontrados y soluciones:**
+
+| Síntoma | Causa | Fix |
+|---------|-------|-----|
+| Tooltip en FR/DE mostraba "EJEMPLO" y "Esc o click fuera" en español | Labels hardcodeados en `showTooltip()` | Agregar `UI_STRINGS` y `getUI()` en `tooltip.js` |
+| Botones de idioma desaparecían al navegar | `breadcrumb.textContent = path` sobreescribía el DOM | Cambiar a `#breadcrumb-path` (span específico) |
+| `autocomplete.js` mostraba `undefined` en descripción | Seguía accediendo a `cmd.description_es` | Cambiar a `cmd.description` |
+
+**Estado al final:**
+
+- CKB con 153 comandos × 5 idiomas ✅
+- Selector de idioma funcional ✅
+- Tooltip en 5 idiomas ✅
+- Sistema dual de íconos implementado ✅
+- ⚠️ Calidad visual de íconos SVG: pendiente de resolver
+
+**Próximo paso:** Resolver la calidad visual de los íconos SVG (Seti UI font o Phosphor SVG paths). Después: selector de tipografía.
+
+---
+
 ## 2026-05-23 — Sesión 7: Fase 3 completa
 
 **Estado al inicio:** Fase 2 completada. Iniciando Fase 3.

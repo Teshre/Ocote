@@ -82,13 +82,28 @@ ckb/
 **Fase 4 en progreso — 2026-05-24:**
 
 ✅ **CKB multilenguaje**: 153 comandos × 5 idiomas (ES/EN/PT/FR/DE) en SQLite.
-✅ **Selector de idioma** en breadcrumb — botones ES/EN/PT/FR/DE, preferencia en localStorage.
+✅ **Selector de idioma** en breadcrumb — botones ES/EN/PT/FR/DE, preferencia en `localStorage('ocote_lang')`.
+✅ **Tooltip traducido**: `UI_STRINGS` en `tooltip.js` con las 5 lenguas. `getUI()` devuelve el mapa activo. Las etiquetas "Flags comunes", "Ejemplo" y el hint de cierre cambian con el idioma.
+✅ **Sistema dual de íconos en explorador**: tema `seti` (SVGs con forma de documento) vs tema `badge` (etiquetas de texto). `getIconTheme()` lee `localStorage('ocote_icon_theme')`. `window._explorerRefresh()` re-renderiza sin ir al backend.
 
-**Próximo paso — Fase 4 (continúa):**
-1. Ícono real de Ocote (diseño propio)
-2. Landing page / sitio web
-3. Iconos dinámicos en explorador de archivos por tipo de documento
-4. Selector de tipografía desde la UI
+⚠️ **Problema pendiente — calidad de íconos SVG (tema seti)**:
+Los íconos SVG actuales son rectángulos de color con esquina doblada (`svgFile(fill, fold)`). Se ven como bloques de color, NO como íconos reconocibles tipo VS Code/Terax.
+- **Solución recomendada A:** Bundlear la fuente Seti UI (MIT, ~120KB) — es exactamente lo que usa VS Code.
+- **Solución recomendada B:** Embeber SVG paths reales de Phosphor Icons o Material Icons para cada tipo de archivo.
+- Mientras se resuelve, el tema `badge` (⊞) funciona como alternativa limpia.
+- El selector de tema ya está en el breadcrumb, listo para cuando los íconos mejoren.
+
+**Notas adicionales para el explorador:**
+- `FILE_COLORS`: ~80 pares `[fill, fold]` por extensión (.rs, .py, .js, .ts, .json, etc.)
+- `SPECIAL_FILE_COLORS`: ~40 archivos especiales (Cargo.toml, package.json, .env, Dockerfile, etc.)
+- `FOLDER_COLORS`: ~40 nombres de carpeta → color (src→azul, test→verde, node_modules→morado, .git→rojo)
+- Los objetos `FILE_ICONS_LEGACY` y `SPECIAL_FILES_LEGACY` siguen en `explorer.js` sin uso — renombrados para evitar confusión, no eliminar hasta confirmar que no hay referencias.
+
+**Próximo paso prioritario — Fase 4:**
+1. **Íconos SVG reales** — resolver calidad del tema `seti` (ver ⚠️ arriba)
+2. Selector de tipografía desde la UI (JetBrains Mono, Fira Code, Cascadia, etc.), `localStorage('ocote_font')`
+3. Ícono real de Ocote (diseño propio)
+4. Landing page / sitio web
 5. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
 6. Auto-updater (cuando el ícono y firma estén listos)
 

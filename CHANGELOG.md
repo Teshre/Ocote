@@ -8,9 +8,24 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### Fase 4 — En progreso
-- Ícono real de Ocote
+
+#### Completado
+- **CKB multilenguaje**: 76 → 153 comandos × 5 idiomas (ES/EN/PT/FR/DE)
+- **Selector de idioma** en breadcrumb: botones ES/EN/PT/FR/DE, preferencia en `localStorage('ocote_lang')`
+- **Tooltip traducido**: etiquetas de UI (Ejemplo, Flags comunes, hint de cierre) en los 5 idiomas
+- **Íconos en explorador**: sistema dual de temas — SVG documento (seti) y badges de texto (badge)
+- **Selector de tema de íconos** en breadcrumb: ⬛ (seti) / ⊞ (badge)
+
+#### Pendiente — íconos
+- Los íconos SVG actuales son rectángulos de color sólido con esquina doblada
+- Falta conseguir iconos SVG reales (Seti UI, Material Icons, Phosphor, etc.) similares a VS Code/Terax
+- Opción recomendada: bundlear la fuente Seti UI (MIT, ~120KB) o usar SVG paths de Phosphor Icons
+- Hasta que se resuelva, el tema "badge" es la alternativa funcional
+
+#### Pendiente — otros
+- Selector de tipografía desde la UI
+- Ícono real de Ocote (diseño propio)
 - Landing page / sitio web
-- CKB: 76 → 150+ comandos
 - Firma de código macOS (Apple Developer ID)
 - Auto-updater
 
