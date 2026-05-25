@@ -55,6 +55,8 @@
 
   function applyLang(lang) {
     localStorage.setItem('ocote_lang', lang);
+    // Recargar textos de la UI al idioma seleccionado
+    if (window.I18N) window.I18N.apply();
   }
 
   function applyAll() {
@@ -209,6 +211,7 @@
 
   // ── Inicializar ─────────────────────────────────────────────────────────
   applyAll();
+  if (window.I18N) window.I18N.apply();
   renderThemeGrid();
 
 })();
