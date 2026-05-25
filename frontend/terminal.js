@@ -50,8 +50,10 @@ term.loadAddon(fitAddon);
 term.open(container);
 fitAddon.fit();
 
-// Exponer terminal para que otros scripts puedan consultar posición del cursor
+// Exponer terminal y fitAddon para que otros scripts puedan consultar
+// posición del cursor o forzar recálculo de tamaño (ej. al cambiar fuente)
 window.ocoteTerminal = term;
+window.ocoteFitAddon = fitAddon;
 
 // ── Sincronizar tamaño PTY ↔ xterm.js ───────────────────────────────────
 //

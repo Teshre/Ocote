@@ -74,38 +74,6 @@ body {
   flex: 1;
 }
 
-/* Selector de idioma: botones pequeños a la derecha del breadcrumb */
-#lang-selector {
-  display: flex;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.lang-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 5px;
-  border-radius: 3px;
-  cursor: pointer;
-  letter-spacing: 0.03em;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
-  line-height: 1.4;
-}
-
-.lang-btn:hover {
-  background: var(--hover-bg);
-  color: var(--text-primary);
-}
-
-.lang-btn.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
 /* Layout principal: sidebar + terminal */
 #main-layout {
   display: flex;
@@ -220,36 +188,6 @@ body {
 .up-icon {
   font-size: 12px;
   color: var(--text-dim);
-}
-
-/* Selector de tema de íconos — mismo estilo que lang-selector */
-#icon-theme-selector {
-  display: flex;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.icon-theme-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: 11px;
-  padding: 2px 5px;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
-  line-height: 1.4;
-}
-
-.icon-theme-btn:hover {
-  background: var(--hover-bg);
-  color: var(--text-primary);
-}
-
-.icon-theme-btn.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
 }
 
 .explorer-name {
@@ -610,6 +548,185 @@ body {
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text-secondary);
+}
+
+/* ── Tema claro ─────────────────────────────────────────────────────────── */
+/* Override de variables cuando body tiene data-theme="light" */
+body[data-theme="light"] {
+  --bg-terminal: #f5f5f5;
+  --bg-sidebar:  #ffffff;
+  --bg-input:    #ffffff;
+  --bg-tooltip:  #ffffff;
+
+  --text-primary:   #1a1a1a;
+  --text-secondary: #666666;
+  --text-dim:       #999999;
+
+  --accent:         #e67e22;
+  --accent-dim:     #fdebd0;
+
+  --border:         rgba(0,0,0,0.08);
+  --border-strong:  rgba(0,0,0,0.12);
+
+  --hover-bg:       rgba(0,0,0,0.04);
+}
+
+/* ── Botón de Configuración en breadcrumb ──────────────────────────────── */
+#settings-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s;
+}
+#settings-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+/* ── Panel de Configuración (slide-out derecha) ────────────────────────── */
+#settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  justify-content: flex-end;
+}
+#settings-overlay.hidden {
+  display: none !important;
+}
+
+#settings-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+#settings-panel {
+  position: relative;
+  width: 300px;
+  max-width: 85vw;
+  height: 100%;
+  background: var(--bg-sidebar);
+  border-left: 1px solid var(--border);
+  padding: 20px;
+  overflow-y: auto;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.3);
+  animation: settings-slide-in 0.2s ease;
+}
+@keyframes settings-slide-in {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+#settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+#settings-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+#settings-close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: background 0.1s, color 0.1s;
+}
+#settings-close:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.settings-section {
+  margin-bottom: 24px;
+}
+.settings-section h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.settings-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* Segmented control (botones agrupados) */
+.settings-segmented {
+  display: flex;
+  gap: 0;
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.settings-seg-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  padding: 4px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap;
+}
+.settings-seg-btn:hover {
+  color: var(--text-primary);
+}
+.settings-seg-btn.active {
+  background: var(--accent);
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+/* Dropdown select */
+.settings-select {
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  min-width: 140px;
+  flex-shrink: 0;
+}
+.settings-select:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 /* Utilidades */
