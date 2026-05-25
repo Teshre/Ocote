@@ -115,62 +115,73 @@
   <!-- Iconos SVG inline (debe cargarse antes de explorer.js) -->
   <script src="icons.js"></script>
 
-  <!-- Panel de Configuración (slide-out desde la derecha) -->
+  <!-- Panel de Configuración (modal centrado con tabs) -->
   <div id="settings-overlay" class="hidden">
     <div id="settings-backdrop"></div>
-    <div id="settings-panel">
+    <div id="settings-card">
+
       <div id="settings-header">
         <h2>Configuración</h2>
         <button id="settings-close">✕</button>
       </div>
 
-      <!-- Apariencia -->
-      <div class="settings-section">
-        <h3>Apariencia</h3>
+      <!-- Tabs -->
+      <div id="settings-tabs">
+        <button class="settings-tab-btn active" data-tab="general">General</button>
+        <button class="settings-tab-btn" data-tab="appearance">Apariencia</button>
+      </div>
 
-        <div class="settings-row">
-          <span class="settings-label">Tema</span>
-          <div class="settings-segmented">
-            <button class="settings-seg-btn" data-setting="theme" data-value="dark">Oscuro</button>
-            <button class="settings-seg-btn" data-setting="theme" data-value="light">Claro</button>
-          </div>
-        </div>
-
-        <div class="settings-row">
-          <span class="settings-label">Tipografía</span>
-          <select class="settings-select" id="settings-font">
-            <option value="'SF Mono', 'Menlo', 'Fira Code', 'Cascadia Code', monospace">Sistema</option>
-            <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
-            <option value="'Fira Code', monospace">Fira Code</option>
-            <option value="'Cascadia Code', 'Cascadia Mono', monospace">Cascadia Code</option>
-            <option value="'Source Code Pro', monospace">Source Code Pro</option>
-            <option value="'Ubuntu Mono', monospace">Ubuntu Mono</option>
-          </select>
-        </div>
-
-        <div class="settings-row">
-          <span class="settings-label">Íconos</span>
-          <div class="settings-segmented">
-            <button class="settings-seg-btn" data-setting="iconTheme" data-value="seti">SVG</button>
-            <button class="settings-seg-btn" data-setting="iconTheme" data-value="badge">Badge</button>
+      <!-- Tab: General -->
+      <div class="settings-tab-content" data-tab="general">
+        <div class="settings-section">
+          <h3>Idioma</h3>
+          <div class="settings-row">
+            <span class="settings-label">Idioma de la ayuda</span>
+            <div class="settings-segmented">
+              <button class="settings-seg-btn" data-setting="lang" data-value="es">ES</button>
+              <button class="settings-seg-btn" data-setting="lang" data-value="en">EN</button>
+              <button class="settings-seg-btn" data-setting="lang" data-value="pt">PT</button>
+              <button class="settings-seg-btn" data-setting="lang" data-value="fr">FR</button>
+              <button class="settings-seg-btn" data-setting="lang" data-value="de">DE</button>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Idioma -->
-      <div class="settings-section">
-        <h3>Idioma</h3>
-        <div class="settings-row">
-          <span class="settings-label">Ayuda</span>
-          <div class="settings-segmented">
-            <button class="settings-seg-btn" data-setting="lang" data-value="es">ES</button>
-            <button class="settings-seg-btn" data-setting="lang" data-value="en">EN</button>
-            <button class="settings-seg-btn" data-setting="lang" data-value="pt">PT</button>
-            <button class="settings-seg-btn" data-setting="lang" data-value="fr">FR</button>
-            <button class="settings-seg-btn" data-setting="lang" data-value="de">DE</button>
+      <!-- Tab: Apariencia -->
+      <div class="settings-tab-content hidden" data-tab="appearance">
+        <div class="settings-section">
+          <h3>Tema de color</h3>
+          <div id="theme-grid"></div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Tipografía</h3>
+          <div class="settings-row">
+            <span class="settings-label">Fuente del terminal</span>
+            <select class="settings-select" id="settings-font">
+              <option value="'SF Mono', 'Menlo', 'Fira Code', 'Cascadia Code', monospace">Sistema</option>
+              <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+              <option value="'Fira Code', monospace">Fira Code</option>
+              <option value="'Cascadia Code', 'Cascadia Mono', monospace">Cascadia Code</option>
+              <option value="'Source Code Pro', monospace">Source Code Pro</option>
+              <option value="'Ubuntu Mono', monospace">Ubuntu Mono</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Explorador de archivos</h3>
+          <div class="settings-row">
+            <span class="settings-label">Estilo de íconos</span>
+            <div class="settings-segmented">
+              <button class="settings-seg-btn" data-setting="iconTheme" data-value="seti">SVG Outline</button>
+              <button class="settings-seg-btn" data-setting="iconTheme" data-value="badge">Badge</button>
+            </div>
           </div>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -180,6 +191,7 @@
   <script src="autocomplete.js"></script>
   <script src="tooltip.js"></script>
   <script src="onboarding.js"></script>
+  <script src="themes.js"></script>
   <script src="settings.js"></script>
 
 </body>
