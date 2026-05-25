@@ -380,6 +380,60 @@ El tema `badge` (⊞) es la alternativa limpia mientras se resuelve esto.
 
 ---
 
+## 2026-05-24 — Sesión 11: Iconos SVG outline de Tabler Icons
+
+**Estado al inicio:** v0.4.4 con explorador funcional pero iconos de archivo tipo "bloques de color" (rectángulos SVG rellenos). El usuario reportó que "no esta teniendo un buen diseño". Los iconos se veían como cuadrados naranjas/azules sin forma reconocible.
+
+**Qué se hizo:**
+
+### Nuevo sistema de iconos: `frontend/icons.js`
+- Descargados paths SVG de **Tabler Icons** (MIT license) desde jsDelivr CDN para referencia
+- Iconos seleccionados: `folder`, `file`, `file-code`, `file-text`, `photo`, `music`, `video`, `zip`, `database`, `settings`, `pdf`, `terminal`, `table`, `markdown`, `folder-open`
+- Todos los SVGs usan `stroke="currentColor"` y `fill="none"` — son outline icons
+- Mapeo de 80+ extensiones de archivo a icono + color:
+  - Lenguajes: js(amarillo), ts(azul), python(azul), rust(naranja), go(cyan), java(naranja), ruby(rojo), etc.
+  - Tipos: imagen(verde), audio(amarillo), video(rojo), zip(naranja), pdf(rojo), database(azul), config(morado)
+- Mapeo de 80+ nombres de carpeta a colores:
+  - src/lib/app → azul, node_modules → morado, dist/build → gris, test → verde, docs → celeste, assets → rosa, etc.
+
+### Integración en `explorer.js`
+- Modificadas `getFileIconHtml()` y `getFolderIconHtml()` para usar `window.ICON_SET`
+- Tema "seti" ahora renderiza `<span class="icon-wrapper" style="color:${color}">${svg}</span>`
+- El color se aplica via CSS `color` al contenedor, y el SVG hereda via `currentColor`
+- Funciones antiguas `svgFile()` y `svgFolder()` renombradas a `svgFileLegacy` / `svgFolderLegacy` como fallback si `icons.js` no cargó
+- Tema "badge" se mantiene intacto (etiquetas de texto coloreadas)
+
+### CSS
+- `.icon-wrapper`: contenedor flex 16×16px centrado
+- `.icon-wrapper svg`: ancho/alto 16px, `display: block`, `flex-shrink: 0`
+- Los estilos legacy `.icon-svg` se mantienen para compatibilidad
+
+**Decisiones tomadas:**
+- Usar iconos outline (línea) en lugar de rellenos: se ven más modernos y profesionales, y permiten cambiar el color fácilmente con `currentColor`
+- Tabler Icons sobre Seti UI: Tabler tiene una licencia MIT clara, paths SVG limpios, y no requiere fuentes web ni assets binarios
+- No descargar brand icons individuales para cada lenguaje: usar `file-code` con color diferente por lenguaje. Es suficiente para un file explorer y evita 30+ SVGs adicionales
+- Mantener fallback legacy: si `icons.js` falla al cargar, el explorador sigue funcionando con los SVGs de bloque de color anteriores
+
+**Problemas encontrados y soluciones:**
+
+| Síntoma | Causa | Fix |
+|---------|-------|-----|
+| Iconos se ven como bloques de color sin forma | SVGs anteriores eran rectángulos simples con relleno | Reemplazar por SVGs outline de Tabler Icons con paths realistas |
+| Color no se aplica a SVGs outline | SVGs outline usan `stroke`, no `fill` | Envolver en `<span style="color:${color}">` para heredar `currentColor` |
+| jsDelivr CDN no siempre responde | Descarga de SVGs individuales puede fallar | Copiar paths directamente en `icons.js` como strings, no depender de CDN en runtime |
+
+**Estado al final:**
+- Iconos de archivo son SVGs outline profesionales ✅
+- 80+ extensiones mapeadas a colores e iconos ✅
+- 80+ carpetas con colores específicos ✅
+- Tema "badge" sigue funcionando ✅
+- Fallback legacy activo ✅
+- ~22 commits en `main` ✅
+
+**Próximo paso:** Fase 3 — detección de contexto (git, node, python, rust, docker), sugerencias contextuales, onboarding, y soporte de apps TUI.
+
+---
+
 ## 2026-05-22 — Sesión 10: Polish final de Fase 2 — Popup y tooltip
 
 **Estado al inicio:** v0.4.3 con CKB de 62 comandos. El usuario reportó que el popup de autocompletado estaba pegado al fondo de la terminal (posición CSS fija `bottom: 12px`) y que el tooltip no aparecía al ejecutar comandos con argumentos (`cd Desktop`, `git status`).

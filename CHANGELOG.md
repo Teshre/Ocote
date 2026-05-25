@@ -7,63 +7,35 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
-### Fase 4 — En progreso
-
-#### Completado
-- **CKB multilenguaje**: 76 → 153 comandos × 5 idiomas (ES/EN/PT/FR/DE)
-- **Selector de idioma** en breadcrumb: botones ES/EN/PT/FR/DE, preferencia en `localStorage('ocote_lang')`
-- **Tooltip traducido**: etiquetas de UI (Ejemplo, Flags comunes, hint de cierre) en los 5 idiomas
-- **Íconos en explorador**: sistema dual de temas — SVG documento (seti) y badges de texto (badge)
-- **Selector de tema de íconos** en breadcrumb: ⬛ (seti) / ⊞ (badge)
-
-#### Pendiente — íconos
-- Los íconos SVG actuales son rectángulos de color sólido con esquina doblada
-- Falta conseguir iconos SVG reales (Seti UI, Material Icons, Phosphor, etc.) similares a VS Code/Terax
-- Opción recomendada: bundlear la fuente Seti UI (MIT, ~120KB) o usar SVG paths de Phosphor Icons
-- Hasta que se resuelva, el tema "badge" es la alternativa funcional
-
-#### Pendiente — otros
-- Selector de tipografía desde la UI
-- Ícono real de Ocote (diseño propio)
-- Landing page / sitio web
-- Firma de código macOS (Apple Developer ID)
-- Auto-updater
+### En progreso
+- Fase 3: detección de contexto (git, node, python, etc.)
+- Fase 3: onboarding de primer uso
+- Fase 3: soporte de apps TUI (vim, htop, fzf)
+- Fase 3: distribución (build .app para macOS)
 
 ---
 
-## [0.5.4] — 2026-05-23 — CKB ampliada: editores y herramientas TUI
+## [0.4.5] — 2026-05-24 — Iconos SVG outline de Tabler Icons
+
+Reemplazo de los iconos de archivo tipo "bloque de color" por iconos SVG outline profesionales de Tabler Icons.
 
 ### Agregado
-- **7 comandos nuevos en CKB** (`ckb/commands.json`): 69 → 76 comandos
-  - **editor (4)**: `vim`, `nvim`, `nano`, `vi` — con modos, atajos de teclado y ejemplos
-  - **process (1)**: `htop` — monitor interactivo con atajos F2/F3/F5/F9
-  - **search (1)**: `fzf` — fuzzy finder con uso en pipes
-  - **system (1)**: `tmux` — multiplexor con prefijo Ctrl+b
+- **`frontend/icons.js`**: sistema de iconos SVG inline con paths de Tabler Icons (MIT license)
+  - 15 iconos base: `folder`, `folderOpen`, `file`, `fileCode`, `fileText`, `photo`, `music`, `video`, `zip`, `database`, `settings`, `pdf`, `terminal`, `table`, `markdown`
+  - 80+ extensiones de archivo mapeadas a icono + color de lenguaje
+  - 80+ nombres de carpeta con colores específicos (src→azul, node_modules→morado, test→verde, etc.)
+  - API: `getIconForFile(filename)` y `getIconForFolder(name)` devuelven `{ svg, color }`
 
----
+### Cambiado
+- **`explorer.js`**: `getFileIconHtml()` y `getFolderIconHtml()` usan `window.ICON_SET` para el tema "seti"
+  - Iconos de archivo ahora son outline (línea) en lugar de rectángulos rellenos
+  - Los SVGs usan `stroke="currentColor"` para heredar el color del contenedor
+  - Mantiene tema "badge" (⊞) como alternativa via `localStorage('ocote_icon_theme')`
+- **`index.html`**: carga `icons.js` antes de `explorer.js`
+- **`theme.css`**: agregados estilos `.icon-wrapper` y `.icon-wrapper svg` para iconos outline de 16×16px
 
-## [0.5.0] — 2026-05-23 — Detección de contexto (Fase 3 inicio)
-
-### Agregado
-- **`context.rs`** — detección de tipo de proyecto sin IA ni red, solo lectura de archivos centinela:
-  - `Git` → detecta `.git/`
-  - `Node` → detecta `package.json`
-  - `Rust` → detecta `Cargo.toml`
-  - `Python` → detecta `requirements.txt`, `pyproject.toml` o `setup.py`
-  - `Docker` → detecta `docker-compose.yml`, `docker-compose.yaml` o `Dockerfile`
-  - `Go` → detecta `go.mod`
-  - `Make` → detecta `Makefile`
-  - `Unknown` → directorio sin marcadores conocidos
-- **Tipos múltiples por directorio**: un repo puede ser `Git · Node.js` o `Git · Rust` simultáneamente
-- **`suggestions`**: lista ordenada de comandos relevantes por tipo (ej. `git status`, `cargo build`)
-- **`label`**: etiqueta legible para la UI (ej. `"Git · Node.js"`)
-- **Comando Tauri `detect_context(path)`**: expuesto al frontend vía `invoke`
-- **3 tests unitarios** (`cargo test context`): directorio raíz, directorio desconocido, label multi-tipo
-
-### Decisiones técnicas
-- Detección por existencia de archivos (`Path::exists()`): O(1) por archivo, sin leer contenidos
-- Prioridad fija: Git > Node > Rust > Python > Docker > Go > Make — el tipo principal es siempre el primero
-- Múltiples tipos en paralelo: `project_types: Vec<ProjectType>` en vez de un único enum, para que el frontend pueda combinar sugerencias
+### Corregido
+- **Calidad visual de iconos**: los SVGs anteriores eran rectángulos de color simples que se veían como bloques. Los nuevos iconos outline tienen formas reconocibles (carpeta con pestaña, documento con esquina doblada, nota musical para audio, etc.).
 
 ---
 
