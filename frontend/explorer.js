@@ -285,17 +285,18 @@ function getIconTheme() {
 // doblada). El color de relleno identifica la tecnología.
 // fold = color más oscuro para la esquina doblada (da profundidad).
 
-function svgFile(fill, fold) {
+// ── SVGs legacy (fallback si icons.js no cargó) ────────────────────────
+
+function svgFileLegacy(fill, fold) {
     return `<svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
         <path d="M2.5 1H9.5L13.5 5V15H2.5V1Z" fill="${fill}"/>
         <path d="M9.5 1V5H13.5" fill="${fold}" opacity="0.7"/>
     </svg>`;
 }
 
-// Carpeta SVG: pestaña superior + cuerpo
-function svgFolder(color) {
-    const tab  = shiftColor(color, 15);   // pestaña ligeramente más clara
-    const body = shiftColor(color, -10);  // cuerpo ligeramente más oscuro
+function svgFolderLegacy(color) {
+    const tab  = shiftColor(color, 15);
+    const body = shiftColor(color, -10);
     return `<svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
         <path d="M1 5H6.5L8 3H15V5Z" fill="${tab}"/>
         <path d="M1 5H15V14H1Z" fill="${body}"/>
@@ -735,15 +736,15 @@ function resolveFileColors(nameLower) {
 
 /**
  * Devuelve el HTML del ícono de archivo.
- * Tema "seti"  → SVG con forma de documento
+ * Tema "seti"  → SVG outline de Tabler Icons (vía icons.js)
  * Tema "badge" → badge de texto coloreado
  */
 function getFileIconHtml(filename) {
     const nameLower = filename.toLowerCase();
     const theme = getIconTheme();
-    const [fill, fold] = resolveFileColors(nameLower);
 
     if (theme === 'badge') {
+        const [fill] = resolveFileColors(nameLower);
         // Buscar etiqueta: nombre especial → extensión → fallback
         const label = SPECIAL_BADGE_LABELS[nameLower]
             || (() => {
@@ -760,21 +761,36 @@ function getFileIconHtml(filename) {
         return `<span class="file-icon" style="background:${fill};color:${fg}">${escapeHtml(label)}</span>`;
     }
 
-    // Tema seti: SVG
-    return svgFile(fill, fold);
+    // Tema seti: SVG outline de Tabler Icons
+    if (window.ICON_SET) {
+        const { svg, color } = window.ICON_SET.getIconForFile(filename);
+        return `<span class="icon-wrapper" style="color:${color}">${svg}</span>`;
+    }
+
+    // Fallback si icons.js aún no cargó
+    const [fill, fold] = resolveFileColors(nameLower);
+    return svgFileLegacy(fill, fold);
 }
 
 /**
  * Devuelve el HTML del ícono de carpeta, con color según el nombre.
  */
 function getFolderIconHtml(name) {
-    const color = FOLDER_COLORS[name.toLowerCase()] || '#f5a623';
+    const color = FOLDER_COLORS[name.toLowerCase()] || '#dcb67a';
     const theme = getIconTheme();
 
     if (theme === 'badge') {
         return `<span class="folder-icon" style="color:${color}">▶</span>`;
     }
-    return svgFolder(color);
+
+    // Tema seti: SVG outline de Tabler Icons
+    if (window.ICON_SET) {
+        const { svg } = window.ICON_SET.getIconForFolder(name);
+        return `<span class="icon-wrapper" style="color:${color}">${svg}</span>`;
+    }
+
+    // Fallback si icons.js aún no cargó
+    return svgFolderLegacy(color);
 }
 
 // ── Iniciar ───────────────────────────────────────────────────────────────

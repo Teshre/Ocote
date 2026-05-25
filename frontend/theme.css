@@ -168,7 +168,23 @@ body {
   justify-content: center;
 }
 
-/* ── Tema "seti": íconos SVG en forma de documento ── */
+/* ── Tema "seti": íconos SVG outline de Tabler Icons ── */
+.icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.icon-wrapper svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  display: block;
+}
+
+/* Legacy: íconos SVG rellenos (rectángulo de color) */
 .icon-svg {
   width: 15px;
   height: 15px;
