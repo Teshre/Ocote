@@ -88,11 +88,16 @@ body {
   min-width: 160px;
   background: var(--bg-sidebar);
   border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+#explorer-content {
+  flex: 1;
   overflow-y: auto;
   padding: 8px 0;
-  flex-shrink: 0;
-  /* DEBUG: borde temporal para verificar que el panel existe */
-  /* border: 2px solid red; */
+  min-height: 0;
 }
 
 /* Items del explorador */
@@ -182,6 +187,98 @@ body {
 .folder-icon {
   font-size: 10px;
   line-height: 1;
+}
+
+/* ── Footer del explorador: breadcrumb inferior ────────────────────────── */
+#explorer-footer {
+  border-top: 1px solid var(--border);
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-sidebar);
+  flex-shrink: 0;
+}
+
+#explorer-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none; /* Firefox */
+}
+#explorer-breadcrumb::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.explorer-bc-segment {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.explorer-bc-segment:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.explorer-bc-segment.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.explorer-bc-segment .bc-arrow {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-left: 2px;
+}
+
+.explorer-bc-home {
+  color: var(--accent);
+}
+
+/* Dropdown del breadcrumb */
+#explorer-bc-dropdown {
+  position: absolute;
+  background: var(--bg-tooltip);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  min-width: 160px;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 200;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  padding: 4px 0;
+}
+
+.explorer-bc-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.explorer-bc-dropdown-item:hover {
+  background: var(--hover-bg);
+}
+.explorer-bc-dropdown-item .bc-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 /* Flecha del botón "subir directorio" */

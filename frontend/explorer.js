@@ -5,9 +5,9 @@
 // y los scripts en el scope global no permiten redeclarar `const`.
 
 // ── Referencias DOM ───────────────────────────────────────────────────────
-const panel = document.getElementById('explorer-panel');
-// Apuntamos al span interno del breadcrumb para no borrar el selector de idioma
+const panel = document.getElementById('explorer-content');
 const breadcrumb = document.getElementById('breadcrumb-path');
+const footerBreadcrumb = document.getElementById('explorer-breadcrumb');
 
 // ── Estado ────────────────────────────────────────────────────────────────
 let currentPath = '';
@@ -198,7 +198,132 @@ function renderEntries(entries, path) {
     panel.querySelectorAll('.explorer-item').forEach(item => {
         item.addEventListener('click', handleClick);
     });
+    
+    // Actualizar breadcrumb inferior
+    renderBreadcrumb(path);
 }
+
+// ── Breadcrumb inferior ─────────────────────────────────────────────────
+
+function renderBreadcrumb(path) {
+    if (!footerBreadcrumb) return;
+    
+    const parts = path.split('/').filter(Boolean);
+    let html = '';
+    let accumulated = '/';
+    
+    // Home siempre visible
+    html += `<button class="explorer-bc-segment explorer-bc-home" data-path="/" title="Home">🏠</button>`;
+    
+    for (let i = 0; i < parts.length; i++) {
+        accumulated = accumulated === '/' ? '/' + parts[i] : accumulated + '/' + parts[i];
+        const isLast = i === parts.length - 1;
+        const label = parts[i];
+        
+        if (isLast) {
+            // Último segmento: activo + flecha dropdown
+            html += `<button class="explorer-bc-segment active" data-path="${escapeHtml(accumulated)}" data-dropdown="true">${escapeHtml(label)}<span class="bc-arrow">▾</span></button>`;
+        } else {
+            html += `<button class="explorer-bc-segment" data-path="${escapeHtml(accumulated)}">${escapeHtml(label)}</button>`;
+        }
+    }
+    
+    footerBreadcrumb.innerHTML = html;
+    
+    // Event listeners
+    footerBreadcrumb.querySelectorAll('.explorer-bc-segment').forEach(btn => {
+        btn.addEventListener('click', handleBreadcrumbClick);
+    });
+}
+
+async function handleBreadcrumbClick(e) {
+    const btn = e.currentTarget;
+    const path = btn.getAttribute('data-path');
+    const hasDropdown = btn.getAttribute('data-dropdown') === 'true';
+    
+    // Cerrar dropdown existente
+    closeBreadcrumbDropdown();
+    
+    if (hasDropdown) {
+        // Mostrar dropdown con subcarpetas del directorio actual
+        await showBreadcrumbDropdown(btn, path);
+    } else {
+        // Navegar a la ruta
+        await loadDirectory(path, { instant: true });
+        try {
+            await window.__TAURI__.invoke('write_to_shell', { input: '\x15' });
+            await window.__TAURI__.invoke('write_to_shell', { input: `cd "${path}"\r` });
+            if (window.resetTerminalInput) window.resetTerminalInput();
+        } catch (err) {
+            console.error('[Explorer] Error al sincronizar breadcrumb:', err);
+        }
+    }
+}
+
+let bcDropdownEl = null;
+
+async function showBreadcrumbDropdown(btn, path) {
+    const rect = btn.getBoundingClientRect();
+    
+    try {
+        const entries = await window.__TAURI__.invoke('list_directory', { path });
+        const dirs = entries.filter(e => e.is_dir).sort((a, b) => a.name.localeCompare(b.name));
+        
+        if (dirs.length === 0) return;
+        
+        bcDropdownEl = document.createElement('div');
+        bcDropdownEl.id = 'explorer-bc-dropdown';
+        
+        let html = '';
+        for (const dir of dirs) {
+            const icon = getFolderIconHtml(dir.name);
+            html += `
+                <div class="explorer-bc-dropdown-item" data-path="${escapeHtml(dir.path)}">
+                    <span class="bc-icon">${icon}</span>
+                    <span>${escapeHtml(dir.name)}</span>
+                </div>
+            `;
+        }
+        bcDropdownEl.innerHTML = html;
+        
+        // Posicionar arriba del botón
+        bcDropdownEl.style.left = rect.left + 'px';
+        bcDropdownEl.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+        
+        document.body.appendChild(bcDropdownEl);
+        
+        bcDropdownEl.querySelectorAll('.explorer-bc-dropdown-item').forEach(item => {
+            item.addEventListener('click', async (e) => {
+                const dirPath = e.currentTarget.getAttribute('data-path');
+                closeBreadcrumbDropdown();
+                await loadDirectory(dirPath, { instant: true });
+                try {
+                    await window.__TAURI__.invoke('write_to_shell', { input: '\x15' });
+                    await window.__TAURI__.invoke('write_to_shell', { input: `cd "${dirPath}"\r` });
+                    if (window.resetTerminalInput) window.resetTerminalInput();
+                } catch (err) {
+                    console.error('[Explorer] Error al navegar desde dropdown:', err);
+                }
+            });
+        });
+    } catch (err) {
+        console.error('[Explorer] Error al listar subcarpetas:', err);
+    }
+}
+
+function closeBreadcrumbDropdown() {
+    if (bcDropdownEl) {
+        bcDropdownEl.remove();
+        bcDropdownEl = null;
+    }
+}
+
+// Cerrar dropdown al hacer click fuera
+document.addEventListener('click', (e) => {
+    if (bcDropdownEl && !bcDropdownEl.contains(e.target) && !e.target.closest('.explorer-bc-segment[data-dropdown="true"]')) {
+        closeBreadcrumbDropdown();
+    }
+});
 
 // ── Click handler ────────────────────────────────────────────────────────
 
