@@ -12,16 +12,20 @@ fn main() {
         .manage(pty::PtyState::new())
         .manage(ckb::CkbState::new().expect("error al inicializar CKB"))
         .invoke_handler(tauri::generate_handler![
-            // Fase 1 — activos
-            pty::spawn_shell,
+            // PTY — múltiples shells
+            pty::create_shell,
             pty::write_to_shell,
             pty::resize_pty,
+            pty::get_shell_cwd,
+            pty::close_shell,
+            pty::list_shells,
+            // Backward compat
+            pty::spawn_shell,
             // Fase 2 — activos
             fs_explorer::list_directory,
             fs_explorer::get_home_directory,
             ckb::get_suggestions,
             ckb::get_command_info,
-            pty::get_shell_cwd,
             // Fase 3 — activos
             context::detect_context,
         ])

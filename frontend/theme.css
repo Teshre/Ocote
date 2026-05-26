@@ -308,15 +308,114 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-height: 0; /* propaga el contexto de scroll a los hijos flex */
+  min-height: 0;
   position: relative;
 }
 
-/* Contenedor de xterm.js */
+/* ── Barra de tabs ──────────────────────────────────────────────────────── */
+#tab-bar-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 0 4px;
+  gap: 2px;
+}
+
+#tab-bar {
+  display: flex;
+  flex: 1;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+#tab-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.terminal-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  flex-shrink: 0;
+  max-width: 160px;
+}
+.terminal-tab:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+.terminal-tab.active {
+  background: var(--bg-terminal);
+  color: var(--text-primary);
+  border-bottom-color: var(--accent);
+}
+
+.terminal-tab .tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.terminal-tab .tab-close {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  border-radius: 3px;
+  opacity: 0.6;
+  transition: opacity 0.1s, background 0.1s;
+}
+.terminal-tab .tab-close:hover {
+  opacity: 1;
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+#tab-new {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s;
+}
+#tab-new:hover {
+  background: var(--hover-bg);
+  color: var(--accent);
+}
+
+/* Contenedor de terminales (uno por tab) */
 #terminal-container {
   flex: 1;
   overflow: hidden;
   position: relative;
+}
+
+.terminal-tab-content {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.terminal-tab-content.hidden {
+  display: none !important;
 }
 
 /* xterm.js ya maneja internamente:

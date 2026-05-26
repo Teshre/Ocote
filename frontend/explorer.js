@@ -55,7 +55,9 @@ function startSyncPolling() {
     
     syncInterval = setInterval(async () => {
         try {
-            const cwd = await window.__TAURI__.invoke('get_shell_cwd');
+            const activeShell = window.ocoteActiveShellId;
+            if (!activeShell) return;
+            const cwd = await window.__TAURI__.invoke('get_shell_cwd', { shellId: activeShell });
             if (cwd && cwd !== lastSyncedPath) {
                 console.log('[Explorer] Sync: terminal CWD changed to', cwd);
                 await loadDirectory(cwd);
@@ -936,6 +938,20 @@ window._explorerRefresh = function () {
     const cached = dirCache.get(currentPath);
     if (cached) {
         renderEntries(cached.entries, currentPath);
+    }
+};
+
+// Sincronizar explorador con el CWD del shell activo (llamado al cambiar de tab)
+window._syncExplorerToActiveShell = async function () {
+    const activeShell = window.ocoteActiveShellId;
+    if (!activeShell) return;
+    try {
+        const cwd = await window.__TAURI__.invoke('get_shell_cwd', { shellId: activeShell });
+        if (cwd && cwd !== currentPath) {
+            await loadDirectory(cwd);
+        }
+    } catch (err) {
+        console.error('[Explorer] Error al sincronizar con shell activo:', err);
     }
 };
 

@@ -37,9 +37,15 @@
       </div>
     </div>
 
-    <!-- Panel derecho: terminal -->
+    <!-- Panel derecho: terminal con tabs -->
     <div id="terminal-panel">
-      <!-- xterm.js renderiza aquí -->
+      <!-- Barra de tabs -->
+      <div id="tab-bar-wrapper">
+        <div id="tab-bar"></div>
+        <button id="tab-new" title="Nueva terminal (Ctrl+T)">+</button>
+      </div>
+
+      <!-- Contenedor de terminales (uno por tab) -->
       <div id="terminal-container"></div>
 
       <!-- Autocompletado (aparece flotando sobre el input) -->
@@ -196,6 +202,7 @@
 
   <!-- Nuestros módulos JS -->
   <script src="terminal.js"></script>
+  <script src="tab-manager.js"></script>
   <script src="explorer.js"></script>
   <script src="autocomplete.js"></script>
   <script src="tooltip.js"></script>
