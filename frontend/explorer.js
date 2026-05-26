@@ -209,28 +209,36 @@ function renderBreadcrumb(path) {
     if (!footerBreadcrumb) return;
     
     const parts = path.split('/').filter(Boolean);
+    const total = parts.length;
+    const showAll = total <= 4;  // Mostrar todo si son 4 o menos segmentos
+    
     let html = '';
     let accumulated = '/';
     
-    // Home siempre visible
-    html += `<button class="explorer-bc-segment explorer-bc-home" data-path="/" title="Home">🏠</button>`;
+    // Home icon SVG (Tabler Icons)
+    const homeSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M5 12l-2 0l9 -9l9 9l-2 0"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/></svg>`;
+    html += `<button class="explorer-bc-segment explorer-bc-home" data-path="/" title="Home">${homeSvg}</button>`;
     
-    for (let i = 0; i < parts.length; i++) {
+    for (let i = 0; i < total; i++) {
         accumulated = accumulated === '/' ? '/' + parts[i] : accumulated + '/' + parts[i];
-        const isLast = i === parts.length - 1;
+        const isLast = i === total - 1;
+        const isFirst = i === 0;
         const label = parts[i];
         
         if (isLast) {
-            // Último segmento: activo + flecha dropdown
-            html += `<button class="explorer-bc-segment active" data-path="${escapeHtml(accumulated)}" data-dropdown="true">${escapeHtml(label)}<span class="bc-arrow">▾</span></button>`;
+            // Último segmento: siempre completo, con flecha dropdown
+            html += `<button class="explorer-bc-segment active" data-path="${escapeHtml(accumulated)}" data-dropdown="true" title="${escapeHtml(label)}">${escapeHtml(label)}<span class="bc-arrow">▾</span></button>`;
+        } else if (showAll || isFirst) {
+            // Mostrar completo cuando hay pocos segmentos o es el primero
+            html += `<button class="explorer-bc-segment" data-path="${escapeHtml(accumulated)}" title="${escapeHtml(label)}">${escapeHtml(label)}</button>`;
         } else {
-            html += `<button class="explorer-bc-segment" data-path="${escapeHtml(accumulated)}">${escapeHtml(label)}</button>`;
+            // Abreviar a primera letra cuando hay muchos segmentos intermedios
+            html += `<button class="explorer-bc-segment explorer-bc-abbr" data-path="${escapeHtml(accumulated)}" title="${escapeHtml(label)}">${escapeHtml(label.charAt(0).toUpperCase())}</button>`;
         }
     }
     
     footerBreadcrumb.innerHTML = html;
     
-    // Event listeners
     footerBreadcrumb.querySelectorAll('.explorer-bc-segment').forEach(btn => {
         btn.addEventListener('click', handleBreadcrumbClick);
     });

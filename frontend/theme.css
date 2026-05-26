@@ -214,8 +214,8 @@ body {
 .explorer-bc-segment {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 7px;
+  gap: 3px;
+  padding: 2px 5px;
   border-radius: 4px;
   cursor: pointer;
   transition: background 0.1s;
@@ -223,7 +223,9 @@ body {
   background: transparent;
   border: none;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 .explorer-bc-segment:hover {
   background: var(--hover-bg);
@@ -236,13 +238,20 @@ body {
 }
 
 .explorer-bc-segment .bc-arrow {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text-dim);
-  margin-left: 2px;
+  margin-left: 1px;
 }
 
 .explorer-bc-home {
   color: var(--accent);
+  padding: 2px 4px;
+}
+
+/* Segmento abreviado: solo la primera letra */
+.explorer-bc-abbr {
+  padding: 2px 5px;
+  font-weight: 600;
 }
 
 /* Dropdown del breadcrumb */
