@@ -7,11 +7,109 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
-### En progreso
-- Fase 3: detección de contexto (git, node, python, etc.)
-- Fase 3: onboarding de primer uso
-- Fase 3: soporte de apps TUI (vim, htop, fzf)
-- Fase 3: distribución (build .app para macOS)
+### Fase 4 — En progreso
+Próximo paso: ícono real de Ocote, landing page, firma de código macOS.
+
+---
+
+## [0.6.4] — 2026-05-25 — Sincronización de tema en todas las terminales
+
+### Corregido
+- **Tema no se aplicaba a xterm.js**: al cambiar de tema en Settings, el fondo de la terminal quedaba negro. Causa: `window.ocoteTerminal` fue reemplazado por el sistema de tabs (`TAB_MANAGER`) y los helpers seguían apuntando al global obsoleto.
+- **`themes.js`**: `applyTheme()` ahora itera `window.TAB_MANAGER.getAllTabs()` y actualiza `term.options.theme` en cada tab activo.
+- **`terminal.js`**: `createTerminalInstance()` lee `localStorage('ocote_theme')` al crear cada tab — tabs nuevos nacen con el tema guardado en lugar del dark hardcodeado.
+- **`settings.js`**: `setXtermOption()` y `applyFont()` usan `TAB_MANAGER.getAllTabs()` en vez de `window.ocoteTerminal` / `window.ocoteFitAddon` (ambos obsoletos con el sistema de tabs).
+- **`index.html`**: `themes.js` ahora carga antes que `terminal.js` y `tab-manager.js` para que `window.OCOTE_THEMES` esté disponible cuando se crea el primer tab.
+
+---
+
+## [0.6.3] — 2026-05-25 — Múltiples terminales con tabs
+
+### Agregado
+- **`tab-manager.js`**: gestión completa de tabs de terminal
+  - Cada tab es una instancia xterm.js + proceso shell PTY independiente en el backend
+  - Botón `+` en la barra de tabs para crear nuevas terminales
+  - Atajo `Ctrl+T` → nuevo tab, `Ctrl+W` → cerrar tab activo
+  - Botón `×` por tab para cerrar individualmente
+  - Si se cierra el último tab, se crea uno nuevo automáticamente
+- **Nombre dinámico de tabs**: el tab toma el basename del CWD al crearse. Se actualiza con cada `cd` desde el explorador.
+- **Expone `window.TAB_MANAGER`** con la API: `createTab()`, `closeTab()`, `switchTab()`, `getAllTabs()`, `getTab()`, `getActiveShellId()`.
+
+### Cambiado
+- **`terminal.js`**: refactorizado como factory — `createTerminalInstance(shellId, container)` crea y retorna `{ term, fitAddon }` sin gestionar el ciclo de vida de los tabs.
+- **`window.ocoteActiveShellId`**: ID del tab activo, usado por `terminal.js` para filtrar input/output al shell correcto.
+
+---
+
+## [0.6.2] — 2026-05-25 — Breadcrumb navegable en el explorador
+
+### Agregado
+- **Breadcrumb inferior en el explorador** (`#explorer-footer`): muestra la ruta actual como segmentos clicables.
+  - Click en cualquier segmento → navega directo a ese directorio (sin tener que subir de uno en uno).
+  - Click en `~` → va al home.
+  - Segmentos intermedios abreviados a primera letra + `.` para rutas largas (`P. Terminal/Ocote` → `P./Ocote`).
+  - Dropdown al hacer click en un segmento no-activo: muestra subdirectorios del nivel para navegar lateralmente.
+- **CSS**: `.explorer-bc-segment`, `.explorer-bc-abbr`, `.explorer-bc-home`, `#explorer-bc-dropdown` con estilos coherentes al tema activo.
+
+---
+
+## [0.6.1] — 2026-05-25 — UI internacionalizada + Nerd Fonts
+
+### Agregado
+- **`ui-i18n.js`**: sistema de internacionalización de la UI del shell
+  - Traduce labels de: panel de settings (General, Apariencia, Idioma, Tipografía, Íconos, Tema), botones del onboarding, y el breadcrumb superior.
+  - `window.I18N.apply()` re-aplica el idioma activo sin recargar la app.
+  - Lee `localStorage('ocote_lang')`. Llamado automáticamente al cambiar idioma en settings.
+- **Nerd Fonts bundleadas** (`frontend/lib/fonts/`): JetBrainsMono Nerd Font Mono, FiraCode Nerd Font Propo, MesloLGS NF — cargadas como `@font-face` en `theme.css`.
+  - Resuelve el problema de íconos de p10k, oh-my-zsh y powerline que aparecían como cuadros (`▯`).
+
+### Cambiado
+- **Selector de idioma**: movido del breadcrumb superior al panel de Settings (tab General). El breadcrumb quedó más limpio.
+- **Selector de tema de íconos**: movido del breadcrumb superior al panel de Settings (tab Apariencia).
+
+---
+
+## [0.6.0] — 2026-05-25 — Panel de configuración + 10 temas
+
+### Agregado
+- **`settings.js`**: modal de configuración centrado con dos tabs:
+  - **General**: selector de idioma (ES/EN/PT/FR/DE).
+  - **Apariencia**: selector de tipografía (7 opciones), selector de tema de íconos (seti/badge), grid de temas de color.
+  - Se abre con el botón ⚙ en el breadcrumb superior (`#settings-btn`).
+  - Cierra con Esc, click en el backdrop o el botón ✕.
+  - Todas las preferencias persisten en `localStorage` y se aplican inmediatamente sin recargar.
+- **`themes.js`**: 10 temas de color completos, cada uno con paleta `xterm` (para xterm.js) y `css` (CSS variables para la UI):
+  - `dark` — Ocote Dark (default, naranja #f5a623)
+  - `light` — Ocote Light (fondo blanco roto)
+  - `dracula` — Dracula (MIT)
+  - `oneDark` — One Dark (MIT, Atom)
+  - `monokai` — Monokai (MIT)
+  - `solarizedDark` — Solarized Dark (MIT, Ethan Schoonover)
+  - `solarizedLight` — Solarized Light (MIT)
+  - `gruvboxDark` — Gruvbox Dark (MIT, Pavel Pertsev)
+  - `nord` — Nord (MIT, Arctic Ice Studio)
+  - `tokyoNight` — Tokyo Night (MIT, Enkia)
+- **Grid de swatches** en settings: preview visual de cada tema con su color de fondo y acento.
+- **`window.OCOTE_THEMES`**: objeto global con `THEMES`, `applyTheme(id)` y `getThemeList()`.
+
+---
+
+## [0.5.5] — 2026-05-24 — CKB multilenguaje + Tooltip traducido + Íconos SVG
+
+### Agregado
+- **CKB multilenguaje**: `ckb/commands.json` expandido de 76 a **153 comandos** en **5 idiomas** (ES/EN/PT/FR/DE).
+  - Campos por comando: `description_es`, `description_en`, `description_pt`, `description_fr`, `description_de`.
+  - `CommandRaw` en `ckb.rs` con `#[serde(default)]` para retrocompatibilidad.
+  - `CommandResponse` expone un solo campo `description` — el backend resuelve el idioma; el frontend nunca sabe la columna.
+  - `lang_column(lang)` en `ckb.rs`: whitelist explícita contra SQL injection.
+- **`frontend/icons.js`**: iconos SVG outline de Tabler Icons (MIT) para el explorador de archivos.
+  - 15 tipos de icono base con paths SVG reales.
+  - 80+ extensiones mapeadas a icono + color; 80+ nombres de carpeta con colores específicos.
+  - `getIconForFile(name)` y `getIconForFolder(name)` → `{ svg, color }`.
+
+### Cambiado
+- **`autocomplete.js`**: pasa `lang` en cada `invoke('get_suggestions')`. Usa `cmd.description` en vez de `cmd.description_es`.
+- **`tooltip.js`**: `UI_STRINGS` con 5 idiomas + `getUI()` — "Flags comunes", "Ejemplo" y el hint de cierre ya no están hardcodeados en español.
 
 ---
 

@@ -5,6 +5,102 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-05-25 — Sesión 9: Fase 4 avanzada — Temas, configuración, tabs, breadcrumb, i18n
+
+**Estado al inicio:** Sesión 8 cerrada con CKB multilenguaje (153 comandos × 5 idiomas), tooltip traducido e íconos SVG de Tabler Icons. La UI tenía el selector de idioma e íconos hardcodeados en el breadcrumb, un solo tema (oscuro fijo) y una sola terminal a la vez.
+
+**Qué se hizo:**
+
+### Panel de configuración (`settings.js`)
+
+- Modal centrado activado por el botón ⚙ en el breadcrumb.
+- Dos tabs:
+  - **General**: selector de idioma ES/EN/PT/FR/DE.
+  - **Apariencia**: selector de tipografía (dropdown con 7 opciones), selector de tema de íconos (seti/badge), grid de swatches de temas de color.
+- Cierra con Esc, click en backdrop o botón ✕.
+- Toda preferencia se guarda en `localStorage` y se aplica al instante sin recargar.
+- Los selectores de idioma e íconos que estaban en el breadcrumb superior fueron eliminados — ahora viven en settings.
+
+### 10 temas de color (`themes.js`)
+
+- Cada tema tiene objeto `xterm` (paleta xterm.js) y `css` (CSS variables UI).
+- `window.OCOTE_THEMES.applyTheme(id)` aplica ambos simultáneamente.
+- Temas: Ocote Dark (default), Ocote Light, Dracula, One Dark, Monokai, Solarized Dark, Solarized Light, Gruvbox Dark, Nord, Tokyo Night — todos MIT license.
+- Grid de swatches en settings muestra preview del fondo y acento de cada tema.
+
+### Nerd Fonts bundleadas
+
+- `frontend/lib/fonts/`: JetBrainsMono NF, FiraCode NF, MesloLGS NF cargadas como `@font-face`.
+- Resuelve el problema donde íconos de p10k y oh-my-zsh aparecían como cuadros (`▯`) en algunos sistemas.
+- `terminal.js` usa estas fuentes en el fallback stack de xterm.js.
+
+### UI internacionalizada (`ui-i18n.js`)
+
+- Traduce labels de settings, onboarding y breadcrumb a ES/EN/PT/FR/DE.
+- `window.I18N.apply()` re-aplica sin recargar. Llamado al cambiar idioma en settings.
+- El label de idioma mismo se muestra en el idioma activo ("Idioma" / "Language" / "Idioma" / "Langue" / "Sprache").
+
+### Breadcrumb navegable en el explorador
+
+- Footer inferior del explorador con la ruta actual como segmentos clicables.
+- Click en cualquier segmento → navegación directa (sin subir de uno en uno).
+- Dropdown al hacer click en segmento no-activo: lista subdirectorios del nivel para navegar lateralmente.
+- Segmentos intermedios abreviados a inicial + `.` para rutas largas.
+
+### Múltiples terminales con tabs (`tab-manager.js`)
+
+- Cada tab = una instancia xterm.js + un proceso shell (PTY) independiente en el backend Rust.
+- `Ctrl+T` → nuevo tab, `Ctrl+W` → cerrar tab, botón `+`, botón `×` por tab.
+- El tab toma el nombre del basename del CWD al crearse.
+- `window.TAB_MANAGER` expone: `createTab()`, `closeTab()`, `switchTab()`, `getAllTabs()`, `getTab()`, `getActiveShellId()`.
+- `terminal.js` refactorizado como factory (`createTerminalInstance(shellId, container)`) sin gestionar ciclo de vida de tabs.
+- `window.ocoteActiveShellId`: ID del tab activo, filtro para que input/output no se mezclen.
+
+### Fix: tema xterm.js no se aplicaba al cambiar en settings
+
+**Síntoma:** Al seleccionar Dracula, Nord, etc. en settings, el sidebar y bordes cambiaban de color pero el fondo de la terminal quedaba negro.
+
+**Causa raíz (3 problemas encadenados):**
+1. `window.ocoteTerminal` dejó de existir cuando se implementaron los tabs. `themes.js` y `settings.js` lo buscaban y no encontraban nada.
+2. Aunque `window.ocoteTerminal` existiera, solo actualizaría un tab, no todos.
+3. Nuevos tabs siempre usaban el tema dark hardcodeado en `terminal.js` sin leer el tema guardado.
+
+**Fix aplicado:**
+- `themes.js`: `applyTheme()` itera `window.TAB_MANAGER.getAllTabs()`.
+- `terminal.js`: `createTerminalInstance()` lee `localStorage('ocote_theme')` y usa `window.OCOTE_THEMES.THEMES[id].xterm ?? OCOTE_THEME`.
+- `settings.js`: `setXtermOption()` y `applyFont()` usan `TAB_MANAGER.getAllTabs()`.
+- `index.html`: `themes.js` movido al inicio de los scripts — antes que `terminal.js` y `tab-manager.js`.
+
+**Decisiones tomadas:**
+
+- **`themes.js` antes que `terminal.js`**: el primer tab se crea durante la inicialización de `tab-manager.js`. Si `themes.js` carga después, `OCOTE_THEMES` no existe aún y el tab nace siempre oscuro (aunque `settings.js` lo corregiría 100ms después con `applyAll()`). Mover el orden de carga elimina ese flash.
+- **Un modal de settings en vez de panel lateral**: menos código de layout, acceso rápido con ⚙, no ocupa espacio permanente en la UI.
+- **Grid de swatches en vez de dropdown para los temas**: permite ver todos los temas y su preview de color de un vistazo; mejor UX para decisiones visuales.
+- **Tabs con nombre basado en CWD**: más informativo que "zsh 1", "zsh 2". El nombre se actualiza con cada `cd` desde el explorador.
+- **Nerd Fonts bundleadas en vez de requerir instalación del usuario**: elimina una fuente de confusión para principiantes que verían `▯` sin saber por qué.
+
+**Problemas encontrados y soluciones:**
+
+| Síntoma | Causa | Fix |
+|---------|-------|-----|
+| Fondo de terminal negro con cualquier tema | `window.ocoteTerminal` obsoleto; tabs usan `TAB_MANAGER` | `applyTheme()` itera `TAB_MANAGER.getAllTabs()` |
+| Nuevo tab siempre oscuro aunque se haya cambiado tema | `OCOTE_THEME` hardcodeado en `createTerminalInstance` | Leer `localStorage('ocote_theme')` al crear cada tab |
+| `applyFont()` no afectaba tabs existentes | Usaba `window.ocoteFitAddon` (obsoleto) | Itera todos los tabs y llama `tab.fitAddon.fit()` |
+| Íconos de p10k aparecían como cuadros `▯` | Nerd Font no instalada en el sistema | Bundlear fuentes Nerd Font como `@font-face` |
+
+**Estado al final:**
+
+- 10 temas de color, todos persisten y se sincronizan en todos los tabs activos ✅
+- Múltiples terminales independientes con tabs ✅
+- Panel de configuración con idioma, tipografía, íconos y tema ✅
+- UI traducida en 5 idiomas ✅
+- Breadcrumb navegable en explorador ✅
+- Nerd Fonts bundleadas ✅
+
+**Próximo paso:** Ícono real de Ocote → landing page → firma macOS.
+
+---
+
 ## 2026-05-24 — Sesión 8: Fase 4 inicio — CKB multilenguaje, tooltip traducido, íconos dinámicos
 
 **Estado al inicio:** Fase 3 completada. CKB tenía 76 comandos solo en español. El tooltip mostraba etiquetas hardcodeadas en español sin importar el idioma activo. El explorador usaba emojis de texto plano como íconos.
