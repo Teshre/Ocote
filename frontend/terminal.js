@@ -24,8 +24,13 @@ const OCOTE_THEME = {
 // ── Factory: crear instancia xterm.js para un tab ────────────────────────
 
 function createTerminalInstance(shellId, container) {
+  // Leer el tema activo guardado en localStorage.
+  // Si themes.js ya cargó, usar su paleta; si no, caer al default oscuro.
+  const savedThemeId = localStorage.getItem('ocote_theme') || 'dark';
+  const activeXtermTheme = window.OCOTE_THEMES?.THEMES?.[savedThemeId]?.xterm ?? OCOTE_THEME;
+
   const term = new Terminal({
-    theme: OCOTE_THEME,
+    theme: activeXtermTheme,
     fontFamily: "'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
     fontSize: 14,
     lineHeight: 1.5,

@@ -23,14 +23,19 @@
 
   // ── Helpers de aplicación ───────────────────────────────────────────────
 
+  // Aplica una opción xterm.js a TODOS los tabs activos.
+  // Con el sistema de múltiples tabs, window.ocoteTerminal quedó obsoleto;
+  // cada terminal vive en TAB_MANAGER.getAllTabs().
   function setXtermOption(key, value) {
-    const term = window.ocoteTerminal;
-    if (!term) return;
-    if (term.options && typeof term.options === 'object') {
-      term.options[key] = value;
-    } else if (term.setOption) {
-      term.setOption(key, value);
-    }
+    if (!window.TAB_MANAGER) return;
+    window.TAB_MANAGER.getAllTabs().forEach(([, tab]) => {
+      if (!tab || !tab.term) return;
+      if (tab.term.options && typeof tab.term.options === 'object') {
+        tab.term.options[key] = value;
+      } else if (tab.term.setOption) {
+        tab.term.setOption(key, value);
+      }
+    });
   }
 
   function applyTheme(themeId) {
@@ -45,7 +50,12 @@
   function applyFont(font) {
     document.documentElement.style.setProperty('--font-mono', font);
     setXtermOption('fontFamily', font);
-    if (window.ocoteFitAddon) window.ocoteFitAddon.fit();
+    // Refitear cada tab para que el cambio de fuente ajuste el layout
+    if (window.TAB_MANAGER) {
+      window.TAB_MANAGER.getAllTabs().forEach(([, tab]) => {
+        if (tab?.fitAddon) tab.fitAddon.fit();
+      });
+    }
   }
 
   function applyIconTheme(iconTheme) {

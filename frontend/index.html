@@ -201,13 +201,15 @@
   </div>
 
   <!-- Nuestros módulos JS -->
+  <!-- themes.js PRIMERO: define window.OCOTE_THEMES antes de que
+       terminal.js y tab-manager.js creen la primera instancia xterm.js -->
+  <script src="themes.js"></script>
   <script src="terminal.js"></script>
   <script src="tab-manager.js"></script>
   <script src="explorer.js"></script>
   <script src="autocomplete.js"></script>
   <script src="tooltip.js"></script>
   <script src="onboarding.js"></script>
-  <script src="themes.js"></script>
   <script src="ui-i18n.js"></script>
   <script src="settings.js"></script>
 

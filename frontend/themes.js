@@ -319,14 +319,18 @@
       root.style.setProperty(prop, value);
     }
 
-    // Aplicar tema a xterm.js
-    const term = window.ocoteTerminal;
-    if (term) {
-      if (term.options && typeof term.options === 'object') {
-        term.options.theme = theme.xterm;
-      } else if (term.setOption) {
-        term.setOption('theme', theme.xterm);
-      }
+    // Aplicar tema a todos los tabs de xterm.js activos
+    // (con el sistema de tabs, window.ocoteTerminal ya no existe;
+    //  cada terminal vive en TAB_MANAGER.getAllTabs())
+    if (window.TAB_MANAGER) {
+      window.TAB_MANAGER.getAllTabs().forEach(([, tab]) => {
+        if (!tab || !tab.term) return;
+        if (tab.term.options && typeof tab.term.options === 'object') {
+          tab.term.options.theme = theme.xterm;
+        } else if (tab.term.setOption) {
+          tab.term.setOption('theme', theme.xterm);
+        }
+      });
     }
   }
 
