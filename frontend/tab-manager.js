@@ -21,7 +21,18 @@
   async function createTab(name) {
     const shellId = await invoke('create_shell');
     const tabNum  = nextTabNum++;
-    const displayName = name || `zsh ${tabNum}`;
+
+    // Si no hay nombre explícito, leer el CWD del shell recién creado
+    // y usar el basename como nombre del tab
+    let displayName = name;
+    if (!displayName) {
+      try {
+        const cwd = await invoke('get_shell_cwd', { shellId });
+        displayName = getBasename(cwd);
+      } catch {
+        displayName = `zsh ${tabNum}`;
+      }
+    }
 
     // ── DOM: tab en la barra ──────────────────────────────────────────
     const tabEl = document.createElement('div');
@@ -156,15 +167,34 @@
     }
   });
 
+  // ── Helpers ─────────────────────────────────────────────────────────────
+
+  function getBasename(path) {
+    if (!path || path === '/') return '/';
+    const clean = path.replace(/\/$/, '');
+    const idx = clean.lastIndexOf('/');
+    return idx >= 0 ? clean.substring(idx + 1) : clean;
+  }
+
+  function updateTabName(shellId, path) {
+    const tab = tabs.get(shellId);
+    if (!tab) return;
+    const name = getBasename(path);
+    tab.name = name;
+    const nameEl = tab.element.querySelector('.tab-name');
+    if (nameEl) nameEl.textContent = name;
+  }
+
   // ── Inicializar ─────────────────────────────────────────────────────────
-  // Crear tab inicial al cargar
-  createTab('zsh');
+  // Crear tab inicial al cargar (sin nombre → usará basename del CWD)
+  createTab();
 
   // ── Exponer API ─────────────────────────────────────────────────────────
   window.TAB_MANAGER = {
     createTab,
     closeTab,
     switchTab,
+    updateTabName,
     getActiveShellId: () => activeShellId,
     getTab: (shellId) => tabs.get(shellId),
     getAllTabs: () => Array.from(tabs.entries()),

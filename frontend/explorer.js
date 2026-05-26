@@ -61,6 +61,10 @@ function startSyncPolling() {
             if (cwd && cwd !== lastSyncedPath) {
                 console.log('[Explorer] Sync: terminal CWD changed to', cwd);
                 await loadDirectory(cwd);
+                // Actualizar nombre del tab con la carpeta actual
+                if (window.TAB_MANAGER) {
+                    window.TAB_MANAGER.updateTabName(activeShell, cwd);
+                }
             }
         } catch (err) {
             // Silencioso: si no hay shell o lsof falla, no mostrar error
