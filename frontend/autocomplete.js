@@ -206,9 +206,26 @@ function positionPopupAboveCursor() {
   const lineHeightMult = term.options.lineHeight || 1.5;
   const lineHeightPx = fontSize * lineHeightMult;
 
-  // Debajo del cursor con margen para no tapar la línea de input
-  const top = (cursorRow * lineHeightPx) + (lineHeightPx * 2) + 20;
-  popup.style.top = `${top}px`;
+  // Posición real: usamos el rect de la pantalla del terminal para calcular
+  // dónde está la línea del cursor en píxeles, relativo al offsetParent del
+  // popup. Así se considera automáticamente la altura de la barra de tabs y
+  // cualquier padding — antes se asumía que el terminal empezaba en y=0.
+  const screenEl = term.element
+    ? (term.element.querySelector('.xterm-screen') || term.element)
+    : null;
+  const parent = popup.offsetParent || document.getElementById('terminal-panel');
+
+  if (screenEl && parent) {
+    const screenRect = screenEl.getBoundingClientRect();
+    const parentRect = parent.getBoundingClientRect();
+    // Y del fondo de la línea del cursor (una línea por debajo del cursor):
+    const lineBottomY = screenRect.top + (cursorRow + 1) * lineHeightPx;
+    const top = (lineBottomY - parentRect.top) + 8; // 8px de separación
+    popup.style.top = `${top}px`;
+  } else {
+    // Fallback al cálculo anterior si no hay elemento de pantalla
+    popup.style.top = `${(cursorRow * lineHeightPx) + (lineHeightPx * 2) + 20}px`;
+  }
 }
 
 /**
