@@ -30,12 +30,11 @@ function createTerminalInstance(shellId, container) {
   const activeXtermTheme = window.OCOTE_THEMES?.THEMES?.[savedThemeId]?.xterm ?? OCOTE_THEME;
 
   const term = new Terminal({
-    // allowTransparency + background rgba(0,0,0,0): el canvas de xterm.js queda
-    // transparente y el fondo real viene del #terminal-container (CSS --bg-terminal).
-    // 'rgba(0,0,0,0)' es necesario — xterm.js no acepta el string 'transparent'.
-    // Esto permite que el watermark SVG sea visible detrás del texto.
-    theme: { ...activeXtermTheme, background: 'rgba(0,0,0,0)' },
-    allowTransparency: true,
+    // Terminal opaca (sin allowTransparency): apps que redibujan como p10k
+    // "borran" con espacios de fondo default; si el fondo es transparente, esos
+    // espacios no tapan el texto viejo y se ve fantasma. El watermark se muestra
+    // ENCIMA con opacidad baja (ver #terminal-watermark en theme.css), no detrás.
+    theme: activeXtermTheme,
     fontFamily: "'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
     fontSize: 14,
     lineHeight: 1.5,

@@ -33,6 +33,23 @@
   /* Watermark del terminal — color por tema, hereda vía currentColor */
   --watermark: #E8843A;
 
+  /* ── Paleta oficial Ocote (tokens de marca, derivados del ícono) ──────────
+     Referencia: export/README.md del bundle de diseño. Disponibles como
+     design tokens globales además de los colores por tema de arriba. */
+  --ember-400:    #E8843A;  /* primary brand · ícono, cursor, acentos */
+  --ember-600:    #C25C1F;  /* primary sobre fondos claros */
+  --charcoal-900: #14100C;  /* terminal bg · dark */
+  --bone-100:     #FAF6EC;  /* terminal bg · light */
+  --fg-dark:      #E2D6BD;  /* foreground · dark */
+  --fg-light:     #2A2218;  /* foreground · light */
+
+  /* Acentos funcionales · sintaxis (consistentes en todos los temas Ocote) */
+  --syntax-teal:   #6DD8C8;
+  --syntax-green:  #7DC97A;
+  --syntax-blue:   #82A6E0;
+  --syntax-yellow: #E8C03A;
+  --syntax-red:    #E8635A;
+
   --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-lg:  0 8px 30px rgba(0, 0, 0, 0.5);
@@ -573,15 +590,15 @@ button:focus-visible {
   flex: 1;
   overflow: hidden;
   position: relative;
-  /* Background explícito: con allowTransparency en xterm.js, los píxeles
-     transparentes del canvas muestran este color. Sin esto, se ve negro. */
   background: var(--bg-terminal);
 }
 
 /* ── Watermark de identidad ──────────────────────────────────────────────── */
 /* El SVG usa fill="currentColor" → hereda color de --watermark por tema.
-   Vive dentro de #terminal-container, detrás del canvas xterm.js (z-index:0).
-   El canvas tiene allowTransparency:true, así que el watermark se ve a través. */
+   Se renderiza ENCIMA del texto (z-index:4) con opacidad muy baja y
+   pointer-events:none. Va encima (no detrás) porque la terminal es opaca:
+   poner la terminal transparente rompía el redibujado de p10k (fantasma).
+   A esta opacidad el tinte sobre el texto es imperceptible. */
 #terminal-watermark {
   position: absolute;
   inset: 0;
@@ -590,12 +607,12 @@ button:focus-visible {
   justify-content: center;
   pointer-events: none;
   color: var(--watermark);
-  z-index: 0;
-  opacity: 0.9;
+  z-index: 4;
+  opacity: 0.55;
 }
 
 #terminal-watermark svg {
-  width: min(65%, 380px);
+  width: min(60%, 360px);
   height: auto;
 }
 

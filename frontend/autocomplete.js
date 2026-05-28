@@ -186,7 +186,14 @@ function renderPopup(suggestions, prefix) {
  * Posiciona el popup justo debajo de la línea del cursor en xterm.js.
  */
 function positionPopupAboveCursor() {
-  const term = window.ocoteTerminal;
+  // Con el sistema de tabs, window.ocoteTerminal quedó obsoleto.
+  // El terminal activo vive en TAB_MANAGER.getTab(ocoteActiveShellId).
+  let term = null;
+  if (window.TAB_MANAGER && window.ocoteActiveShellId != null) {
+    const tab = window.TAB_MANAGER.getTab(window.ocoteActiveShellId);
+    if (tab) term = tab.term;
+  }
+  if (!term) term = window.ocoteTerminal;  // fallback legacy
   if (!term) return;
 
   const cursorY = term.buffer.active.cursorY;

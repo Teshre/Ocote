@@ -399,17 +399,15 @@
       root.style.setProperty(prop, value);
     }
 
-    // Forzar background rgba(0,0,0,0) en xterm.js (transparent).
-    // 'transparent' (string) no lo acepta xterm.js — cae a negro.
-    // El fondo real del terminal viene del CSS --bg-terminal en #terminal-container.
-    const xtermTheme = { ...theme.xterm, background: 'rgba(0,0,0,0)' };
+    // Terminal opaca: el fondo viene del tema (no transparente). El watermark
+    // se muestra encima con opacidad baja, así apps como p10k no dejan fantasma.
     if (window.TAB_MANAGER) {
       window.TAB_MANAGER.getAllTabs().forEach(([, tab]) => {
         if (!tab || !tab.term) return;
         if (tab.term.options && typeof tab.term.options === 'object') {
-          tab.term.options.theme = xtermTheme;
+          tab.term.options.theme = theme.xterm;
         } else if (tab.term.setOption) {
-          tab.term.setOption('theme', xtermTheme);
+          tab.term.setOption('theme', theme.xterm);
         }
       });
     }
