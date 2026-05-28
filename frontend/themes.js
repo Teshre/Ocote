@@ -399,10 +399,10 @@
       root.style.setProperty(prop, value);
     }
 
-    // Forzar background transparent en xterm.js: la terminal usa allowTransparency:true
-    // y el color real del fondo viene del #terminal-panel via CSS --bg-terminal.
-    // Esto permite que el watermark SVG sea visible detrás del texto.
-    const xtermTheme = { ...theme.xterm, background: 'transparent' };
+    // Forzar background rgba(0,0,0,0) en xterm.js (transparent).
+    // 'transparent' (string) no lo acepta xterm.js — cae a negro.
+    // El fondo real del terminal viene del CSS --bg-terminal en #terminal-container.
+    const xtermTheme = { ...theme.xterm, background: 'rgba(0,0,0,0)' };
     if (window.TAB_MANAGER) {
       window.TAB_MANAGER.getAllTabs().forEach(([, tab]) => {
         if (!tab || !tab.term) return;

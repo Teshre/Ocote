@@ -573,6 +573,9 @@ button:focus-visible {
   flex: 1;
   overflow: hidden;
   position: relative;
+  /* Background explícito: con allowTransparency en xterm.js, los píxeles
+     transparentes del canvas muestran este color. Sin esto, se ve negro. */
+  background: var(--bg-terminal);
 }
 
 /* ── Watermark de identidad ──────────────────────────────────────────────── */
