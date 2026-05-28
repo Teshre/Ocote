@@ -37,11 +37,16 @@ function createTerminalInstance(shellId, container) {
     theme: activeXtermTheme,
     fontFamily: "'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
     fontSize: 14,
-    lineHeight: 1.5,
+    // lineHeight 1.2 (no 1.5): con 1.5 los caracteres de marco de p10k
+    // (─ ╮ ╰ │) no conectan entre líneas y el prompt se ve "fantasma"/flotante.
+    // 1.2 deja aire pero los conecta como en Terax/iTerm.
+    lineHeight: 1.2,
     cursorBlink: true,
     cursorStyle: 'block',
     scrollback: 10000,
-    convertEol: true,
+    // convertEol: false — un PTY ya envía \r\n. Con true, xterm reconvierte
+    // \n→\r\n y desalinea el cursor en redibujados complejos (p10k).
+    convertEol: false,
     rightClickSelectsWord: false,
   });
 

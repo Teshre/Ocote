@@ -196,11 +196,13 @@ function positionPopupAboveCursor() {
   if (!term) term = window.ocoteTerminal;  // fallback legacy
   if (!term) return;
 
-  const cursorY = term.buffer.active.cursorY;
-  const viewportY = term.buffer.active.viewportY;
-  const cursorRow = cursorY - viewportY;
-
-  if (cursorRow < 0 || cursorRow >= term.rows) return;
+  // cursorY en xterm.js (= this._buffer.y) YA es relativo al viewport (0..rows-1).
+  // El bug anterior restaba viewportY (offset de scroll absoluto), volviéndolo
+  // negativo con scrollback → la función salía temprano y el popup se quedaba
+  // arriba. Usamos cursorY directo y lo acotamos.
+  let cursorRow = term.buffer.active.cursorY;
+  if (cursorRow < 0) cursorRow = 0;
+  if (cursorRow >= term.rows) cursorRow = term.rows - 1;
 
   const fontSize = term.options.fontSize || 14;
   const lineHeightMult = term.options.lineHeight || 1.5;
