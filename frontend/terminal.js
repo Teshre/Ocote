@@ -23,7 +23,7 @@ const OCOTE_THEME = {
 
 // ── Factory: crear instancia xterm.js para un tab ────────────────────────
 
-function createTerminalInstance(shellId, container) {
+function createTerminalInstance(container) {
   // Leer el tema activo guardado en localStorage.
   // Si themes.js ya cargó, usar su paleta; si no, caer al default oscuro.
   const savedThemeId = localStorage.getItem('ocote_theme') || 'dark';
@@ -56,7 +56,19 @@ function createTerminalInstance(shellId, container) {
   term.open(container);
   fitWithRetries(fitAddon);
 
-  // Sincronizar tamaño PTY ↔ xterm.js
+  // Devolvemos la instancia SIN vincular el shell todavía. El binding se hace
+  // con bindTerminalShell() una vez que tab-manager.js creó el PTY al tamaño
+  // ya medido — así el PTY nace con el tamaño correcto y zsh/p10k no redibujan
+  // (evita el "fantasma" del prompt por el resize inicial).
+  return { term, fitAddon };
+}
+
+/**
+ * Vincula una instancia xterm.js con su shell (PTY) ya creado.
+ * Conecta el input (onData) y el redimensionado (onResize) al shell_id.
+ */
+function bindTerminalShell(term, shellId) {
+  // Sincronizar tamaño PTY ↔ xterm.js (resizes posteriores: ventana, etc.)
   term.onResize(({ rows, cols }) => {
     invoke('resize_pty', { shellId, rows, cols }).catch(console.error);
   });
@@ -66,9 +78,6 @@ function createTerminalInstance(shellId, container) {
     updateCurrentInput(data, shellId);
     invoke('write_to_shell', { shellId, input: data }).catch(console.error);
   });
-
-  // Exponer la instancia para que tab-manager.js pueda acceder
-  return { term, fitAddon };
 }
 
 function fitWithRetries(fitAddon) {
@@ -94,6 +103,7 @@ function fitWithRetries(fitAddon) {
 
 // Exponer factory globalmente
 window.createTerminalInstance = createTerminalInstance;
+window.bindTerminalShell = bindTerminalShell;
 
 // ── Trackear input del usuario (global, aplica al tab activo) ──────────────
 let currentInput = '';

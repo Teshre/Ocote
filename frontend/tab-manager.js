@@ -19,11 +19,31 @@
   // ── Crear tab ───────────────────────────────────────────────────────────
 
   async function createTab(name) {
-    const shellId = await invoke('create_shell');
-    const tabNum  = nextTabNum++;
+    const tabNum = nextTabNum++;
 
-    // Si no hay nombre explícito, leer el CWD del shell recién creado
-    // y usar el basename como nombre del tab
+    // ── DOM: contenedor del terminal ──────────────────────────────────
+    // Se crea VISIBLE (sin 'hidden') para que xterm.js pueda medir su tamaño
+    // real. Los contenedores son position:absolute inset:0, así que tienen el
+    // tamaño completo del panel. switchTab() oculta los demás al final.
+    const container = document.createElement('div');
+    container.className = 'terminal-tab-content';
+    tabContents.appendChild(container);
+
+    // ── Crear xterm.js y MEDIR el tamaño antes de lanzar el shell ─────
+    // Clave anti-fantasma: abrimos el PTY ya al tamaño medido, así zsh/p10k
+    // dibujan el prompt una sola vez (sin redibujado por resize inicial).
+    const termData = window.createTerminalInstance(container);
+    const cols = termData.term.cols || 80;
+    const rows = termData.term.rows || 24;
+
+    // ── Crear el shell (PTY) al tamaño correcto ───────────────────────
+    const shellId = await invoke('create_shell', { rows, cols });
+    container.dataset.shellId = shellId;
+
+    // ── Vincular input/resize ahora que tenemos shell_id ──────────────
+    window.bindTerminalShell(termData.term, shellId);
+
+    // ── Nombre del tab: basename del CWD del shell ────────────────────
     let displayName = name;
     if (!displayName) {
       try {
@@ -42,17 +62,7 @@
       <span class="tab-name">${escapeHtml(displayName)}</span>
       <button class="tab-close" title="Cerrar">×</button>
     `;
-
-    // ── DOM: contenedor del terminal ──────────────────────────────────
-    const container = document.createElement('div');
-    container.className = 'terminal-tab-content hidden';
-    container.dataset.shellId = shellId;
-
     tabBar.appendChild(tabEl);
-    tabContents.appendChild(container);
-
-    // ── Crear xterm.js ────────────────────────────────────────────────
-    const termData = window.createTerminalInstance(shellId, container);
 
     // ── Guardar datos del tab ─────────────────────────────────────────
     tabs.set(shellId, {
@@ -75,7 +85,7 @@
       closeTab(shellId);
     });
 
-    // ── Activar nuevo tab ────────────────────────────────────────────
+    // ── Activar nuevo tab (oculta los demás) ──────────────────────────
     switchTab(shellId);
 
     return shellId;

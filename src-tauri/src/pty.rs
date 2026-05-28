@@ -147,15 +147,20 @@ fn setup_zsh_highlight(window: &tauri::Window) -> Option<String> {
 pub fn create_shell(
     window:  tauri::Window,
     state:   tauri::State<PtyState>,
+    rows:    Option<u16>,
+    cols:    Option<u16>,
 ) -> Result<String, String> {
     let shell_id = state.generate_id();
     let shell = ShellState::new();
 
     let pty_system = native_pty_system();
+    // Abrir el PTY al tamaño que el frontend ya midió (si lo pasó). Así zsh/p10k
+    // dibujan el prompt una sola vez al tamaño correcto y se evita el "fantasma"
+    // del resize inicial. Fallback a 24×80 si no se especifica.
     let pair = pty_system
         .openpty(PtySize {
-            rows: 24,
-            cols: 80,
+            rows: rows.unwrap_or(24),
+            cols: cols.unwrap_or(80),
             pixel_width:  0,
             pixel_height: 0,
         })
@@ -375,7 +380,8 @@ pub fn spawn_shell(
     window: tauri::Window,
     state:  tauri::State<PtyState>,
 ) -> Result<(), String> {
-    // Crear shell por defecto con id "shell-1" para compatibilidad
-    create_shell(window, state)?;
+    // Crear shell por defecto con id "shell-1" para compatibilidad.
+    // Sin tamaño explícito → usa el fallback 24×80.
+    create_shell(window, state, None, None)?;
     Ok(())
 }
