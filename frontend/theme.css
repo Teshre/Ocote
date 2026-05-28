@@ -1195,6 +1195,16 @@ button:focus-visible {
   border-color: var(--accent);
 }
 
+/* Texto de ayuda debajo de una fila de settings (ej. "Se aplica al abrir una nueva pestaña") */
+.settings-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin: -6px 0 0 0;
+  padding: 0;
+  font-style: italic;
+  line-height: 1.4;
+}
+
 .hidden {
   display: none !important;
 }

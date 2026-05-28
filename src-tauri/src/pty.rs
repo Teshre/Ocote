@@ -76,68 +76,92 @@ struct PtyExit {
     shell_id: String,
 }
 
-// ── zsh-syntax-highlighting (inyección no invasiva) ────────────────────────
+// ── Inyección no invasiva: prompt nativo + syntax highlighting ─────────────
 
-/// Encuentra el directorio del plugin zsh-syntax-highlighting bundleado.
-/// Prod: recurso del bundle (resuelto vía path_resolver).
-/// Dev:  relativo a CARGO_MANIFEST_DIR (src-tauri/).
+/// Resuelve un recurso bundleado por ruta relativa a src-tauri/.
+/// Prod: recurso del .app (path_resolver). Dev: relativo a CARGO_MANIFEST_DIR.
 #[cfg(not(target_os = "windows"))]
-fn find_highlight_dir(window: &tauri::Window) -> Option<std::path::PathBuf> {
-    // Producción: recurso bundleado dentro del .app
-    if let Some(p) = window
-        .app_handle()
-        .path_resolver()
-        .resolve_resource("resources/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh")
-    {
+fn resolve_resource(window: &tauri::Window, rel: &str) -> Option<std::path::PathBuf> {
+    if let Some(p) = window.app_handle().path_resolver().resolve_resource(rel) {
         if p.exists() {
-            return p.parent().map(|d| d.to_path_buf());
+            return Some(p);
         }
     }
-    // Desarrollo: relativo al manifiesto de Cargo
-    let dev = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("resources/zsh-syntax-highlighting");
-    if dev.join("zsh-syntax-highlighting.zsh").exists() {
+    let dev = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(rel);
+    if dev.exists() {
         return Some(dev);
     }
     None
 }
 
-/// Crea un ZDOTDIR temporal con wrappers .zshenv/.zshrc que cargan la config
-/// real del usuario y luego el plugin de highlighting. Devuelve el path del
-/// ZDOTDIR, o None si no se pudo preparar (entonces no se inyecta nada).
+/// Crea un ZDOTDIR temporal con wrappers .zshenv/.zshrc que:
+///  1. cargan la config real del usuario (aliases, PATH, funciones),
+///  2. cargan el prompt nativo de Ocote (si el preset != "mine"),
+///  3. cargan zsh-syntax-highlighting al final (orden correcto).
+/// Devuelve el path del ZDOTDIR, o None si no se pudo preparar.
 #[cfg(not(target_os = "windows"))]
-fn setup_zsh_highlight(window: &tauri::Window) -> Option<String> {
-    let hl_dir = find_highlight_dir(window)?;
-    let hl_script = hl_dir.join("zsh-syntax-highlighting.zsh");
+fn setup_zsh_env(window: &tauri::Window, prompt: &str) -> Option<String> {
+    let hl_script = resolve_resource(
+        window,
+        "resources/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh",
+    )?;
+    // El prompt es opcional: si no se resuelve, el wrapper simplemente no lo carga.
+    let prompt_script = resolve_resource(window, "resources/ocote-prompt/prompt.zsh")
+        .map(|p| p.display().to_string())
+        .unwrap_or_default();
 
-    // Dir estable para el ZDOTDIR de Ocote (se regenera en cada arranque).
     let zdotdir = std::env::temp_dir().join("ocote-zdotdir");
     std::fs::create_dir_all(&zdotdir).ok()?;
 
-    // .zshenv: delegar al del usuario. _OCOTE_ZDOTDIR lo pasa pty.rs vía env.
-    let zshenv = "# Ocote ZDOTDIR wrapper — generado automáticamente.\n\
-                  # Carga el .zshenv real del usuario sin alterar su configuración.\n\
-                  [[ -f \"${_OCOTE_ZDOTDIR}/.zshenv\" ]] && source \"${_OCOTE_ZDOTDIR}/.zshenv\"\n";
+    // .zshenv: delegar al del usuario + desactivar instant prompt de p10k cuando
+    // Ocote controla el prompt (evita el flash/fantasma del instant prompt).
+    let zshenv = format!(
+        "# Ocote ZDOTDIR wrapper — generado automáticamente.\n\
+         [[ -f \"${{_OCOTE_ZDOTDIR}}/.zshenv\" ]] && source \"${{_OCOTE_ZDOTDIR}}/.zshenv\"\n\
+         [[ -n \"$_OCOTE_PROMPT\" && \"$_OCOTE_PROMPT\" != \"mine\" ]] && export POWERLEVEL9K_INSTANT_PROMPT=off\n"
+    );
     std::fs::write(zdotdir.join(".zshenv"), zshenv).ok()?;
 
-    // .zshrc: restaurar ZDOTDIR, sourcear el .zshrc del usuario, luego el plugin.
-    // El plugin DEBE cargarse al final (después de oh-my-zsh y autosuggestions).
+    // .zshrc: restaurar ZDOTDIR → config del usuario → prompt Ocote → highlighting.
     let zshrc = format!(
         "# Ocote ZDOTDIR wrapper — generado automáticamente.\n\
-         # Restaura ZDOTDIR para que oh-my-zsh/p10k se comporten normal.\n\
          ZDOTDIR=\"${{_OCOTE_ZDOTDIR}}\"\n\
-         # Carga la configuración real del usuario.\n\
          [[ -f \"${{_OCOTE_ZDOTDIR}}/.zshrc\" ]] && source \"${{_OCOTE_ZDOTDIR}}/.zshrc\"\n\
-         # Ocote: syntax highlighting al final (orden correcto del plugin).\n\
-         # Resaltadores: main (comandos válidos/inválidos, strings, paths) +\n\
-         # brackets (paréntesis/llaves/corchetes emparejados).\n\
+         # Prompt nativo de Ocote (no hace nada si _OCOTE_PROMPT es \"mine\").\n\
+         [[ -f \"{prompt}\" ]] && source \"{prompt}\"\n\
+         # Syntax highlighting al final (después de oh-my-zsh y autosuggestions).\n\
          ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets)\n\
          [[ -f \"{hl}\" ]] && source \"{hl}\"\n",
+        prompt = prompt_script,
         hl = hl_script.display()
     );
     std::fs::write(zdotdir.join(".zshrc"), zshrc).ok()?;
 
+    // prompt param actualmente solo decide el comportamiento vía _OCOTE_PROMPT
+    // (lo pasa create_shell); aquí solo dejamos el wrapper listo.
+    let _ = prompt;
     Some(zdotdir.to_string_lossy().to_string())
+}
+
+/// Crea un rcfile temporal para bash que carga el ~/.bashrc del usuario y luego
+/// el prompt nativo de Ocote. Se pasa a bash con `--rcfile`. Devuelve su path.
+#[cfg(not(target_os = "windows"))]
+fn setup_bash_rcfile(window: &tauri::Window) -> Option<String> {
+    let prompt_script = resolve_resource(window, "resources/ocote-prompt/prompt.bash")?;
+
+    let dir = std::env::temp_dir().join("ocote-bash");
+    std::fs::create_dir_all(&dir).ok()?;
+    let rcfile = dir.join("bashrc");
+
+    let content = format!(
+        "# Ocote bash wrapper — generado automáticamente.\n\
+         [[ -f \"$HOME/.bashrc\" ]] && source \"$HOME/.bashrc\"\n\
+         # Prompt nativo de Ocote (no hace nada si _OCOTE_PROMPT es \"mine\").\n\
+         [[ -f \"{ps}\" ]] && source \"{ps}\"\n",
+        ps = prompt_script.display()
+    );
+    std::fs::write(&rcfile, content).ok()?;
+    Some(rcfile.to_string_lossy().to_string())
 }
 
 // ── create_shell ──────────────────────────────────────────────────────────
@@ -149,6 +173,7 @@ pub fn create_shell(
     state:   tauri::State<PtyState>,
     rows:    Option<u16>,
     cols:    Option<u16>,
+    prompt:  Option<String>,
 ) -> Result<String, String> {
     let shell_id = state.generate_id();
     let shell = ShellState::new();
@@ -179,19 +204,30 @@ pub fn create_shell(
     cmd.env("LANG", "en_US.UTF-8");
     cmd.env("LC_ALL", "en_US.UTF-8");
 
-    // Ocote: inyectar zsh-syntax-highlighting sin tocar el ~/.zshrc del usuario.
-    // Técnica ZDOTDIR wrapper — apuntamos ZDOTDIR a un dir temporal cuyo .zshrc
-    // (1) sourcea el .zshrc real del usuario y (2) carga el plugin al final
-    // (orden correcto: después de oh-my-zsh y zsh-autosuggestions).
-    // Si algo falla, el usuario obtiene su shell normal (fail-safe).
+    // Ocote: inyectar prompt nativo + syntax highlighting sin tocar la config
+    // del usuario. Preset por defecto "git" (Ocote de fábrica); "mine" respeta
+    // el prompt del usuario (p10k, etc.). Todo fail-safe: si algo falla, el
+    // usuario obtiene su shell normal.
     #[cfg(not(target_os = "windows"))]
-    if shell_cmd.contains("zsh") {
-        if let Some(zdotdir) = setup_zsh_highlight(&window) {
-            // Preservar el ZDOTDIR original (o $HOME) para sourcear la config real.
-            let real_zdotdir = std::env::var("ZDOTDIR")
-                .unwrap_or_else(|_| std::env::var("HOME").unwrap_or_default());
-            cmd.env("_OCOTE_ZDOTDIR", real_zdotdir);
-            cmd.env("ZDOTDIR", zdotdir);
+    {
+        let prompt_preset = prompt.unwrap_or_else(|| "git".to_string());
+
+        if shell_cmd.contains("zsh") {
+            // zsh: técnica ZDOTDIR wrapper.
+            if let Some(zdotdir) = setup_zsh_env(&window, &prompt_preset) {
+                let real_zdotdir = std::env::var("ZDOTDIR")
+                    .unwrap_or_else(|_| std::env::var("HOME").unwrap_or_default());
+                cmd.env("_OCOTE_ZDOTDIR", real_zdotdir);
+                cmd.env("ZDOTDIR", zdotdir);
+                cmd.env("_OCOTE_PROMPT", &prompt_preset);
+            }
+        } else if shell_cmd.contains("bash") {
+            // bash: técnica --rcfile (bash no lee ZDOTDIR).
+            if let Some(rcfile) = setup_bash_rcfile(&window) {
+                cmd.env("_OCOTE_PROMPT", &prompt_preset);
+                cmd.arg("--rcfile");
+                cmd.arg(&rcfile);
+            }
         }
     }
 
@@ -381,7 +417,7 @@ pub fn spawn_shell(
     state:  tauri::State<PtyState>,
 ) -> Result<(), String> {
     // Crear shell por defecto con id "shell-1" para compatibilidad.
-    // Sin tamaño explícito → usa el fallback 24×80.
-    create_shell(window, state, None, None)?;
+    // Sin tamaño ni preset → fallback 24×80 y prompt "git".
+    create_shell(window, state, None, None, None)?;
     Ok(())
 }

@@ -189,6 +189,20 @@
         </div>
 
         <div class="settings-section">
+          <h3 data-i18n="settings.prompt.title">Prompt</h3>
+          <div class="settings-row">
+            <span class="settings-label" data-i18n="settings.prompt.label">Estilo del prompt</span>
+            <select class="settings-select" id="settings-prompt">
+              <option value="git" data-i18n="settings.prompt.git">Ocote · Git (ruta + rama)</option>
+              <option value="minimal" data-i18n="settings.prompt.minimal">Ocote · Minimal (flecha + carpeta)</option>
+              <option value="full" data-i18n="settings.prompt.full">Ocote · Completo (usuario, ruta, git, hora)</option>
+              <option value="mine" data-i18n="settings.prompt.mine">Mi configuración (p10k, oh-my-zsh…)</option>
+            </select>
+          </div>
+          <p class="settings-hint" data-i18n="settings.prompt.hint">Se aplica al abrir una nueva pestaña.</p>
+        </div>
+
+        <div class="settings-section">
           <h3 data-i18n="settings.font.title">Tipografía</h3>
           <div class="settings-row">
             <span class="settings-label" data-i18n="settings.font.label">Fuente del terminal</span>

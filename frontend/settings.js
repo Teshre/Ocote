@@ -11,6 +11,7 @@
     font:      "'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
     iconTheme: 'seti',
     lang:      'es',
+    prompt:    'git',   // Ocote de fábrica; 'mine' respeta la config del usuario
   };
 
   // ── Estado actual (lee localStorage) ────────────────────────────────────
@@ -19,6 +20,7 @@
     font:      localStorage.getItem('ocote_font')       || DEFAULTS.font,
     iconTheme: localStorage.getItem('ocote_icon_theme') || DEFAULTS.iconTheme,
     lang:      localStorage.getItem('ocote_lang')       || DEFAULTS.lang,
+    prompt:    localStorage.getItem('ocote_prompt')     || DEFAULTS.prompt,
   };
 
   // ── Helpers de aplicación ───────────────────────────────────────────────
@@ -69,11 +71,18 @@
     if (window.I18N) window.I18N.apply();
   }
 
+  // El prompt se aplica al crear el shell (tab-manager lee localStorage).
+  // Aquí solo persistimos; el cambio toma efecto en nuevas pestañas.
+  function applyPrompt(prompt) {
+    localStorage.setItem('ocote_prompt', prompt);
+  }
+
   function applyAll() {
     applyTheme(state.theme);
     applyFont(state.font);
     applyIconTheme(state.iconTheme);
     applyLang(state.lang);
+    applyPrompt(state.prompt);
   }
 
   // ── Sincronizar UI con estado ───────────────────────────────────────────
@@ -96,6 +105,16 @@
       if (!matched) fontSelect.options[0].selected = true;
     }
 
+    // Prompt
+    const promptSelect = document.getElementById('settings-prompt');
+    if (promptSelect) {
+      let matched = false;
+      for (const opt of promptSelect.options) {
+        if (opt.value === state.prompt) { opt.selected = true; matched = true; break; }
+      }
+      if (!matched) promptSelect.options[0].selected = true;
+    }
+
     // Íconos
     document.querySelectorAll('[data-setting="iconTheme"]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.value === state.iconTheme);
@@ -114,6 +133,7 @@
     localStorage.setItem('ocote_font', state.font);
     localStorage.setItem('ocote_icon_theme', state.iconTheme);
     localStorage.setItem('ocote_lang', state.lang);
+    localStorage.setItem('ocote_prompt', state.prompt);
   }
 
   // ── Tabs ────────────────────────────────────────────────────────────────
@@ -201,6 +221,22 @@
       state.font = fontSelect.value;
       persist();
       applyFont(state.font);
+    });
+  }
+
+  // ── Manejar cambio en select de prompt ──────────────────────────────────
+
+  const promptSelect = document.getElementById('settings-prompt');
+  if (promptSelect) {
+    promptSelect.addEventListener('change', () => {
+      state.prompt = promptSelect.value;
+      persist();
+      applyPrompt(state.prompt);
+      // El prompt se aplica al crear el shell; ofrecemos abrir una nueva
+      // pestaña con el nuevo estilo de inmediato para que el usuario lo vea.
+      if (window.TAB_MANAGER && window.TAB_MANAGER.createTab) {
+        window.TAB_MANAGER.createTab();
+      }
     });
   }
 

@@ -36,8 +36,10 @@
     const cols = termData.term.cols || 80;
     const rows = termData.term.rows || 24;
 
-    // ── Crear el shell (PTY) al tamaño correcto ───────────────────────
-    const shellId = await invoke('create_shell', { rows, cols });
+    // ── Crear el shell (PTY) al tamaño correcto + preset de prompt ─────
+    // El preset de prompt se elige en Settings (default 'git' = Ocote de fábrica).
+    const promptPreset = localStorage.getItem('ocote_prompt') || 'git';
+    const shellId = await invoke('create_shell', { rows, cols, prompt: promptPreset });
     container.dataset.shellId = shellId;
 
     // ── Vincular input/resize ahora que tenemos shell_id ──────────────

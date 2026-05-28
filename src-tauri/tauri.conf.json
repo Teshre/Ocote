@@ -24,7 +24,8 @@
       "targets": "all",
       "identifier": "mx.ocote.terminal",
       "resources": [
-        "resources/zsh-syntax-highlighting/**/*"
+        "resources/zsh-syntax-highlighting/**/*",
+        "resources/ocote-prompt/*"
       ],
       "icon": [
         "icons/32x32.png",
