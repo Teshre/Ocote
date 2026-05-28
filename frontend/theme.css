@@ -2,32 +2,36 @@
 /* Identidad: calidez, artesanía, enfoque. Leña de ocote ardiendo. */
 
 :root {
-  --bg-terminal: #1a1816;
-  --bg-sidebar:  #141210;
-  --bg-input:    #201d1a;
-  --bg-tooltip:  #252220;
+  /* Paleta oficial Ocote Dark — charcoal #14100C / ember #E8843A */
+  --bg-terminal: #14100C;   /* charcoal-900 */
+  --bg-sidebar:  #0E0B08;   /* charcoal-950 */
+  --bg-input:    #1C1611;   /* charcoal-850 */
+  --bg-tooltip:  #1C1611;
   --bg-overlay:  rgba(0, 0, 0, 0.65);
 
-  --text-primary:   #e8e2d6;
-  --text-secondary: #9c9588;
-  --text-dim:       #5f5a52;
+  --text-primary:   #E2D6BD; /* fg-dark */
+  --text-secondary: #9C9480;
+  --text-dim:       #5E5648;
 
-  --accent:         #f5a623;
-  --accent-dim:     #3d2a0a;
-  --accent-glow:    rgba(245, 166, 35, 0.12);
-  --accent-muted:   rgba(245, 166, 35, 0.06);
+  --accent:         #E8843A; /* ember-400 */
+  --accent-dim:     rgba(232, 132, 58, 0.18);
+  --accent-glow:    rgba(232, 132, 58, 0.12);
+  --accent-muted:   rgba(232, 132, 58, 0.06);
 
   --border:         rgba(255, 255, 255, 0.06);
   --border-strong:  rgba(255, 255, 255, 0.12);
 
   --hover-bg:       rgba(255, 255, 255, 0.06);
 
-  --scrollbar-thumb:    rgba(245, 166, 35, 0.38);
-  --scrollbar-thumb-hover: rgba(245, 166, 35, 0.62);
+  --scrollbar-thumb:    rgba(232, 132, 58, 0.38);
+  --scrollbar-thumb-hover: rgba(232, 132, 58, 0.62);
   --scrollbar-track:    transparent;
 
-  --focus-ring:     rgba(245, 166, 35, 0.5);
-  --selection-bg:   rgba(245, 166, 35, 0.25);
+  --focus-ring:     rgba(232, 132, 58, 0.5);
+  --selection-bg:   rgba(232, 132, 58, 0.25);
+
+  /* Watermark del terminal — color por tema, hereda vía currentColor */
+  --watermark: #E8843A;
 
   --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.4);
@@ -569,6 +573,27 @@ button:focus-visible {
   flex: 1;
   overflow: hidden;
   position: relative;
+}
+
+/* ── Watermark de identidad ──────────────────────────────────────────────── */
+/* El SVG usa fill="currentColor" → hereda color de --watermark por tema.
+   Vive dentro de #terminal-container, detrás del canvas xterm.js (z-index:0).
+   El canvas tiene allowTransparency:true, así que el watermark se ve a través. */
+#terminal-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: var(--watermark);
+  z-index: 0;
+  opacity: 0.9;
+}
+
+#terminal-watermark svg {
+  width: min(65%, 380px);
+  height: auto;
 }
 
 /* Sutil borde decorativo alrededor de la terminal */

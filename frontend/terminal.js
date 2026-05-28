@@ -30,7 +30,11 @@ function createTerminalInstance(shellId, container) {
   const activeXtermTheme = window.OCOTE_THEMES?.THEMES?.[savedThemeId]?.xterm ?? OCOTE_THEME;
 
   const term = new Terminal({
-    theme: activeXtermTheme,
+    // background: 'transparent' + allowTransparency: el canvas de xterm.js queda
+    // transparente y el fondo real viene del #terminal-panel (CSS --bg-terminal).
+    // Esto permite que el watermark SVG sea visible detrás del texto.
+    theme: { ...activeXtermTheme, background: 'transparent' },
+    allowTransparency: true,
     fontFamily: "'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
     fontSize: 14,
     lineHeight: 1.5,

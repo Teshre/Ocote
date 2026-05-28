@@ -55,69 +55,71 @@
   }
 
   const THEMES = {
-    // ── Ocote Dark (default) — Cálido ────────────────────────────────────
+    // ── Ocote Dark (default) — Paleta oficial: ember #E8843A / charcoal #14100C ─
     dark: {
       name: 'Ocote Dark',
       xterm: {
-        background: '#1a1816',
-        foreground: '#e8e2d6',
-        cursor: '#f5a623',
-        selectionBackground: 'rgba(245, 166, 35, 0.3)',
-        black: '#1a1816', red: '#e06c75', green: '#98c379', yellow: '#e5c07b',
-        blue: '#61afef', magenta: '#c678dd', cyan: '#56b6c2', white: '#d4cfc6',
-        brightBlack: '#5c5852', brightRed: '#e06c75', brightGreen: '#98c379',
-        brightYellow: '#e5c07b', brightBlue: '#61afef', brightMagenta: '#c678dd',
-        brightCyan: '#56b6c2', brightWhite: '#f5f0e8',
+        background: '#14100C',          // charcoal-900 (fallback; en runtime canvas es transparent)
+        foreground: '#E2D6BD',          // fg-dark
+        cursor: '#E8843A',              // ember-400
+        selectionBackground: 'rgba(232,132,58,0.28)',
+        black:   '#14100C', red:     '#E8635A', green:   '#7DC97A', yellow:  '#E8C03A',
+        blue:    '#82A6E0', magenta: '#C678DD', cyan:    '#6DD8C8', white:   '#C8C0B0',
+        brightBlack:   '#524A42', brightRed:     '#E8635A', brightGreen:   '#7DC97A',
+        brightYellow:  '#E8C03A', brightBlue:    '#82A6E0', brightMagenta: '#C678DD',
+        brightCyan:    '#6DD8C8', brightWhite:   '#E2D6BD',
       },
       css: makeTheme({
         css: {
-          '--bg-terminal': '#1a1816',
-          '--bg-sidebar':  '#141210',
-          '--bg-input':    '#201d1a',
-          '--bg-tooltip':  '#252220',
-          '--text-primary':   '#e8e2d6',
-          '--text-secondary': '#9c9588',
-          '--text-dim':       '#5f5a52',
-          '--accent':         '#f5a623',
-          '--accent-dim':     '#3d2a0a',
+          '--bg-terminal': '#14100C',   // charcoal-900
+          '--bg-sidebar':  '#0E0B08',   // charcoal-950
+          '--bg-input':    '#1C1611',   // charcoal-850
+          '--bg-tooltip':  '#1C1611',
+          '--text-primary':   '#E2D6BD', // fg-dark
+          '--text-secondary': '#9C9480',
+          '--text-dim':       '#5E5648',
+          '--accent':         '#E8843A', // ember-400
+          '--accent-dim':     'rgba(232,132,58,0.18)',
           '--border':         'rgba(255,255,255,0.06)',
           '--border-strong':  'rgba(255,255,255,0.12)',
           '--hover-bg':       'rgba(255,255,255,0.06)',
+          '--watermark':      '#E8843A', // ember — refuerza la marca "en casa"
         },
-        accentHex: '#f5a623',
+        accentHex: '#E8843A',
       }),
     },
 
-    // ── Ocote Light ───────────────────────────────────────────────────────
+    // ── Ocote Light — Paleta oficial: ember-600 #C25C1F / bone #FAF6EC ──────
     light: {
       name: 'Ocote Light',
       xterm: {
-        background: '#faf7f2',
-        foreground: '#2a2520',
-        cursor: '#e67e22',
-        selectionBackground: 'rgba(230, 126, 34, 0.2)',
-        black: '#2a2520', red: '#c0392b', green: '#27ae60', yellow: '#f39c12',
-        blue: '#2980b9', magenta: '#8e44ad', cyan: '#16a085', white: '#bdc3c7',
-        brightBlack: '#7f8c8d', brightRed: '#e74c3c', brightGreen: '#2ecc71',
-        brightYellow: '#f1c40f', brightBlue: '#3498db', brightMagenta: '#9b59b6',
-        brightCyan: '#1abc9c', brightWhite: '#1a1816',
+        background: '#FAF6EC',          // bone-100 (fallback; en runtime canvas es transparent)
+        foreground: '#2A2218',          // fg-light
+        cursor: '#C25C1F',              // ember-600
+        selectionBackground: 'rgba(194,92,31,0.2)',
+        black:   '#2A2218', red:     '#C0392B', green:   '#27AE60', yellow:  '#B8860B',
+        blue:    '#2E6DA4', magenta: '#8E44AD', cyan:    '#16A085', white:   '#B8B0A0',
+        brightBlack:   '#7A7268', brightRed:     '#C0392B', brightGreen:   '#27AE60',
+        brightYellow:  '#B8860B', brightBlue:    '#2E6DA4', brightMagenta: '#8E44AD',
+        brightCyan:    '#16A085', brightWhite:   '#FAF6EC',
       },
       css: makeTheme({
         css: {
-          '--bg-terminal': '#faf7f2',
-          '--bg-sidebar':  '#ffffff',
-          '--bg-input':    '#ffffff',
-          '--bg-tooltip':  '#ffffff',
-          '--text-primary':   '#2a2520',
-          '--text-secondary': '#6b6560',
-          '--text-dim':       '#9c9588',
-          '--accent':         '#e67e22',
-          '--accent-dim':     '#fdebd0',
-          '--border':         'rgba(0,0,0,0.06)',
-          '--border-strong':  'rgba(0,0,0,0.10)',
-          '--hover-bg':       'rgba(0,0,0,0.03)',
+          '--bg-terminal': '#FAF6EC',   // bone-100
+          '--bg-sidebar':  '#F0EBE0',   // bone-200
+          '--bg-input':    '#FFFFFF',
+          '--bg-tooltip':  '#FFFFFF',
+          '--text-primary':   '#2A2218', // fg-light
+          '--text-secondary': '#6B5D4F',
+          '--text-dim':       '#A09282',
+          '--accent':         '#C25C1F', // ember-600
+          '--accent-dim':     'rgba(194,92,31,0.14)',
+          '--border':         'rgba(0,0,0,0.07)',
+          '--border-strong':  'rgba(0,0,0,0.13)',
+          '--hover-bg':       'rgba(0,0,0,0.04)',
+          '--watermark':      '#C25C1F', // ember-600 — brasa profunda sobre bone
         },
-        accentHex: '#e67e22',
+        accentHex: '#C25C1F',
         isLight: true,
       }),
     },
@@ -149,6 +151,7 @@
           '--border':         'rgba(255,255,255,0.08)',
           '--border-strong':  'rgba(255,255,255,0.15)',
           '--hover-bg':       'rgba(255,255,255,0.07)',
+          '--watermark':      '#F8F8F2',
         },
         accentHex: '#ff79c6',
       }),
@@ -181,6 +184,7 @@
           '--border':         'rgba(255,255,255,0.08)',
           '--border-strong':  'rgba(255,255,255,0.15)',
           '--hover-bg':       'rgba(255,255,255,0.07)',
+          '--watermark':      '#ABB2BF',
         },
         accentHex: '#528bff',
       }),
@@ -213,6 +217,7 @@
           '--border':         'rgba(255,255,255,0.08)',
           '--border-strong':  'rgba(255,255,255,0.15)',
           '--hover-bg':       'rgba(255,255,255,0.07)',
+          '--watermark':      '#F8F8F2',
         },
         accentHex: '#f92672',
       }),
@@ -245,6 +250,7 @@
           '--border':         'rgba(255,255,255,0.08)',
           '--border-strong':  'rgba(255,255,255,0.15)',
           '--hover-bg':       'rgba(255,255,255,0.07)',
+          '--watermark':      '#93A1A1',
         },
         accentHex: '#b58900',
       }),
@@ -277,6 +283,7 @@
           '--border':         'rgba(0,0,0,0.08)',
           '--border-strong':  'rgba(0,0,0,0.12)',
           '--hover-bg':       'rgba(0,0,0,0.04)',
+          '--watermark':      '#073642',
         },
         accentHex: '#b58900',
         isLight: true,
@@ -310,6 +317,7 @@
           '--border':         'rgba(255,255,255,0.08)',
           '--border-strong':  'rgba(255,255,255,0.15)',
           '--hover-bg':       'rgba(255,255,255,0.07)',
+          '--watermark':      '#EBDBB2',
         },
         accentHex: '#d79921',
       }),
@@ -342,6 +350,7 @@
           '--border':         'rgba(255,255,255,0.08)',
           '--border-strong':  'rgba(255,255,255,0.15)',
           '--hover-bg':       'rgba(255,255,255,0.07)',
+          '--watermark':      '#D8DEE9',
         },
         accentHex: '#88c0d0',
       }),
@@ -374,6 +383,7 @@
           '--border':         'rgba(255,255,255,0.08)',
           '--border-strong':  'rgba(255,255,255,0.15)',
           '--hover-bg':       'rgba(255,255,255,0.07)',
+          '--watermark':      '#C0CAF5',
         },
         accentHex: '#7aa2f7',
       }),
@@ -389,13 +399,17 @@
       root.style.setProperty(prop, value);
     }
 
+    // Forzar background transparent en xterm.js: la terminal usa allowTransparency:true
+    // y el color real del fondo viene del #terminal-panel via CSS --bg-terminal.
+    // Esto permite que el watermark SVG sea visible detrás del texto.
+    const xtermTheme = { ...theme.xterm, background: 'transparent' };
     if (window.TAB_MANAGER) {
       window.TAB_MANAGER.getAllTabs().forEach(([, tab]) => {
         if (!tab || !tab.term) return;
         if (tab.term.options && typeof tab.term.options === 'object') {
-          tab.term.options.theme = theme.xterm;
+          tab.term.options.theme = xtermTheme;
         } else if (tab.term.setOption) {
-          tab.term.setOption('theme', theme.xterm);
+          tab.term.setOption('theme', xtermTheme);
         }
       });
     }

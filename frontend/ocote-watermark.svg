@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  
+  <g opacity="0.10" fill="currentColor" stroke="currentColor">
+    <circle cx="512" cy="512" r="420" stroke-width="6" fill="none"></circle>
+    <circle cx="512" cy="512" r="360" stroke-width="3" fill="none"></circle>
+    <g transform="translate(512.00 92.00) rotate(0.00)"><rect x="-32" y="-6" width="64" height="12"></rect><rect x="-20" y="-18" width="40" height="12"></rect></g>
+    <g transform="translate(722.00 148.27) rotate(30.00)"><rect x="-32" y="-6" width="64" height="12"></rect><rect x="-20" y="-18" width="40" height="12"></rect></g>
+    <g transform="translate(875.73 302.00) rotate(60.00)"><rect x="-32" y="-6" width="64" height="12"></rect><rect x="-20" y="-18" width="40" height="12"></rect></g>
+    <g transform="translate(932.00 512.00) rotate(90.00)"><rect x="-32" y="-6" width="64" height="12"></rect><rect x="-20" y="-18" width="40" height="12"></rect></g>
+    <g transform="translate(875.73 722.00) rotate(120.00)"><rect x="-32" y="-6" width="64" height="12"></rect><rect x="-20" y="-18" width="40" height="12"></rect></g>
+    <g transform="translate(722.00 875.73) rotate(150.00)"><rect x="-32" y="-6" width="64" height="12"></rect><rect x="-20" y="-18" width="40" height="12"></rect></g>
+    <g transform="translate(512.00 932.00) rotate(180.00)"><rect x="-32" y="-6" width="64" height="12"></rect><rect x="-20" y="-18" width="40" height="12"></rect></g>
+    <g transform="translate(302.00 875.73) rotate(210.00)"><rect x="-32" y="-6" width="64" height="12"></rect><rect x="-20" y="-18" width="40" height="12"></rect></g>
+    <g transform="translate(148.27 722.00) rotate(240.00)"><rect x="-32" y="-6" width="64" height="12"></rect><rect x="-20" y="-18" width="40" height="12"></rect></g>
+    <g transform="translate(92.00 512.00) rotate(270.00)"><rect x="-32" y="-6" width="64" height="12"></rect><rect x="-20" y="-18" width="40" height="12"></rect></g>
+    <g transform="translate(148.27 302.00) rotate(300.00)"><rect x="-32" y="-6" width="64" height="12"></rect><rect x="-20" y="-18" width="40" height="12"></rect></g>
+    <g transform="translate(302.00 148.27) rotate(330.00)"><rect x="-32" y="-6" width="64" height="12"></rect><rect x="-20" y="-18" width="40" height="12"></rect></g>
+  </g>
+  <path fill="currentColor" fill-rule="evenodd" opacity="0.13" d="M 512 760 C 655 760 668 604 603 513 C 569.2 461 584.8 396 532.8 292 C 512 357 473 383 460 422 C 460 474 480.8 513 434 578 C 369 643 361.2 721 512 760 Z M 512 721 C 603 721 616 617 569.2 539 C 551 494.8 558.8 435 525 370 C 512 422 486 442.8 480.8 474 C 480.8 513 491.2 539 465.2 591 C 421 643 413.2 695 512 721 Z"></path>
+  <path fill="currentColor" opacity="0.22" d="M 512 669 C 558.8 669 569.2 604 543.2 552 C 527.6 513 538 461 517.2 422 C 506.8 453.2 493.8 474 491.2 500 C 491.2 531.2 499 552 480.8 591 C 454.8 617 454.8 656 512 669 Z"></path>
+</svg>
