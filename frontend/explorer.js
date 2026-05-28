@@ -6,8 +6,7 @@
 
 // ── Referencias DOM ───────────────────────────────────────────────────────
 const panel = document.getElementById('explorer-content');
-const breadcrumb = document.getElementById('breadcrumb-path');
-const footerBreadcrumb = document.getElementById('explorer-breadcrumb');
+const explorerBreadcrumb = document.getElementById('explorer-breadcrumb');
 
 // ── Estado ────────────────────────────────────────────────────────────────
 let currentPath = '';
@@ -93,7 +92,6 @@ async function loadDirectory(path, options = {}) {
     lastSyncedPath = path;
     // Exponer el CWD globalmente para que autocomplete.js pueda leer el contexto
     window.ocoteCwd = path;
-    updateBreadcrumb(path);
     
     // 1. Intentar cache (renderizado instantáneo)
     const cached = dirCache.get(path);
@@ -212,11 +210,10 @@ function renderEntries(entries, path) {
 // ── Breadcrumb inferior ─────────────────────────────────────────────────
 
 function renderBreadcrumb(path) {
-    if (!footerBreadcrumb) return;
+    if (!explorerBreadcrumb) return;
     
     const parts = path.split('/').filter(Boolean);
     const total = parts.length;
-    const showAll = total <= 4;  // Mostrar todo si son 4 o menos segmentos
     
     let html = '';
     let accumulated = '/';
@@ -228,24 +225,20 @@ function renderBreadcrumb(path) {
     for (let i = 0; i < total; i++) {
         accumulated = accumulated === '/' ? '/' + parts[i] : accumulated + '/' + parts[i];
         const isLast = i === total - 1;
-        const isFirst = i === 0;
         const label = parts[i];
         
         if (isLast) {
             // Último segmento: siempre completo, con flecha dropdown
             html += `<button class="explorer-bc-segment active" data-path="${escapeHtml(accumulated)}" data-dropdown="true" title="${escapeHtml(label)}">${escapeHtml(label)}<span class="bc-arrow">▾</span></button>`;
-        } else if (showAll || isFirst) {
-            // Mostrar completo cuando hay pocos segmentos o es el primero
-            html += `<button class="explorer-bc-segment" data-path="${escapeHtml(accumulated)}" title="${escapeHtml(label)}">${escapeHtml(label)}</button>`;
         } else {
-            // Abreviar a primera letra cuando hay muchos segmentos intermedios
-            html += `<button class="explorer-bc-segment explorer-bc-abbr" data-path="${escapeHtml(accumulated)}" title="${escapeHtml(label)}">${escapeHtml(label.charAt(0).toUpperCase())}</button>`;
+            // Mostrar siempre el nombre completo para navegación horizontal en la barra superior
+            html += `<button class="explorer-bc-segment" data-path="${escapeHtml(accumulated)}" title="${escapeHtml(label)}">${escapeHtml(label)}</button>`;
         }
     }
     
-    footerBreadcrumb.innerHTML = html;
+    explorerBreadcrumb.innerHTML = html;
     
-    footerBreadcrumb.querySelectorAll('.explorer-bc-segment').forEach(btn => {
+    explorerBreadcrumb.querySelectorAll('.explorer-bc-segment').forEach(btn => {
         btn.addEventListener('click', handleBreadcrumbClick);
     });
 }
@@ -262,11 +255,12 @@ async function handleBreadcrumbClick(e) {
         // Mostrar dropdown con subcarpetas del directorio actual
         await showBreadcrumbDropdown(btn, path);
     } else {
-        // Navegar a la ruta
+        const shellId = window.ocoteActiveShellId;
+        if (!shellId) return;
         await loadDirectory(path, { instant: true });
         try {
-            await window.__TAURI__.invoke('write_to_shell', { input: '\x15' });
-            await window.__TAURI__.invoke('write_to_shell', { input: `cd "${path}"\r` });
+            await window.__TAURI__.invoke('write_to_shell', { shellId, input: '\x15' });
+            await window.__TAURI__.invoke('write_to_shell', { shellId, input: `cd "${path}"\r` });
             if (window.resetTerminalInput) window.resetTerminalInput();
         } catch (err) {
             console.error('[Explorer] Error al sincronizar breadcrumb:', err);
@@ -300,20 +294,22 @@ async function showBreadcrumbDropdown(btn, path) {
         }
         bcDropdownEl.innerHTML = html;
         
-        // Posicionar arriba del botón
+        // Posicionar debajo del botón (barra superior)
         bcDropdownEl.style.left = rect.left + 'px';
-        bcDropdownEl.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+        bcDropdownEl.style.top = (rect.bottom + 4) + 'px';
         
         document.body.appendChild(bcDropdownEl);
         
         bcDropdownEl.querySelectorAll('.explorer-bc-dropdown-item').forEach(item => {
             item.addEventListener('click', async (e) => {
                 const dirPath = e.currentTarget.getAttribute('data-path');
+                const shellId = window.ocoteActiveShellId;
+                if (!shellId) return;
                 closeBreadcrumbDropdown();
                 await loadDirectory(dirPath, { instant: true });
                 try {
-                    await window.__TAURI__.invoke('write_to_shell', { input: '\x15' });
-                    await window.__TAURI__.invoke('write_to_shell', { input: `cd "${dirPath}"\r` });
+                    await window.__TAURI__.invoke('write_to_shell', { shellId, input: '\x15' });
+                    await window.__TAURI__.invoke('write_to_shell', { shellId, input: `cd "${dirPath}"\r` });
                     if (window.resetTerminalInput) window.resetTerminalInput();
                 } catch (err) {
                     console.error('[Explorer] Error al navegar desde dropdown:', err);
@@ -351,34 +347,16 @@ async function handleClick(e) {
     // Cargar directorio (con cache es instantáneo)
     await loadDirectory(path, { instant: true });
     
-    // Sincronizar con PTY:
-    // Problema: si el usuario tiene texto a medio escribir en la terminal,
-    // ZLE lo tiene en su buffer. Mandar `cd /ruta\r` directamente lo concatena
-    // con lo que ya está escrito → el comando falla → el explorador regresa al dir anterior.
-    //
-    // Solución:
-    //   1. \x15 = Ctrl+U → ZLE borra todo el buffer actual (igual que el usuario
-    //      presionara Ctrl+U). El texto en pantalla desaparece.
-    //   2. `cd "${path}"\r` → ahora el buffer está limpio y el cd se ejecuta solo.
-    //   3. Resetear el tracking de input en terminal.js para que el autocompletado
-    //      y el tooltip no queden con el estado del texto que se borró.
+    const shellId = window.ocoteActiveShellId;
+    if (!shellId) return;
     try {
-        await window.__TAURI__.invoke('write_to_shell', { input: '\x15' });
-        await window.__TAURI__.invoke('write_to_shell', { input: `cd "${path}"\r` });
-        // Notificar a terminal.js que el input fue reseteado externamente
+        await window.__TAURI__.invoke('write_to_shell', { shellId, input: '\x15' });
+        await window.__TAURI__.invoke('write_to_shell', { shellId, input: `cd "${path}"\r` });
         if (window.resetTerminalInput) {
             window.resetTerminalInput();
         }
     } catch (err) {
         console.error('[Explorer] Error sincronizando con PTY:', err);
-    }
-}
-
-// ── Breadcrumb ────────────────────────────────────────────────────────────
-
-function updateBreadcrumb(path) {
-    if (breadcrumb) {
-        breadcrumb.textContent = path.replace(/^\/Users\/[^\/]+/, '~') || '~';
     }
 }
 

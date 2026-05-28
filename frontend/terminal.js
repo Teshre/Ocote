@@ -45,7 +45,7 @@ function createTerminalInstance(shellId, container) {
   term.loadAddon(fitAddon);
 
   term.open(container);
-  fitAddon.fit();
+  fitWithRetries(fitAddon);
 
   // Sincronizar tamaño PTY ↔ xterm.js
   term.onResize(({ rows, cols }) => {
@@ -60,6 +60,27 @@ function createTerminalInstance(shellId, container) {
 
   // Exponer la instancia para que tab-manager.js pueda acceder
   return { term, fitAddon };
+}
+
+function fitWithRetries(fitAddon) {
+  if (!fitAddon || !fitAddon.fit) return;
+
+  const safeFit = () => {
+    try {
+      fitAddon.fit();
+    } catch (err) {
+      // Silencioso: xterm puede lanzar si el contenedor aún no está listo
+    }
+  };
+
+  safeFit();
+  requestAnimationFrame(safeFit);
+  setTimeout(safeFit, 80);
+  setTimeout(safeFit, 240);
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(safeFit).catch(() => {});
+  }
 }
 
 // Exponer factory globalmente

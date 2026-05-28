@@ -1,38 +1,48 @@
 /* theme.css — Estilos base de Ocote */
+/* Identidad: calidez, artesanía, enfoque. Leña de ocote ardiendo. */
 
 :root {
-  /* Tema oscuro por defecto */
-  --bg-terminal: #1a1a1a;
-  --bg-sidebar:  #141414;
-  --bg-input:    #222222;
-  --bg-tooltip:  #2a2a2a;
+  --bg-terminal: #1a1816;
+  --bg-sidebar:  #141210;
+  --bg-input:    #201d1a;
+  --bg-tooltip:  #252220;
+  --bg-overlay:  rgba(0, 0, 0, 0.65);
 
-  --text-primary:   #e8e6df;
-  --text-secondary: #9c9a92;
-  --text-dim:       #5f5e5a;
+  --text-primary:   #e8e2d6;
+  --text-secondary: #9c9588;
+  --text-dim:       #5f5a52;
 
-  --accent:         #f5a623;   /* naranja ocote */
+  --accent:         #f5a623;
   --accent-dim:     #3d2a0a;
+  --accent-glow:    rgba(245, 166, 35, 0.12);
+  --accent-muted:   rgba(245, 166, 35, 0.06);
 
-  --border:         rgba(255,255,255,0.08);
-  --border-strong:  rgba(255,255,255,0.15);
+  --border:         rgba(255, 255, 255, 0.06);
+  --border-strong:  rgba(255, 255, 255, 0.12);
 
-  --hover-bg:       rgba(255,255,255,0.07);
+  --hover-bg:       rgba(255, 255, 255, 0.06);
 
-  /* Colores ANSI estándar */
-  --ansi-black:   #1a1a1a;
-  --ansi-red:     #e06c75;
-  --ansi-green:   #98c379;
-  --ansi-yellow:  #e5c07b;
-  --ansi-blue:    #61afef;
-  --ansi-magenta: #c678dd;
-  --ansi-cyan:    #56b6c2;
-  --ansi-white:   #abb2bf;
+  --scrollbar-thumb:    rgba(245, 166, 35, 0.38);
+  --scrollbar-thumb-hover: rgba(245, 166, 35, 0.62);
+  --scrollbar-track:    transparent;
+
+  --focus-ring:     rgba(245, 166, 35, 0.5);
+  --selection-bg:   rgba(245, 166, 35, 0.25);
+
+  --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg:  0 8px 30px rgba(0, 0, 0, 0.5);
+
+  --transition-fast:   100ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow:   300ms ease;
 
   --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace;
   --font-size: 14px;
   --line-height: 1.5;
   --radius: 6px;
+  --radius-sm: 4px;
+  --radius-lg: 10px;
 }
 
 * {
@@ -51,11 +61,103 @@ body {
   flex-direction: column;
   overflow: hidden;
   user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Breadcrumb superior */
+/* ── Scrollbar ────────────────────────────────────────────────────────── */
+/* No usar ::-webkit-scrollbar global — desactiva overlay scrollbar macOS */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* WebKit: solo en contenedores con scroll de la UI (evita tocar xterm viewport) */
+#explorer-content::-webkit-scrollbar,
+#explorer-breadcrumb::-webkit-scrollbar,
+#explorer-bc-dropdown::-webkit-scrollbar,
+#autocomplete-popup::-webkit-scrollbar,
+#settings-card::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+#explorer-content::-webkit-scrollbar-track,
+#explorer-breadcrumb::-webkit-scrollbar-track,
+#explorer-bc-dropdown::-webkit-scrollbar-track,
+#autocomplete-popup::-webkit-scrollbar-track,
+#settings-card::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+#explorer-content::-webkit-scrollbar-thumb,
+#explorer-breadcrumb::-webkit-scrollbar-thumb,
+#explorer-bc-dropdown::-webkit-scrollbar-thumb,
+#autocomplete-popup::-webkit-scrollbar-thumb,
+#settings-card::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+#explorer-content::-webkit-scrollbar-thumb:hover,
+#explorer-breadcrumb::-webkit-scrollbar-thumb:hover,
+#explorer-bc-dropdown::-webkit-scrollbar-thumb:hover,
+#autocomplete-popup::-webkit-scrollbar-thumb:hover,
+#settings-card::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+#explorer-content::-webkit-scrollbar-corner,
+#explorer-breadcrumb::-webkit-scrollbar-corner,
+#explorer-bc-dropdown::-webkit-scrollbar-corner,
+#autocomplete-popup::-webkit-scrollbar-corner,
+#settings-card::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Scrollbar del viewport de xterm */
+.xterm .xterm-viewport {
+  overflow-y: auto !important;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+::selection {
+  background: var(--selection-bg);
+  color: var(--text-primary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+  border-radius: var(--radius-sm);
+}
+
+button:focus-visible {
+  outline-offset: 2px;
+}
+
+/* ── Breadcrumb superior ─────────────────────────────────────────────────── */
+
 #breadcrumb {
-  padding: 4px 12px 4px 16px;
+  padding: 5px 12px 5px 16px;
   font-size: 12px;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border);
@@ -64,25 +166,47 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 28px;
+  min-height: 30px;
+  flex-shrink: 0;
 }
 
-#breadcrumb-path {
+#breadcrumb > #explorer-breadcrumb {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  color: var(--text-dim);
 }
 
-/* Layout principal: sidebar + terminal */
+#settings-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 3px 7px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+#settings-btn:hover {
+  background: var(--hover-bg);
+  color: var(--accent);
+}
+
 #main-layout {
   display: flex;
   flex: 1;
   overflow: hidden;
-  min-height: 0; /* necesario para que flex children puedan hacer overflow-y:auto */
+  min-height: 0;
 }
 
-/* Panel explorador de archivos */
+/* ── Panel explorador de archivos ────────────────────────────────────────── */
+
 #explorer-panel {
   width: 220px;
   min-width: 160px;
@@ -91,30 +215,58 @@ body {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  position: relative;
+}
+
+/* Sutil línea decorativa en el borde derecho del panel */
+#explorer-panel::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--accent-glow) 20%,
+    var(--accent-dim) 50%,
+    var(--accent-glow) 80%,
+    transparent 100%
+  );
+  opacity: 0.3;
+  pointer-events: none;
 }
 
 #explorer-content {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 6px 0;
   min-height: 0;
 }
 
-/* Items del explorador */
+/* ── Items del explorador ────────────────────────────────────────────────── */
+
 .explorer-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 12px;
+  padding: 4px 12px 4px 8px;
   cursor: pointer;
   font-size: 13px;
   color: var(--text-primary);
-  transition: background 0.1s;
+  border-left: 2px solid transparent;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
   user-select: none;
 }
 
 .explorer-item:hover {
-  background: var(--accent-dim);
+  background: var(--hover-bg);
+  border-left-color: var(--accent-glow);
+}
+
+.explorer-item:active {
+  background: var(--accent-muted);
 }
 
 .explorer-up {
@@ -135,13 +287,12 @@ body {
 
 .explorer-icon {
   flex-shrink: 0;
-  width: 22px;         /* ancho fijo para alinear todos los nombres */
+  width: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* ── Tema "seti": íconos SVG outline de Tabler Icons ── */
 .icon-wrapper {
   display: flex;
   align-items: center;
@@ -157,7 +308,6 @@ body {
   display: block;
 }
 
-/* Legacy: íconos SVG rellenos (rectángulo de color) */
 .icon-svg {
   width: 15px;
   height: 15px;
@@ -165,7 +315,6 @@ body {
   display: block;
 }
 
-/* ── Tema "badge": rectángulo coloreado con etiqueta corta ── */
 .file-icon {
   display: inline-flex;
   align-items: center;
@@ -183,21 +332,12 @@ body {
   font-family: var(--font-mono, monospace);
 }
 
-/* Ícono de carpeta badge — triángulo coloreado según el tipo */
 .folder-icon {
   font-size: 10px;
   line-height: 1;
 }
 
-/* ── Footer del explorador: breadcrumb inferior ────────────────────────── */
-#explorer-footer {
-  border-top: 1px solid var(--border);
-  padding: 6px 10px;
-  font-size: 11px;
-  color: var(--text-secondary);
-  background: var(--bg-sidebar);
-  flex-shrink: 0;
-}
+/* ── Breadcrumb de navegación del explorador (ahora en barra superior) ─── */
 
 #explorer-breadcrumb {
   display: flex;
@@ -205,25 +345,22 @@ body {
   gap: 4px;
   overflow-x: auto;
   white-space: nowrap;
-  scrollbar-width: none; /* Firefox */
-}
-#explorer-breadcrumb::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
+  scrollbar-width: thin;
 }
 
 .explorer-bc-segment {
   display: flex;
   align-items: center;
   gap: 3px;
-  padding: 2px 5px;
-  border-radius: 4px;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background var(--transition-fast), color var(--transition-fast);
   color: var(--text-secondary);
   background: transparent;
   border: none;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -235,10 +372,11 @@ body {
 .explorer-bc-segment.active {
   background: var(--accent-dim);
   color: var(--accent);
+  font-weight: 600;
 }
 
 .explorer-bc-segment .bc-arrow {
-  font-size: 9px;
+  font-size: 8px;
   color: var(--text-dim);
   margin-left: 1px;
 }
@@ -248,13 +386,11 @@ body {
   padding: 2px 4px;
 }
 
-/* Segmento abreviado: solo la primera letra */
 .explorer-bc-abbr {
   padding: 2px 5px;
   font-weight: 600;
 }
 
-/* Dropdown del breadcrumb */
 #explorer-bc-dropdown {
   position: absolute;
   background: var(--bg-tooltip);
@@ -264,8 +400,14 @@ body {
   max-height: 240px;
   overflow-y: auto;
   z-index: 200;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  box-shadow: var(--shadow-lg);
   padding: 4px 0;
+  animation: dropdown-in var(--transition-fast);
+}
+
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .explorer-bc-dropdown-item {
@@ -277,6 +419,7 @@ body {
   font-size: 12px;
   color: var(--text-primary);
   white-space: nowrap;
+  transition: background var(--transition-fast);
 }
 .explorer-bc-dropdown-item:hover {
   background: var(--hover-bg);
@@ -290,7 +433,6 @@ body {
   flex-shrink: 0;
 }
 
-/* Flecha del botón "subir directorio" */
 .up-icon {
   font-size: 12px;
   color: var(--text-dim);
@@ -302,7 +444,8 @@ body {
   text-overflow: ellipsis;
 }
 
-/* Panel terminal */
+/* ── Panel terminal ──────────────────────────────────────────────────────── */
+
 #terminal-panel {
   flex: 1;
   display: flex;
@@ -310,9 +453,11 @@ body {
   overflow: hidden;
   min-height: 0;
   position: relative;
+  background: var(--bg-terminal);
 }
 
-/* ── Barra de tabs ──────────────────────────────────────────────────────── */
+/* ── Barra de tabs ───────────────────────────────────────────────────────── */
+
 #tab-bar-wrapper {
   display: flex;
   align-items: center;
@@ -339,16 +484,16 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  border-radius: 4px 4px 0 0;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   cursor: pointer;
   font-size: 12px;
   color: var(--text-secondary);
   background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
+  position: relative;
   white-space: nowrap;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  transition: background var(--transition-fast), color var(--transition-fast);
   flex-shrink: 0;
   max-width: 160px;
 }
@@ -359,12 +504,25 @@ body {
 .terminal-tab.active {
   background: var(--bg-terminal);
   color: var(--text-primary);
-  border-bottom-color: var(--accent);
+}
+
+/* Línea indicadora inferior del tab activo */
+.terminal-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 4px;
+  right: 4px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 
 .terminal-tab .tab-name {
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 11px;
 }
 
 .terminal-tab .tab-close {
@@ -376,12 +534,15 @@ body {
   padding: 0 2px;
   cursor: pointer;
   border-radius: 3px;
+  opacity: 0;
+  transition: opacity var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+.terminal-tab:hover .tab-close {
   opacity: 0.6;
-  transition: opacity 0.1s, background 0.1s;
 }
 .terminal-tab .tab-close:hover {
   opacity: 1;
-  background: var(--hover-bg);
+  background: rgba(255, 255, 255, 0.1);
   color: var(--text-primary);
 }
 
@@ -393,20 +554,32 @@ body {
   line-height: 1;
   padding: 2px 8px;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
-  transition: background 0.1s, color 0.1s;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 #tab-new:hover {
   background: var(--hover-bg);
   color: var(--accent);
 }
 
-/* Contenedor de terminales (uno por tab) */
+/* ── Contenedor de terminales ────────────────────────────────────────────── */
+
 #terminal-container {
   flex: 1;
   overflow: hidden;
   position: relative;
+}
+
+/* Sutil borde decorativo alrededor de la terminal */
+#terminal-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--accent-glow);
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0.3;
 }
 
 .terminal-tab-content {
@@ -414,46 +587,31 @@ body {
   inset: 0;
   overflow: hidden;
 }
-.terminal-tab-content.hidden {
-  display: none !important;
-}
 
-/* xterm.js ya maneja internamente:
-   - Renderizado de texto con colores ANSI/VT
-   - Cursor parpadeante
-   - Scroll
-   - Selección de texto
-   Por eso no necesitamos estilos custom para .term-line ni cursor */
+/* ── Popup de autocompletado ─────────────────────────────────────────────── */
 
-/* Estilos del input line guardados para referencia futura (Fase 2):
-#terminal-input-line { display:flex; align-items:center; gap:8px;
-  padding:8px 16px; border-top:1px solid var(--border);
-  background:var(--bg-input); }
-#prompt-symbol { color:var(--accent); font-weight:bold; flex-shrink:0; }
-#terminal-input { flex:1; background:transparent; border:none; outline:none;
-  color:var(--text-primary); font-family:var(--font-mono);
-  font-size:var(--font-size); caret-color:var(--accent); } */
-
-/* Popup de autocompletado */
 #autocomplete-popup {
   position: absolute;
   left: 32px;
   background: var(--bg-tooltip);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  min-width: 280px;
-  max-height: 200px;
+  min-width: 320px;
+  max-height: 220px;
   overflow-y: auto;
   z-index: 100;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  box-shadow: var(--shadow-lg);
+  padding: 4px;
 }
 
 .autocomplete-item {
-  padding: 7px 12px;
+  padding: 7px 10px;
   cursor: pointer;
   display: flex;
   gap: 10px;
   align-items: baseline;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
 }
 
 .autocomplete-item:hover,
@@ -465,44 +623,49 @@ body {
   font-weight: bold;
   color: var(--text-primary);
   min-width: 80px;
+  font-size: 13px;
 }
 
 .autocomplete-desc {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Badge de contexto: aparece en ítems de sugerencia contextual.
-   Color naranja tenue para distinguirlos visualmente de los de la CKB,
-   sin ser intrusivo. Ej: "Git · Rust", "Node.js" */
 .autocomplete-context-badge {
-  margin-left: auto;           /* empuja el badge al extremo derecho */
+  margin-left: auto;
   padding: 1px 6px;
   border-radius: 3px;
   background: var(--accent-dim);
   color: var(--accent);
-  font-size: 10px;
+  font-size: 9px;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-/* Tooltip educativo */
+/* ── Tooltip educativo ───────────────────────────────────────────────────── */
+
 #tooltip-card {
   position: absolute;
   right: 16px;
   bottom: 60px;
-  width: 280px;
+  width: 290px;
   background: var(--bg-tooltip);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  padding: 14px 16px;
+  padding: 16px 18px;
   z-index: 100;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  box-shadow: var(--shadow-lg);
   font-size: 13px;
   line-height: 1.5;
+  animation: tooltip-in var(--transition-normal);
+}
+
+@keyframes tooltip-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .tooltip-header {
@@ -510,7 +673,7 @@ body {
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .tooltip-command-name {
@@ -520,23 +683,24 @@ body {
 }
 
 .tooltip-category {
-  font-size: 10px;
+  font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-dim);
   background: var(--bg-terminal);
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .tooltip-description {
   color: var(--text-primary);
   margin-bottom: 12px;
   font-size: 13px;
+  line-height: 1.6;
 }
 
 .tooltip-section-title {
-  font-size: 11px;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-secondary);
@@ -558,7 +722,7 @@ body {
 
 .tooltip-flag code {
   background: var(--bg-terminal);
-  color: var(--ansi-yellow);
+  color: var(--accent);
   padding: 1px 6px;
   border-radius: 3px;
   font-family: var(--font-mono);
@@ -572,12 +736,13 @@ body {
 
 .tooltip-example {
   background: var(--bg-terminal);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 6px 10px;
-  color: var(--ansi-green);
+  color: var(--text-primary);
   font-size: 12px;
   margin-bottom: 4px;
   font-family: var(--font-mono);
+  border-left: 2px solid var(--accent-dim);
 }
 
 .tooltip-example-desc {
@@ -588,24 +753,26 @@ body {
 
 .tooltip-close-hint {
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: 10px;
   margin-top: 8px;
   border-top: 1px solid var(--border);
   padding-top: 8px;
+  text-align: center;
 }
 
-/* ── Onboarding ─────────────────────────────────────────────────────────── */
+/* ── Onboarding ──────────────────────────────────────────────────────────── */
 
-/* Overlay: fondo semitransparente sobre toda la app */
 #onboarding-overlay {
   position: fixed;
-  inset: 0;                          /* top/right/bottom/left: 0 */
-  background: rgba(0, 0, 0, 0.7);
+  inset: 0;
+  background: var(--bg-overlay);
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
   animation: onboarding-fade-in 0.25s ease;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 #onboarding-overlay.closing {
@@ -622,15 +789,14 @@ body {
   to   { opacity: 0; }
 }
 
-/* Card central */
 #onboarding-card {
   background: var(--bg-sidebar);
   border: 1px solid var(--border-strong);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 32px 36px;
   width: 560px;
   max-width: 90vw;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-lg);
   animation: onboarding-slide-up 0.3s ease;
 }
 
@@ -639,7 +805,6 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Encabezado: logo + título */
 #onboarding-header {
   display: flex;
   align-items: center;
@@ -648,13 +813,12 @@ body {
 }
 
 #onboarding-logo {
-  /* Tamaño fijo para el ícono de la app.
-     Cuando se tenga el ícono real, solo reemplazar frontend/icon.png. */
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;   /* esquinas redondeadas estilo macOS */
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
   flex-shrink: 0;
   object-fit: contain;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 #onboarding-title {
@@ -670,7 +834,6 @@ body {
   font-family: var(--font-mono);
 }
 
-/* Grid 2×2 de features */
 #onboarding-features {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -686,6 +849,10 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px;
+  transition: border-color var(--transition-fast);
+}
+.onboarding-feature:hover {
+  border-color: var(--accent-dim);
 }
 
 .onboarding-feature-icon {
@@ -718,27 +885,24 @@ body {
   font-size: 11px;
 }
 
-/* Botón CTA */
 #onboarding-btn {
   display: block;
   width: 100%;
   padding: 12px;
   background: var(--accent);
-  color: #1a1a1a;
+  color: #1a1816;
   border: none;
   border-radius: var(--radius);
   font-family: var(--font-mono);
   font-size: 14px;
   font-weight: bold;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
   margin-bottom: 12px;
 }
+#onboarding-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+#onboarding-btn:active { opacity: 0.8; transform: translateY(0); }
 
-#onboarding-btn:hover { opacity: 0.88; }
-#onboarding-btn:active { opacity: 0.75; }
-
-/* Hint inferior */
 #onboarding-hint {
   text-align: center;
   font-size: 11px;
@@ -755,25 +919,8 @@ body {
   color: var(--text-secondary);
 }
 
-/* ── Botón de Configuración en breadcrumb ──────────────────────────────── */
-#settings-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 14px;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
-  line-height: 1;
-  flex-shrink: 0;
-  transition: background 0.1s, color 0.1s;
-}
-#settings-btn:hover {
-  background: var(--hover-bg);
-  color: var(--text-primary);
-}
+/* ── Configuración: modal centrado ───────────────────────────────────────── */
 
-/* ── Configuración: modal centrado ─────────────────────────────────────── */
 #settings-overlay {
   position: fixed;
   inset: 0;
@@ -789,7 +936,9 @@ body {
 #settings-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--bg-overlay);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 #settings-card {
@@ -798,16 +947,16 @@ body {
   max-width: 92vw;
   max-height: 85vh;
   background: var(--bg-sidebar);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 24px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 28px;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-  animation: settings-pop-in 0.2s ease;
+  box-shadow: var(--shadow-lg);
+  animation: settings-pop-in 0.25s ease;
 }
 @keyframes settings-pop-in {
-  from { opacity: 0; transform: scale(0.96); }
-  to   { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 #settings-header {
@@ -815,7 +964,7 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
-  padding-bottom: 12px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--border);
 }
 #settings-header h2 {
@@ -828,12 +977,12 @@ body {
   background: transparent;
   border: none;
   color: var(--text-secondary);
-  font-size: 16px;
+  font-size: 18px;
   cursor: pointer;
-  padding: 4px;
+  padding: 4px 6px;
   line-height: 1;
-  border-radius: 4px;
-  transition: background 0.1s, color 0.1s;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 #settings-close:hover {
   background: var(--hover-bg);
@@ -846,7 +995,7 @@ body {
 .settings-section h3 {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   color: var(--text-dim);
   margin-bottom: 12px;
   font-weight: 600;
@@ -865,7 +1014,6 @@ body {
   flex-shrink: 0;
 }
 
-/* Segmented control (botones agrupados) */
 .settings-segmented {
   display: flex;
   gap: 0;
@@ -885,7 +1033,7 @@ body {
   padding: 4px 10px;
   cursor: pointer;
   border-radius: 4px;
-  transition: background 0.1s, color 0.1s;
+  transition: background var(--transition-fast), color var(--transition-fast);
   white-space: nowrap;
 }
 .settings-seg-btn:hover {
@@ -893,11 +1041,12 @@ body {
 }
 .settings-seg-btn.active {
   background: var(--accent);
-  color: #1a1a1a;
+  color: #1a1816;
   font-weight: 600;
 }
 
-/* ── Tabs del modal ────────────────────────────────────────────────────── */
+/* ── Tabs del modal ──────────────────────────────────────────────────────── */
+
 #settings-tabs {
   display: flex;
   gap: 0;
@@ -914,7 +1063,7 @@ body {
   padding: 8px 16px;
   cursor: pointer;
   margin-bottom: -1px;
-  transition: color 0.1s, border-color 0.1s;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
 }
 .settings-tab-btn:hover {
   color: var(--text-secondary);
@@ -925,7 +1074,8 @@ body {
   font-weight: 600;
 }
 
-/* ── Grid de temas (swatches) ──────────────────────────────────────────── */
+/* ── Grid de temas (swatches) ────────────────────────────────────────────── */
+
 #theme-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -940,9 +1090,9 @@ body {
   background: transparent;
   border: 2px solid transparent;
   border-radius: 8px;
-  padding: 8px 4px;
+  padding: 8px 4px 6px;
   cursor: pointer;
-  transition: background 0.1s, border-color 0.1s;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 .theme-swatch:hover {
   background: var(--hover-bg);
@@ -953,18 +1103,23 @@ body {
 }
 
 .theme-swatch-color {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   border: 2px solid var(--border-strong);
-  box-shadow: inset 0 0 0 2px var(--bg-sidebar);
+  box-shadow:
+    inset 0 0 0 2px var(--bg-sidebar),
+    0 2px 4px rgba(0, 0, 0, 0.2);
 }
 .theme-swatch.active .theme-swatch-color {
   border-color: var(--accent);
+  box-shadow:
+    inset 0 0 0 2px var(--bg-sidebar),
+    0 0 12px var(--accent-glow);
 }
 
 .theme-swatch-name {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text-secondary);
   text-align: center;
   white-space: nowrap;
@@ -977,7 +1132,6 @@ body {
   font-weight: 600;
 }
 
-/* Dropdown select */
 .settings-select {
   background: var(--bg-terminal);
   border: 1px solid var(--border);
@@ -989,13 +1143,13 @@ body {
   cursor: pointer;
   min-width: 180px;
   flex-shrink: 0;
+  transition: border-color var(--transition-fast);
 }
 .settings-select:focus {
   outline: none;
   border-color: var(--accent);
 }
 
-/* Utilidades */
 .hidden {
   display: none !important;
 }

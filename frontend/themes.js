@@ -1,73 +1,127 @@
 // themes.js — Definición de temas para Ocote
 // Cada tema incluye colores para xterm.js + CSS variables.
-// Paletas basadas en temas open-source (Dracula, One Dark, Monokai, Solarized,
-// Gruvbox, Nord, Tokyo Night) — licencias MIT/GPL compatibles.
 
 (function () {
   'use strict';
 
+  function toRgb(hex) {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.slice(0,2), 16);
+    const g = parseInt(h.slice(2,4), 16);
+    const b = parseInt(h.slice(4,6), 16);
+    return { r, g, b };
+  }
+
+  function makeTheme(config) {
+    const { css, accentHex, isLight } = config;
+    const a = toRgb(accentHex);
+    const accentRgba = (o) => `rgba(${a.r},${a.g},${a.b},${o})`;
+
+    const commonLight = {
+      '--focus-ring':         accentRgba(0.4),
+      '--selection-bg':       accentRgba(0.15),
+      '--accent-glow':        accentRgba(0.1),
+      '--accent-muted':       accentRgba(0.04),
+      '--scrollbar-thumb':    accentRgba(0.28),
+      '--scrollbar-thumb-hover': accentRgba(0.55),
+      '--scrollbar-track':    'transparent',
+      '--bg-overlay':         'rgba(0,0,0,0.4)',
+      '--shadow-sm':  '0 1px 3px rgba(0,0,0,0.08)',
+      '--shadow-md':  '0 4px 12px rgba(0,0,0,0.1)',
+      '--shadow-lg':  '0 8px 30px rgba(0,0,0,0.15)',
+      '--transition-fast':   '100ms ease',
+      '--transition-normal': '200ms ease',
+      '--transition-slow':   '300ms ease',
+    };
+
+    const commonDark = {
+      '--focus-ring':         accentRgba(0.5),
+      '--selection-bg':       accentRgba(0.25),
+      '--accent-glow':        accentRgba(0.12),
+      '--accent-muted':       accentRgba(0.06),
+      '--scrollbar-thumb':    accentRgba(0.38),
+      '--scrollbar-thumb-hover': accentRgba(0.62),
+      '--scrollbar-track':    'transparent',
+      '--bg-overlay':         'rgba(0,0,0,0.65)',
+      '--shadow-sm':  '0 1px 3px rgba(0,0,0,0.3)',
+      '--shadow-md':  '0 4px 12px rgba(0,0,0,0.4)',
+      '--shadow-lg':  '0 8px 30px rgba(0,0,0,0.5)',
+      '--transition-fast':   '100ms ease',
+      '--transition-normal': '200ms ease',
+      '--transition-slow':   '300ms ease',
+    };
+
+    return { ...css, ...(isLight ? commonLight : commonDark) };
+  }
+
   const THEMES = {
-    // ── Ocote Dark (default) ──────────────────────────────────────────────
+    // ── Ocote Dark (default) — Cálido ────────────────────────────────────
     dark: {
       name: 'Ocote Dark',
       xterm: {
-        background: '#1a1a1a',
-        foreground: '#e8e6df',
+        background: '#1a1816',
+        foreground: '#e8e2d6',
         cursor: '#f5a623',
         selectionBackground: 'rgba(245, 166, 35, 0.3)',
-        black: '#1a1a1a', red: '#e06c75', green: '#98c379', yellow: '#e5c07b',
-        blue: '#61afef', magenta: '#c678dd', cyan: '#56b6c2', white: '#abb2bf',
-        brightBlack: '#5c6370', brightRed: '#e06c75', brightGreen: '#98c379',
+        black: '#1a1816', red: '#e06c75', green: '#98c379', yellow: '#e5c07b',
+        blue: '#61afef', magenta: '#c678dd', cyan: '#56b6c2', white: '#d4cfc6',
+        brightBlack: '#5c5852', brightRed: '#e06c75', brightGreen: '#98c379',
         brightYellow: '#e5c07b', brightBlue: '#61afef', brightMagenta: '#c678dd',
-        brightCyan: '#56b6c2', brightWhite: '#ffffff',
+        brightCyan: '#56b6c2', brightWhite: '#f5f0e8',
       },
-      css: {
-        '--bg-terminal': '#1a1a1a',
-        '--bg-sidebar':  '#141414',
-        '--bg-input':    '#222222',
-        '--bg-tooltip':  '#2a2a2a',
-        '--text-primary':   '#e8e6df',
-        '--text-secondary': '#9c9a92',
-        '--text-dim':       '#5f5e5a',
-        '--accent':         '#f5a623',
-        '--accent-dim':     '#3d2a0a',
-        '--border':         'rgba(255,255,255,0.08)',
-        '--border-strong':  'rgba(255,255,255,0.15)',
-        '--hover-bg':       'rgba(255,255,255,0.07)',
-      },
+      css: makeTheme({
+        css: {
+          '--bg-terminal': '#1a1816',
+          '--bg-sidebar':  '#141210',
+          '--bg-input':    '#201d1a',
+          '--bg-tooltip':  '#252220',
+          '--text-primary':   '#e8e2d6',
+          '--text-secondary': '#9c9588',
+          '--text-dim':       '#5f5a52',
+          '--accent':         '#f5a623',
+          '--accent-dim':     '#3d2a0a',
+          '--border':         'rgba(255,255,255,0.06)',
+          '--border-strong':  'rgba(255,255,255,0.12)',
+          '--hover-bg':       'rgba(255,255,255,0.06)',
+        },
+        accentHex: '#f5a623',
+      }),
     },
 
     // ── Ocote Light ───────────────────────────────────────────────────────
     light: {
       name: 'Ocote Light',
       xterm: {
-        background: '#f5f5f5',
-        foreground: '#1a1a1a',
+        background: '#faf7f2',
+        foreground: '#2a2520',
         cursor: '#e67e22',
         selectionBackground: 'rgba(230, 126, 34, 0.2)',
-        black: '#1a1a1a', red: '#c0392b', green: '#27ae60', yellow: '#f39c12',
+        black: '#2a2520', red: '#c0392b', green: '#27ae60', yellow: '#f39c12',
         blue: '#2980b9', magenta: '#8e44ad', cyan: '#16a085', white: '#bdc3c7',
         brightBlack: '#7f8c8d', brightRed: '#e74c3c', brightGreen: '#2ecc71',
         brightYellow: '#f1c40f', brightBlue: '#3498db', brightMagenta: '#9b59b6',
-        brightCyan: '#1abc9c', brightWhite: '#000000',
+        brightCyan: '#1abc9c', brightWhite: '#1a1816',
       },
-      css: {
-        '--bg-terminal': '#f5f5f5',
-        '--bg-sidebar':  '#ffffff',
-        '--bg-input':    '#ffffff',
-        '--bg-tooltip':  '#ffffff',
-        '--text-primary':   '#1a1a1a',
-        '--text-secondary': '#666666',
-        '--text-dim':       '#999999',
-        '--accent':         '#e67e22',
-        '--accent-dim':     '#fdebd0',
-        '--border':         'rgba(0,0,0,0.08)',
-        '--border-strong':  'rgba(0,0,0,0.12)',
-        '--hover-bg':       'rgba(0,0,0,0.04)',
-      },
+      css: makeTheme({
+        css: {
+          '--bg-terminal': '#faf7f2',
+          '--bg-sidebar':  '#ffffff',
+          '--bg-input':    '#ffffff',
+          '--bg-tooltip':  '#ffffff',
+          '--text-primary':   '#2a2520',
+          '--text-secondary': '#6b6560',
+          '--text-dim':       '#9c9588',
+          '--accent':         '#e67e22',
+          '--accent-dim':     '#fdebd0',
+          '--border':         'rgba(0,0,0,0.06)',
+          '--border-strong':  'rgba(0,0,0,0.10)',
+          '--hover-bg':       'rgba(0,0,0,0.03)',
+        },
+        accentHex: '#e67e22',
+        isLight: true,
+      }),
     },
 
-    // ── Dracula (MIT, https://draculatheme.com) ────────────────────────────
     dracula: {
       name: 'Dracula',
       xterm: {
@@ -81,23 +135,25 @@
         brightYellow: '#ffffa5', brightBlue: '#caa9fa', brightMagenta: '#ff92d0',
         brightCyan: '#9aedfe', brightWhite: '#e6e6e6',
       },
-      css: {
-        '--bg-terminal': '#282a36',
-        '--bg-sidebar':  '#21222c',
-        '--bg-input':    '#44475a',
-        '--bg-tooltip':  '#44475a',
-        '--text-primary':   '#f8f8f2',
-        '--text-secondary': '#bfbfbf',
-        '--text-dim':       '#6272a4',
-        '--accent':         '#ff79c6',
-        '--accent-dim':     'rgba(255,121,198,0.15)',
-        '--border':         'rgba(255,255,255,0.08)',
-        '--border-strong':  'rgba(255,255,255,0.15)',
-        '--hover-bg':       'rgba(255,255,255,0.07)',
-      },
+      css: makeTheme({
+        css: {
+          '--bg-terminal': '#282a36',
+          '--bg-sidebar':  '#21222c',
+          '--bg-input':    '#44475a',
+          '--bg-tooltip':  '#44475a',
+          '--text-primary':   '#f8f8f2',
+          '--text-secondary': '#bfbfbf',
+          '--text-dim':       '#6272a4',
+          '--accent':         '#ff79c6',
+          '--accent-dim':     'rgba(255,121,198,0.15)',
+          '--border':         'rgba(255,255,255,0.08)',
+          '--border-strong':  'rgba(255,255,255,0.15)',
+          '--hover-bg':       'rgba(255,255,255,0.07)',
+        },
+        accentHex: '#ff79c6',
+      }),
     },
 
-    // ── One Dark (MIT, Atom editor theme) ──────────────────────────────────
     oneDark: {
       name: 'One Dark',
       xterm: {
@@ -111,23 +167,25 @@
         brightYellow: '#e5c07b', brightBlue: '#61afef', brightMagenta: '#c678dd',
         brightCyan: '#56b6c2', brightWhite: '#ffffff',
       },
-      css: {
-        '--bg-terminal': '#282c34',
-        '--bg-sidebar':  '#21252b',
-        '--bg-input':    '#3a3f4b',
-        '--bg-tooltip':  '#3a3f4b',
-        '--text-primary':   '#abb2bf',
-        '--text-secondary': '#828997',
-        '--text-dim':       '#5c6370',
-        '--accent':         '#528bff',
-        '--accent-dim':     'rgba(82,139,255,0.15)',
-        '--border':         'rgba(255,255,255,0.08)',
-        '--border-strong':  'rgba(255,255,255,0.15)',
-        '--hover-bg':       'rgba(255,255,255,0.07)',
-      },
+      css: makeTheme({
+        css: {
+          '--bg-terminal': '#282c34',
+          '--bg-sidebar':  '#21252b',
+          '--bg-input':    '#3a3f4b',
+          '--bg-tooltip':  '#3a3f4b',
+          '--text-primary':   '#abb2bf',
+          '--text-secondary': '#828997',
+          '--text-dim':       '#5c6370',
+          '--accent':         '#528bff',
+          '--accent-dim':     'rgba(82,139,255,0.15)',
+          '--border':         'rgba(255,255,255,0.08)',
+          '--border-strong':  'rgba(255,255,255,0.15)',
+          '--hover-bg':       'rgba(255,255,255,0.07)',
+        },
+        accentHex: '#528bff',
+      }),
     },
 
-    // ── Monokai (MIT, https://www.monokai.pro) ─────────────────────────────
     monokai: {
       name: 'Monokai',
       xterm: {
@@ -141,23 +199,25 @@
         brightYellow: '#f4bf75', brightBlue: '#66d9ef', brightMagenta: '#ae81ff',
         brightCyan: '#a1efe4', brightWhite: '#f9f8f5',
       },
-      css: {
-        '--bg-terminal': '#272822',
-        '--bg-sidebar':  '#1e1f1c',
-        '--bg-input':    '#3e3d32',
-        '--bg-tooltip':  '#3e3d32',
-        '--text-primary':   '#f8f8f2',
-        '--text-secondary': '#cfcfc2',
-        '--text-dim':       '#75715e',
-        '--accent':         '#f92672',
-        '--accent-dim':     'rgba(249,38,114,0.15)',
-        '--border':         'rgba(255,255,255,0.08)',
-        '--border-strong':  'rgba(255,255,255,0.15)',
-        '--hover-bg':       'rgba(255,255,255,0.07)',
-      },
+      css: makeTheme({
+        css: {
+          '--bg-terminal': '#272822',
+          '--bg-sidebar':  '#1e1f1c',
+          '--bg-input':    '#3e3d32',
+          '--bg-tooltip':  '#3e3d32',
+          '--text-primary':   '#f8f8f2',
+          '--text-secondary': '#cfcfc2',
+          '--text-dim':       '#75715e',
+          '--accent':         '#f92672',
+          '--accent-dim':     'rgba(249,38,114,0.15)',
+          '--border':         'rgba(255,255,255,0.08)',
+          '--border-strong':  'rgba(255,255,255,0.15)',
+          '--hover-bg':       'rgba(255,255,255,0.07)',
+        },
+        accentHex: '#f92672',
+      }),
     },
 
-    // ── Solarized Dark (MIT, Ethan Schoonover) ────────────────────────────
     solarizedDark: {
       name: 'Solarized Dark',
       xterm: {
@@ -171,23 +231,25 @@
         brightYellow: '#657b83', brightBlue: '#839496', brightMagenta: '#6c71c4',
         brightCyan: '#93a1a1', brightWhite: '#fdf6e3',
       },
-      css: {
-        '--bg-terminal': '#002b36',
-        '--bg-sidebar':  '#001f27',
-        '--bg-input':    '#073642',
-        '--bg-tooltip':  '#073642',
-        '--text-primary':   '#93a1a1',
-        '--text-secondary': '#839496',
-        '--text-dim':       '#586e75',
-        '--accent':         '#b58900',
-        '--accent-dim':     'rgba(181,137,0,0.15)',
-        '--border':         'rgba(255,255,255,0.08)',
-        '--border-strong':  'rgba(255,255,255,0.15)',
-        '--hover-bg':       'rgba(255,255,255,0.07)',
-      },
+      css: makeTheme({
+        css: {
+          '--bg-terminal': '#002b36',
+          '--bg-sidebar':  '#001f27',
+          '--bg-input':    '#073642',
+          '--bg-tooltip':  '#073642',
+          '--text-primary':   '#93a1a1',
+          '--text-secondary': '#839496',
+          '--text-dim':       '#586e75',
+          '--accent':         '#b58900',
+          '--accent-dim':     'rgba(181,137,0,0.15)',
+          '--border':         'rgba(255,255,255,0.08)',
+          '--border-strong':  'rgba(255,255,255,0.15)',
+          '--hover-bg':       'rgba(255,255,255,0.07)',
+        },
+        accentHex: '#b58900',
+      }),
     },
 
-    // ── Solarized Light (MIT, Ethan Schoonover) ───────────────────────────
     solarizedLight: {
       name: 'Solarized Light',
       xterm: {
@@ -201,23 +263,26 @@
         brightYellow: '#657b83', brightBlue: '#839496', brightMagenta: '#6c71c4',
         brightCyan: '#93a1a1', brightWhite: '#fdf6e3',
       },
-      css: {
-        '--bg-terminal': '#fdf6e3',
-        '--bg-sidebar':  '#eee8d5',
-        '--bg-input':    '#ffffff',
-        '--bg-tooltip':  '#ffffff',
-        '--text-primary':   '#586e75',
-        '--text-secondary': '#657b83',
-        '--text-dim':       '#93a1a1',
-        '--accent':         '#b58900',
-        '--accent-dim':     'rgba(181,137,0,0.12)',
-        '--border':         'rgba(0,0,0,0.08)',
-        '--border-strong':  'rgba(0,0,0,0.12)',
-        '--hover-bg':       'rgba(0,0,0,0.04)',
-      },
+      css: makeTheme({
+        css: {
+          '--bg-terminal': '#fdf6e3',
+          '--bg-sidebar':  '#eee8d5',
+          '--bg-input':    '#ffffff',
+          '--bg-tooltip':  '#ffffff',
+          '--text-primary':   '#586e75',
+          '--text-secondary': '#657b83',
+          '--text-dim':       '#93a1a1',
+          '--accent':         '#b58900',
+          '--accent-dim':     'rgba(181,137,0,0.12)',
+          '--border':         'rgba(0,0,0,0.08)',
+          '--border-strong':  'rgba(0,0,0,0.12)',
+          '--hover-bg':       'rgba(0,0,0,0.04)',
+        },
+        accentHex: '#b58900',
+        isLight: true,
+      }),
     },
 
-    // ── Gruvbox Dark (MIT, Pavel Pertsev) ─────────────────────────────────
     gruvboxDark: {
       name: 'Gruvbox Dark',
       xterm: {
@@ -231,23 +296,25 @@
         brightYellow: '#fabd2f', brightBlue: '#83a598', brightMagenta: '#d3869b',
         brightCyan: '#8ec07c', brightWhite: '#ebdbb2',
       },
-      css: {
-        '--bg-terminal': '#282828',
-        '--bg-sidebar':  '#1d2021',
-        '--bg-input':    '#3c3836',
-        '--bg-tooltip':  '#3c3836',
-        '--text-primary':   '#ebdbb2',
-        '--text-secondary': '#a89984',
-        '--text-dim':       '#928374',
-        '--accent':         '#d79921',
-        '--accent-dim':     'rgba(215,153,33,0.15)',
-        '--border':         'rgba(255,255,255,0.08)',
-        '--border-strong':  'rgba(255,255,255,0.15)',
-        '--hover-bg':       'rgba(255,255,255,0.07)',
-      },
+      css: makeTheme({
+        css: {
+          '--bg-terminal': '#282828',
+          '--bg-sidebar':  '#1d2021',
+          '--bg-input':    '#3c3836',
+          '--bg-tooltip':  '#3c3836',
+          '--text-primary':   '#ebdbb2',
+          '--text-secondary': '#a89984',
+          '--text-dim':       '#928374',
+          '--accent':         '#d79921',
+          '--accent-dim':     'rgba(215,153,33,0.15)',
+          '--border':         'rgba(255,255,255,0.08)',
+          '--border-strong':  'rgba(255,255,255,0.15)',
+          '--hover-bg':       'rgba(255,255,255,0.07)',
+        },
+        accentHex: '#d79921',
+      }),
     },
 
-    // ── Nord (MIT, Arctic Ice Studio) ──────────────────────────────────────
     nord: {
       name: 'Nord',
       xterm: {
@@ -261,23 +328,25 @@
         brightYellow: '#ebcb8b', brightBlue: '#81a1c1', brightMagenta: '#b48ead',
         brightCyan: '#8fbcbb', brightWhite: '#eceff4',
       },
-      css: {
-        '--bg-terminal': '#2e3440',
-        '--bg-sidebar':  '#242933',
-        '--bg-input':    '#3b4252',
-        '--bg-tooltip':  '#3b4252',
-        '--text-primary':   '#d8dee9',
-        '--text-secondary': '#81a1c1',
-        '--text-dim':       '#4c566a',
-        '--accent':         '#88c0d0',
-        '--accent-dim':     'rgba(136,192,208,0.15)',
-        '--border':         'rgba(255,255,255,0.08)',
-        '--border-strong':  'rgba(255,255,255,0.15)',
-        '--hover-bg':       'rgba(255,255,255,0.07)',
-      },
+      css: makeTheme({
+        css: {
+          '--bg-terminal': '#2e3440',
+          '--bg-sidebar':  '#242933',
+          '--bg-input':    '#3b4252',
+          '--bg-tooltip':  '#3b4252',
+          '--text-primary':   '#d8dee9',
+          '--text-secondary': '#81a1c1',
+          '--text-dim':       '#4c566a',
+          '--accent':         '#88c0d0',
+          '--accent-dim':     'rgba(136,192,208,0.15)',
+          '--border':         'rgba(255,255,255,0.08)',
+          '--border-strong':  'rgba(255,255,255,0.15)',
+          '--hover-bg':       'rgba(255,255,255,0.07)',
+        },
+        accentHex: '#88c0d0',
+      }),
     },
 
-    // ── Tokyo Night (MIT, Enkia) ──────────────────────────────────────────
     tokyoNight: {
       name: 'Tokyo Night',
       xterm: {
@@ -291,37 +360,35 @@
         brightYellow: '#e0af68', brightBlue: '#7aa2f7', brightMagenta: '#bb9af7',
         brightCyan: '#7dcfff', brightWhite: '#c0caf5',
       },
-      css: {
-        '--bg-terminal': '#1a1b26',
-        '--bg-sidebar':  '#16161e',
-        '--bg-input':    '#24283b',
-        '--bg-tooltip':  '#24283b',
-        '--text-primary':   '#c0caf5',
-        '--text-secondary': '#a9b1d6',
-        '--text-dim':       '#565f89',
-        '--accent':         '#7aa2f7',
-        '--accent-dim':     'rgba(122,162,247,0.15)',
-        '--border':         'rgba(255,255,255,0.08)',
-        '--border-strong':  'rgba(255,255,255,0.15)',
-        '--hover-bg':       'rgba(255,255,255,0.07)',
-      },
+      css: makeTheme({
+        css: {
+          '--bg-terminal': '#1a1b26',
+          '--bg-sidebar':  '#16161e',
+          '--bg-input':    '#24283b',
+          '--bg-tooltip':  '#24283b',
+          '--text-primary':   '#c0caf5',
+          '--text-secondary': '#a9b1d6',
+          '--text-dim':       '#565f89',
+          '--accent':         '#7aa2f7',
+          '--accent-dim':     'rgba(122,162,247,0.15)',
+          '--border':         'rgba(255,255,255,0.08)',
+          '--border-strong':  'rgba(255,255,255,0.15)',
+          '--hover-bg':       'rgba(255,255,255,0.07)',
+        },
+        accentHex: '#7aa2f7',
+      }),
     },
   };
 
-  // ── Aplicar un tema ─────────────────────────────────────────────────────
   function applyTheme(themeId) {
     const theme = THEMES[themeId];
     if (!theme) return;
 
-    // Aplicar CSS variables al :root
     const root = document.documentElement;
     for (const [prop, value] of Object.entries(theme.css)) {
       root.style.setProperty(prop, value);
     }
 
-    // Aplicar tema a todos los tabs de xterm.js activos
-    // (con el sistema de tabs, window.ocoteTerminal ya no existe;
-    //  cada terminal vive en TAB_MANAGER.getAllTabs())
     if (window.TAB_MANAGER) {
       window.TAB_MANAGER.getAllTabs().forEach(([, tab]) => {
         if (!tab || !tab.term) return;
@@ -334,7 +401,6 @@
     }
   }
 
-  // ── Lista de temas para UI ────────────────────────────────────────────
   function getThemeList() {
     return Object.entries(THEMES).map(([id, t]) => ({
       id,
@@ -344,7 +410,6 @@
     }));
   }
 
-  // Exponer globalmente
   window.OCOTE_THEMES = {
     THEMES,
     applyTheme,
