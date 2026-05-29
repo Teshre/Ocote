@@ -193,85 +193,16 @@
           <div class="settings-row">
             <span class="settings-label" data-i18n="settings.prompt.label">Estilo del prompt</span>
             <select class="settings-select" id="settings-prompt">
-              <option value="git" data-i18n="settings.prompt.git">Ocote · Git (ruta + rama)</option>
-              <option value="minimal" data-i18n="settings.prompt.minimal">Ocote · Minimal (flecha + carpeta)</option>
-              <option value="full" data-i18n="settings.prompt.full">Ocote · Completo (usuario, ruta, git, hora)</option>
-              <option value="custom" data-i18n="settings.prompt.custom">Personalizado…</option>
-              <option value="mine" data-i18n="settings.prompt.mine">Mi configuración (p10k, oh-my-zsh…)</option>
+              <option value="pill"        data-i18n="settings.prompt.pill">Pill — Cápsulas (firma de Ocote)</option>
+              <option value="block"       data-i18n="settings.prompt.block">Block — Modo Pro</option>
+              <option value="minimal"     data-i18n="settings.prompt.minimal">Minimal — Suave</option>
+              <option value="ribbon"      data-i18n="settings.prompt.ribbon">Ribbon — Tenue</option>
+              <option value="rail"        data-i18n="settings.prompt.rail">Rail — Vertical</option>
+              <option value="passthrough" data-i18n="settings.prompt.passthrough">Mi configuración (p10k, oh-my-zsh…)</option>
             </select>
           </div>
           <p class="settings-hint" data-i18n="settings.prompt.hint">Se aplica al abrir una nueva pestaña.</p>
-
-          <!-- Editor de prompt: solo visible cuando se selecciona "Personalizado" -->
-          <div id="prompt-editor" class="hidden">
-
-            <!-- Preview en vivo -->
-            <div class="pe-preview-wrap">
-              <span class="pe-preview-label" data-i18n="settings.prompt.editor.preview">Vista previa</span>
-              <div class="pe-preview-box" id="pe-preview-box">
-                <!-- populado por settings.js -->
-              </div>
-            </div>
-
-            <!-- Estilo: 1 línea / 2 líneas -->
-            <div class="settings-row pe-row">
-              <span class="settings-label" data-i18n="settings.prompt.editor.style">Líneas</span>
-              <div class="settings-segmented">
-                <button class="settings-seg-btn pe-seg" data-pkey="style" data-value="1" data-i18n="settings.prompt.editor.oneline">Una línea</button>
-                <button class="settings-seg-btn pe-seg active" data-pkey="style" data-value="2" data-i18n="settings.prompt.editor.twoline">Dos líneas</button>
-              </div>
-            </div>
-
-            <!-- Segmentos visibles -->
-            <div class="settings-row pe-row">
-              <span class="settings-label" data-i18n="settings.prompt.editor.show">Mostrar</span>
-              <div class="pe-toggles">
-                <label class="pe-toggle">
-                  <input type="checkbox" data-pkey="user" id="pe-user"> <span data-i18n="settings.prompt.editor.user">usuario@host</span>
-                </label>
-                <label class="pe-toggle">
-                  <input type="checkbox" data-pkey="git" id="pe-git" checked> <span data-i18n="settings.prompt.editor.git">rama git</span>
-                </label>
-                <label class="pe-toggle">
-                  <input type="checkbox" data-pkey="time" id="pe-time"> <span data-i18n="settings.prompt.editor.time">hora</span>
-                </label>
-              </div>
-            </div>
-
-            <!-- Color de la ruta -->
-            <div class="settings-row pe-row">
-              <span class="settings-label" data-i18n="settings.prompt.editor.pathcolor">Color ruta</span>
-              <div class="pe-colors" data-pkey="pc">
-                <button class="pe-color active" data-value="teal"  style="--pc:#6DD8C8" title="Teal"></button>
-                <button class="pe-color"        data-value="blue"  style="--pc:#82A6E0" title="Blue"></button>
-                <button class="pe-color"        data-value="green" style="--pc:#7DC97A" title="Green"></button>
-                <button class="pe-color"        data-value="ember" style="--pc:#E8843A" title="Ember"></button>
-              </div>
-            </div>
-
-            <!-- Color del git -->
-            <div class="settings-row pe-row">
-              <span class="settings-label" data-i18n="settings.prompt.editor.gitcolor">Color git</span>
-              <div class="pe-colors" data-pkey="gc">
-                <button class="pe-color active" data-value="green" style="--pc:#7DC97A" title="Green"></button>
-                <button class="pe-color"        data-value="teal"  style="--pc:#6DD8C8" title="Teal"></button>
-                <button class="pe-color"        data-value="blue"  style="--pc:#82A6E0" title="Blue"></button>
-                <button class="pe-color"        data-value="ember" style="--pc:#E8843A" title="Ember"></button>
-              </div>
-            </div>
-
-            <!-- Color de la flecha -->
-            <div class="settings-row pe-row">
-              <span class="settings-label" data-i18n="settings.prompt.editor.arrowcolor">Color ❯</span>
-              <div class="pe-colors" data-pkey="ac">
-                <button class="pe-color active" data-value="ember" style="--pc:#E8843A" title="Ember"></button>
-                <button class="pe-color"        data-value="teal"  style="--pc:#6DD8C8" title="Teal"></button>
-                <button class="pe-color"        data-value="green" style="--pc:#7DC97A" title="Green"></button>
-                <button class="pe-color"        data-value="blue"  style="--pc:#82A6E0" title="Blue"></button>
-              </div>
-            </div>
-
-          </div><!-- /#prompt-editor -->
+        </div>
 
         <div class="settings-section">
           <h3 data-i18n="settings.font.title">Tipografía</h3>
@@ -308,9 +239,12 @@
   </div>
 
   <!-- Nuestros módulos JS -->
-  <!-- themes.js PRIMERO: define window.OCOTE_THEMES antes de que
-       terminal.js y tab-manager.js creen la primera instancia xterm.js -->
+  <!-- Orden de carga crítico:
+       themes.js  → define OCOTE_THEMES + tokens antes que cualquier instancia xterm
+       prompt.js  → define OCOTE_PROMPT antes que terminal.js registre los OSC handlers
+       terminal.js / tab-manager.js → crean las instancias ya con todo listo -->
   <script src="themes.js"></script>
+  <script src="prompt.js"></script>
   <script src="terminal.js"></script>
   <script src="tab-manager.js"></script>
   <script src="explorer.js"></script>

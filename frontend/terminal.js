@@ -65,7 +65,8 @@ function createTerminalInstance(container) {
 
 /**
  * Vincula una instancia xterm.js con su shell (PTY) ya creado.
- * Conecta el input (onData) y el redimensionado (onResize) al shell_id.
+ * Conecta el input (onData), el redimensionado (onResize) y los handlers
+ * de OSC para el sistema de prompt de Ocote.
  */
 function bindTerminalShell(term, shellId) {
   // Sincronizar tamaño PTY ↔ xterm.js (resizes posteriores: ventana, etc.)
@@ -77,6 +78,52 @@ function bindTerminalShell(term, shellId) {
   term.onData((data) => {
     updateCurrentInput(data, shellId);
     invoke('write_to_shell', { shellId, input: data }).catch(console.error);
+  });
+
+  // ── Handlers de OSC para el sistema de prompt ────────────────────────────
+  // Solo registrar si xterm.js expone el parser (v4+).
+  if (!term.parser) return;
+
+  // Estado de prompt para este tab (pendingMeta se llena con OSC 6731 y se
+  // consume con OSC 133 A para sincronizar el marker con la línea correcta).
+  const promptState = { pendingMeta: null };
+
+  // OSC 6731 — datos estructurados del prompt
+  // Formato: "prompt;{...json...}"
+  // El shell los emite justo antes de OSC 133 A (inicio de zona prompt).
+  term.parser.registerOscHandler(6731, (data) => {
+    const sep = data.indexOf(';');
+    if (sep === -1 || data.slice(0, sep) !== 'prompt') return false;
+    try {
+      promptState.pendingMeta = JSON.parse(data.slice(sep + 1));
+    } catch (_) {
+      // JSON malformado — no romper el render del terminal, ignorar silenciosamente
+    }
+    return true; // consumir el OSC para que no aparezca como texto
+  });
+
+  // OSC 133 — marcadores de semántica de shell (Shell Integration)
+  // 133;A = inicio de zona prompt  (justo antes de que zsh dibuje el prompt)
+  // 133;B = fin de zona prompt     (usuario presionó Enter)
+  // 133;D;exitcode = fin del comando anterior
+  term.parser.registerOscHandler(133, (data) => {
+    if (data === 'A' && promptState.pendingMeta) {
+      // La línea actual es donde está el prompt (el \n antes de ❯ en nuestro PS1).
+      // renderPrompt() usa registerMarker(0) para decorar esta línea exacta.
+      window.OCOTE_PROMPT?.renderPrompt(term, promptState.pendingMeta);
+      promptState.pendingMeta = null;
+
+    } else if (data === 'B') {
+      // El usuario envió un comando
+      window.OCOTE_PROMPT?.onCommandStart(term);
+
+    } else if (data.startsWith('D')) {
+      // Comando terminó — extraer exit code
+      const parts = data.split(';');
+      const exitCode = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+      window.OCOTE_PROMPT?.onCommandEnd(term, exitCode);
+    }
+    return true;
   });
 }
 

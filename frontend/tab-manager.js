@@ -37,9 +37,12 @@
     const rows = termData.term.rows || 24;
 
     // ── Crear el shell (PTY) al tamaño correcto + preset de prompt ─────
-    // El preset de prompt se elige en Settings (default 'git' = Ocote de fábrica).
-    const promptPreset = localStorage.getItem('ocote_prompt') || 'git';
-    const shellId = await invoke('create_shell', { rows, cols, prompt: promptPreset });
+    // El preset elegido en Settings. Default 'pill' = firma visual de Ocote.
+    const promptPreset = localStorage.getItem('ocote_prompt') || 'pill';
+    // Accent del tema activo (hex sin #) para que el shell coloree el ❯ en minimal.
+    const themeId = localStorage.getItem('ocote_theme') || 'dark';
+    const accentHex = window.OCOTE_THEMES?.TOKENS?.[themeId]?.accent?.replace('#', '') ?? 'E8843A';
+    const shellId = await invoke('create_shell', { rows, cols, prompt: promptPreset, accent: accentHex });
     container.dataset.shellId = shellId;
 
     // ── Vincular input/resize ahora que tenemos shell_id ──────────────
