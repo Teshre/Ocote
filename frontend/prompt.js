@@ -262,10 +262,33 @@ window.OCOTE_PROMPT = (() => {
     },
 
     // ── API de preview (para el picker en Settings) ────────────────────────
+    // Devuelve HTML que representa visualmente el preset.
+    // Para minimal (ANSI puro) generamos una aproximación en HTML.
+    // Para passthrough devolvemos null; settings.js lo maneja con su propio HTML.
     previewHtml(presetId, meta, tokens) {
       if (!meta) meta = { cwd: '~/proyecto/src', branch: 'main', dirty: 2, time: '14:32', exit: 0 };
       if (!tokens) tokens = theme();
       if (presetId === 'passthrough') return null;
+
+      // Minimal usa ANSI en el terminal; en settings mostramos una aproximación HTML
+      // de cómo se verá: ruta + rama + hora en línea 1, ❯ en línea 2.
+      if (presetId === 'minimal') {
+        const t = tokens;
+        const git = meta.branch
+          ? ` <span style="color:${t.green}"> ${meta.branch}` +
+            (meta.dirty > 0 ? ` <span style="color:${t.warning}">+${meta.dirty}</span>` : '') +
+            `</span>`
+          : '';
+        return (
+          `<div style="line-height:1.75;font-size:inherit">` +
+          `<div><span style="color:${t.comment}">${meta.cwd}</span>` +
+          `${git} <span style="color:${t.comment}">· ${meta.time}</span></div>` +
+          `<div><span style="color:${t.accent};font-weight:600">❯</span>` +
+          ` <span style="opacity:0.3">_</span></div>` +
+          `</div>`
+        );
+      }
+
       return renders[presetId]?.(meta, tokens) ?? null;
     },
 
