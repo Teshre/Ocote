@@ -32,6 +32,7 @@ _GRN='%F{#7DC97A}'    # git (verde, fijo semánticamente)
 _WRN='%F{#E8C03A}'    # archivos modificados
 _MUT='%F{#9C9480}'    # secundario / hora / separadores
 _RED='%F{#E8635A}'    # error
+_INK='%F{#1A1611}'    # texto sobre cápsulas de color
 _R='%f'
 
 # ── git branch vía vcs_info ──────────────────────────────────────────────────
@@ -44,26 +45,49 @@ zstyle ':vcs_info:git:*' actionformats "%b|%a"
 # rompen el conteo de llaves de zsh y dejan un "}" basura). En su lugar, precmd
 # arma el segmento completo y PS1 solo lo referencia con ${_OCOTE_GIT}.
 typeset -g _OCOTE_GIT=''
+typeset -g _OCOTE_DIRTY=''
+typeset -g _OCOTE_DIRTY_SEG=''
+typeset -g _OCOTE_TIME=''
+
+_ocote_path_short() {
+  local p="${PWD/#$HOME/~}"
+  if [[ "$p" == "~" ]]; then
+    print -nr -- "~"
+  else
+    print -nr -- "~/${PWD:t}"
+  fi
+}
 
 _ocote_build_git() {
   _OCOTE_GIT=''
+  _OCOTE_DIRTY=''
+  _OCOTE_DIRTY_SEG=''
+  _OCOTE_TIME="$(date +%H:%M)"
   [[ -z "$vcs_info_msg_0_" ]] && return
   local dirty count=''
   dirty=$(git status --porcelain 2>/dev/null | grep -c . | tr -d ' ')
   [[ "$dirty" -gt 0 ]] 2>/dev/null && count=" ${_WRN}+${dirty}${_R}"
+  [[ "$dirty" -gt 0 ]] 2>/dev/null && _OCOTE_DIRTY="${_WRN}${dirty} mod${_R}"
+  [[ "$dirty" -gt 0 ]] 2>/dev/null && _OCOTE_DIRTY_SEG=" ${_MUT}·${_R} ${_OCOTE_DIRTY}"
 
   case "$OCOTE_PROMPT_PRESET" in
     pill)
-      #  cap_izq [ rama ] cap_der  con fondo verde, texto charcoal.
-      _OCOTE_GIT=" %F{#7DC97A}%K{#7DC97A}%F{#1A1611}  ${vcs_info_msg_0_} %k%F{#7DC97A}${_R}"
+      # Aproximación ANSI del pill outline: cápsulas tipográficas, no bloque sólido.
+      _OCOTE_GIT=" ${_GRN}◖  ${vcs_info_msg_0_}${count} ◗${_R}"
       ;;
     ribbon)
       # " · main"  (separador muted + rama verde)
       _OCOTE_GIT=" ${_MUT}·${_R} ${_GRN}${vcs_info_msg_0_}${_R}${count}"
       ;;
+    rail)
+      _OCOTE_GIT=" ${_MUT}·${_R} ${_GRN} ${vcs_info_msg_0_}${_R}${count}"
+      ;;
+    block)
+      _OCOTE_GIT="  ${_GRN} ${vcs_info_msg_0_}${_R}${count}"
+      ;;
     *)
-      # minimal / rail / block: "  main"  (ícono rama Powerline + nombre)
-      _OCOTE_GIT=" ${_GRN} ${vcs_info_msg_0_}${_R}${count}"
+      # minimal: "   main"  (ícono rama Powerline + nombre)
+      _OCOTE_GIT=" ${_GRN} ${vcs_info_msg_0_}${_R}${count}"
       ;;
   esac
 }
@@ -88,6 +112,7 @@ _ocote_precmd() {
   local ec=$?
   vcs_info
   _ocote_build_git
+  typeset -g _OCOTE_PATH_SHORT="$(_ocote_path_short)"
   printf '\033]133;D;%d\007' "$ec"   # fin del comando anterior (preset Block)
   _ocote_emit_osc "$ec"
 }
@@ -98,34 +123,32 @@ add-zsh-hook preexec _ocote_preexec
 # ── Chevron dinámico (rojo si el último comando falló) ───────────────────────
 _ARR='%(?:'"${_ACC}❯${_R}"':'"${_RED}❯${_R}"') '
 
-# ── PS1 por preset (BASE ANSI — SIEMPRE visible) ─────────────────────────────
-# Todos referencian ${_OCOTE_GIT} (variable plana, sin llaves anidadas).
+# ── PS1 por preset ────────────────────────────────────────────────────────────
+#
+# minimal     → PS1 completo en ANSI (ruta + git + hora + chevron).
+#               Sin decoration del renderer — todo en texto.
+#
+# pill / ribbon / rail / block
+#             → PS1 = "\n❯ " (línea vacía + chevron dinámico).
+#               La decoración HTML (prompt.js) se pinta sobre la línea vacía.
+#               Si el JS falla → la terminal sigue funcional (solo ❯).
+#
+# Por qué el \n al inicio del PS1:
+#   OSC 133 A dispara en precmd → registerMarker(0) marca la línea actual
+#   (= fin del output del comando anterior). PS1 dibuja \n (nueva línea con
+#   el ❯). La decoration queda en la línea marcada: visualmente entre el
+#   output y el ❯. Si el comando terminó con newline, esa línea está limpia.
 case "$OCOTE_PROMPT_PRESET" in
 
   minimal)
-    # "~/proyecto  main" + "❯"
-    PROMPT="${_ACC}%~${_R}\${_OCOTE_GIT}"$'\n'"${_ARR}"
+    # PS1 completo — la decoration retorna null, sin HTML overlay.
+    PROMPT="${_MUT}%~${_R}\${_OCOTE_GIT} ${_MUT}· \${_OCOTE_TIME}${_R}"$'\n'"${_ARR}"
     ;;
 
-  pill)
-    # Powerline con caps redondeados Nerd Font — el look "pill" 100% en ANSI.
-    #  = cap izquierdo redondo ·  = cap derecho redondo.
-    PROMPT="%F{#${_HEX}}%K{#${_HEX}}%F{#1A1611} %~ %k%F{#${_HEX}}${_R}\${_OCOTE_GIT}"$'\n'"${_ARR}"
-    ;;
-
-  ribbon)
-    # "path · git · hora" + "❯"  (subrayado con gradiente lo añade el JS)
-    PROMPT="${_ACC}%~${_R}\${_OCOTE_GIT} ${_MUT}· %*${_R}"$'\n'"${_ARR}"
-    ;;
-
-  rail)
-    # Dos líneas: info + chevron  (stripe vertical de 3px lo añade el JS)
-    PROMPT="${_ACC}%~${_R}\${_OCOTE_GIT}"$'\n'"${_ARR}"
-    ;;
-
-  block)
-    # "path  git" + "❯"  (borde de tarjeta del output lo añade el JS vía OSC 133)
-    PROMPT="${_ACC}%~${_R}\${_OCOTE_GIT}"$'\n'"${_ARR}"
+  pill|ribbon|rail|block)
+    # PS1 mínimo: solo newline + chevron dinámico (rojo si error).
+    # La línea de info (ruta, git, hora) la pinta prompt.js con HTML.
+    PROMPT=$'\n'"${_ARR}"
     ;;
 
 esac
