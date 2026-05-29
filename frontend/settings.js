@@ -1,5 +1,5 @@
 // settings.js — Panel de configuración de Ocote (modal centrado con tabs)
-// Maneja tema, tipografía, estilo de íconos e idioma.
+// Maneja tema, tipografía, estilo de íconos, idioma y prompt personalizado.
 // Todas las preferencias se guardan en localStorage y se aplican inmediatamente.
 
 (function () {
@@ -25,9 +25,6 @@
 
   // ── Helpers de aplicación ───────────────────────────────────────────────
 
-  // Aplica una opción xterm.js a TODOS los tabs activos.
-  // Con el sistema de múltiples tabs, window.ocoteTerminal quedó obsoleto;
-  // cada terminal vive en TAB_MANAGER.getAllTabs().
   function setXtermOption(key, value) {
     if (!window.TAB_MANAGER) return;
     window.TAB_MANAGER.getAllTabs().forEach(([, tab]) => {
@@ -44,7 +41,6 @@
     if (window.OCOTE_THEMES) {
       window.OCOTE_THEMES.applyTheme(themeId);
     } else {
-      // Fallback si themes.js no cargó
       document.body.dataset.theme = themeId;
     }
   }
@@ -52,7 +48,6 @@
   function applyFont(font) {
     document.documentElement.style.setProperty('--font-mono', font);
     setXtermOption('fontFamily', font);
-    // Refitear cada tab para que el cambio de fuente ajuste el layout
     if (window.TAB_MANAGER) {
       window.TAB_MANAGER.getAllTabs().forEach(([, tab]) => {
         if (tab?.fitAddon) tab.fitAddon.fit();
@@ -67,12 +62,9 @@
 
   function applyLang(lang) {
     localStorage.setItem('ocote_lang', lang);
-    // Recargar textos de la UI al idioma seleccionado
     if (window.I18N) window.I18N.apply();
   }
 
-  // El prompt se aplica al crear el shell (tab-manager lee localStorage).
-  // Aquí solo persistimos; el cambio toma efecto en nuevas pestañas.
   function applyPrompt(prompt) {
     localStorage.setItem('ocote_prompt', prompt);
   }
@@ -85,17 +77,122 @@
     applyPrompt(state.prompt);
   }
 
+  // ── Editor de prompt personalizado ─────────────────────────────────────
+  // Config del editor: refleja la última configuración "custom:..." activa.
+  const editorCfg = {
+    pc:    'teal',   // color de la ruta (teal|blue|green|ember)
+    gc:    'green',  // color de git     (green|teal|blue|ember)
+    ac:    'ember',  // color de la ❯    (ember|teal|green|blue)
+    git:   '1',      // mostrar rama git  (0|1)
+    time:  '0',      // mostrar hora      (0|1)
+    user:  '0',      // mostrar user@host (0|1)
+    style: '2',      // 1=una línea, 2=dos líneas
+  };
+
+  /** Parsea "custom:pc=teal,gc=green,..." → editorCfg */
+  function parseCustomConfig(value) {
+    if (!value || !value.startsWith('custom:')) return;
+    const cfg = value.slice('custom:'.length);
+    cfg.split(',').forEach(pair => {
+      const [k, v] = pair.split('=');
+      if (k && v !== undefined && k in editorCfg) {
+        editorCfg[k] = v;
+      }
+    });
+  }
+
+  /** Construye el string "custom:pc=teal,..." desde editorCfg */
+  function buildCustomValue() {
+    const c = editorCfg;
+    return `custom:pc=${c.pc},gc=${c.gc},ac=${c.ac},git=${c.git},time=${c.time},user=${c.user},style=${c.style}`;
+  }
+
+  /** Paleta de colores del editor: nombre → hex real */
+  const PALETTE = {
+    ember: '#E8843A', teal: '#6DD8C8', green: '#7DC97A',
+    blue:  '#82A6E0', muted: '#9C9480',
+  };
+
+  /** Renderiza el preview en vivo del prompt personalizado */
+  function updatePromptPreview() {
+    const box = document.getElementById('pe-preview-box');
+    if (!box) return;
+
+    const pathColor  = PALETTE[editorCfg.pc] || PALETTE.teal;
+    const gitColor   = PALETTE[editorCfg.gc] || PALETTE.green;
+    const arrowColor = PALETTE[editorCfg.ac] || PALETTE.ember;
+    const muted      = PALETTE.muted;
+
+    // Línea 1: [user@host] ruta [⎇ rama] [hora]
+    let line1 = '';
+    if (editorCfg.user === '1') {
+      line1 += `<span style="color:${muted}">usuario@host </span>`;
+    }
+    line1 += `<span style="color:${pathColor}">~/proyecto/src</span>`;
+    if (editorCfg.git === '1') {
+      line1 += `<span style="color:${muted}">  </span>`;
+      line1 += `<span style="color:${gitColor}">main</span>`;
+    }
+    if (editorCfg.time === '1') {
+      line1 += `<span style="color:${muted}"> 14:32</span>`;
+    }
+
+    const arrowHtml = `<span style="color:${arrowColor}">❯</span>`;
+    const cursorHtml = `<span class="pe-cursor"></span>`;
+
+    if (editorCfg.style === '1') {
+      box.innerHTML = `${line1} ${arrowHtml} ${cursorHtml}`;
+    } else {
+      box.innerHTML = `${line1}<br>${arrowHtml} ${cursorHtml}`;
+    }
+  }
+
+  /** Sincroniza los controles del editor HTML con el estado actual de editorCfg */
+  function syncEditorUI() {
+    const editor = document.getElementById('prompt-editor');
+    if (!editor) return;
+
+    // Botones segmentados de estilo (1/2 líneas)
+    editor.querySelectorAll('.pe-seg').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.value === editorCfg.style);
+    });
+
+    // Círculos de color por grupo
+    editor.querySelectorAll('.pe-colors').forEach(group => {
+      const key = group.dataset.pkey;
+      group.querySelectorAll('.pe-color').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.value === editorCfg[key]);
+      });
+    });
+
+    // Checkboxes de segmentos
+    editor.querySelectorAll('input[data-pkey]').forEach(cb => {
+      const key = cb.dataset.pkey;
+      // Las claves de checkbox son: user, git, time
+      cb.checked = editorCfg[key] === '1';
+    });
+
+    updatePromptPreview();
+  }
+
+  /** Muestra u oculta el editor según el preset seleccionado */
+  function toggleEditor(promptValue) {
+    const editor = document.getElementById('prompt-editor');
+    if (!editor) return;
+    const isCustom = promptValue && promptValue.startsWith('custom');
+    editor.classList.toggle('hidden', !isCustom);
+    if (isCustom) updatePromptPreview();
+  }
+
   // ── Sincronizar UI con estado ───────────────────────────────────────────
 
   function updateUIFromState() {
     // ── Tab General ──────────────────────────────────────────────────────
-    // Idioma
     document.querySelectorAll('[data-setting="lang"]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.value === state.lang);
     });
 
     // ── Tab Apariencia ─────────────────────────────────────────────────
-    // Tipografía
     const fontSelect = document.getElementById('settings-font');
     if (fontSelect) {
       let matched = false;
@@ -105,22 +202,28 @@
       if (!matched) fontSelect.options[0].selected = true;
     }
 
-    // Prompt
     const promptSelect = document.getElementById('settings-prompt');
     if (promptSelect) {
+      // El valor de state.prompt puede ser "custom:..." → el <option> tiene value="custom"
+      const selectValue = state.prompt.startsWith('custom') ? 'custom' : state.prompt;
       let matched = false;
       for (const opt of promptSelect.options) {
-        if (opt.value === state.prompt) { opt.selected = true; matched = true; break; }
+        if (opt.value === selectValue) { opt.selected = true; matched = true; break; }
       }
       if (!matched) promptSelect.options[0].selected = true;
+
+      // Parsear config custom si aplica
+      if (state.prompt.startsWith('custom')) {
+        parseCustomConfig(state.prompt);
+      }
+      toggleEditor(state.prompt);
+      syncEditorUI();
     }
 
-    // Íconos
     document.querySelectorAll('[data-setting="iconTheme"]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.value === state.iconTheme);
     });
 
-    // Tema: grid de swatches
     document.querySelectorAll('.theme-swatch').forEach(swatch => {
       swatch.classList.toggle('active', swatch.dataset.theme === state.theme);
     });
@@ -129,14 +232,14 @@
   // ── Persistir estado ────────────────────────────────────────────────────
 
   function persist() {
-    localStorage.setItem('ocote_theme', state.theme);
-    localStorage.setItem('ocote_font', state.font);
+    localStorage.setItem('ocote_theme',      state.theme);
+    localStorage.setItem('ocote_font',       state.font);
     localStorage.setItem('ocote_icon_theme', state.iconTheme);
-    localStorage.setItem('ocote_lang', state.lang);
-    localStorage.setItem('ocote_prompt', state.prompt);
+    localStorage.setItem('ocote_lang',       state.lang);
+    localStorage.setItem('ocote_prompt',     state.prompt);
   }
 
-  // ── Tabs ────────────────────────────────────────────────────────────────
+  // ── Tabs del modal ────────────────────────────────────────────────────────
 
   function switchTab(tabId) {
     document.querySelectorAll('.settings-tab-btn').forEach(btn => {
@@ -169,18 +272,21 @@
     if (e.key === 'Escape') closeModal();
   });
 
-  // ── Manejar tabs ────────────────────────────────────────────────────────
+  // ── Tabs del modal (click en botones) ────────────────────────────────────
 
   overlay.addEventListener('click', e => {
     const tabBtn = e.target.closest('.settings-tab-btn');
     if (tabBtn) switchTab(tabBtn.dataset.tab);
   });
 
-  // ── Manejar clicks en botones segmentados ─────────────────────────────
+  // ── Botones segmentados (idioma, iconos) ──────────────────────────────
 
   overlay.addEventListener('click', e => {
     const btn = e.target.closest('.settings-seg-btn');
     if (!btn) return;
+
+    // Los pe-seg (editor de prompt) tienen su propio handler
+    if (btn.classList.contains('pe-seg')) return;
 
     const setting = btn.dataset.setting;
     const value   = btn.dataset.value;
@@ -196,7 +302,7 @@
     if (setting === 'lang')      applyLang(value);
   });
 
-  // ── Manejar clicks en theme swatches ──────────────────────────────────
+  // ── Theme swatches ────────────────────────────────────────────────────
 
   overlay.addEventListener('click', e => {
     const swatch = e.target.closest('.theme-swatch');
@@ -213,7 +319,7 @@
     applyTheme(themeId);
   });
 
-  // ── Manejar cambio en select de fuente ──────────────────────────────────
+  // ── Select de fuente ──────────────────────────────────────────────────
 
   const fontSelect = document.getElementById('settings-font');
   if (fontSelect) {
@@ -224,23 +330,91 @@
     });
   }
 
-  // ── Manejar cambio en select de prompt ──────────────────────────────────
+  // ── Select de prompt ──────────────────────────────────────────────────
 
   const promptSelect = document.getElementById('settings-prompt');
   if (promptSelect) {
     promptSelect.addEventListener('change', () => {
-      state.prompt = promptSelect.value;
+      const val = promptSelect.value;
+
+      if (val === 'custom') {
+        // Activar modo custom: construir valor desde editorCfg actual
+        state.prompt = buildCustomValue();
+      } else {
+        state.prompt = val;
+      }
+
       persist();
       applyPrompt(state.prompt);
-      // El prompt se aplica al crear el shell; ofrecemos abrir una nueva
-      // pestaña con el nuevo estilo de inmediato para que el usuario lo vea.
+      toggleEditor(state.prompt);
+      syncEditorUI();
+
+      // Abrir nueva pestaña para que el usuario vea el cambio de inmediato
       if (window.TAB_MANAGER && window.TAB_MANAGER.createTab) {
         window.TAB_MANAGER.createTab();
       }
     });
   }
 
-  // ── Renderizar grid de temas dinámicamente ────────────────────────────
+  // ── Editor de prompt: botones de estilo (pe-seg) ──────────────────────
+
+  overlay.addEventListener('click', e => {
+    const btn = e.target.closest('.pe-seg');
+    if (!btn) return;
+
+    const key = btn.dataset.pkey;    // 'style'
+    const val = btn.dataset.value;   // '1' o '2'
+    editorCfg[key] = val;
+
+    // Actualizar activos en el grupo
+    btn.closest('.settings-segmented').querySelectorAll('.pe-seg').forEach(b => {
+      b.classList.toggle('active', b === btn);
+    });
+
+    _saveEditorAndApply();
+  });
+
+  // ── Editor de prompt: círculos de color (pe-color) ────────────────────
+
+  overlay.addEventListener('click', e => {
+    const btn = e.target.closest('.pe-color');
+    if (!btn) return;
+
+    const group = btn.closest('.pe-colors');
+    if (!group) return;
+
+    const key = group.dataset.pkey;  // 'pc', 'gc', 'ac'
+    const val = btn.dataset.value;   // 'teal', 'ember', etc.
+    editorCfg[key] = val;
+
+    // Actualizar activos en el grupo
+    group.querySelectorAll('.pe-color').forEach(b => {
+      b.classList.toggle('active', b === btn);
+    });
+
+    _saveEditorAndApply();
+  });
+
+  // ── Editor de prompt: checkboxes de segmentos ─────────────────────────
+
+  overlay.addEventListener('change', e => {
+    const cb = e.target.closest('input[data-pkey]');
+    if (!cb) return;
+    const key = cb.dataset.pkey;     // 'user', 'git', 'time'
+    editorCfg[key] = cb.checked ? '1' : '0';
+    _saveEditorAndApply();
+  });
+
+  /** Guardar config del editor → state → localStorage → preview */
+  function _saveEditorAndApply() {
+    state.prompt = buildCustomValue();
+    persist();
+    applyPrompt(state.prompt);
+    updatePromptPreview();
+    // No abrimos tab nuevo en cada clic del editor — solo al cambiar de preset
+  }
+
+  // ── Grid de temas ─────────────────────────────────────────────────────
 
   function renderThemeGrid() {
     const grid = document.getElementById('theme-grid');
@@ -256,6 +430,10 @@
   }
 
   // ── Inicializar ─────────────────────────────────────────────────────────
+  // Si el prompt guardado es custom, parsear la config en editorCfg
+  if (state.prompt.startsWith('custom')) {
+    parseCustomConfig(state.prompt);
+  }
   applyAll();
   if (window.I18N) window.I18N.apply();
   renderThemeGrid();

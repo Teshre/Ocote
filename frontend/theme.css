@@ -1195,6 +1195,113 @@ button:focus-visible {
   border-color: var(--accent);
 }
 
+/* ── Editor de prompt personalizado ─────────────────────────────────────── */
+
+#prompt-editor {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Fila del editor: hereda el layout de settings-row pero más compacta */
+.pe-row {
+  margin-bottom: 0 !important;
+}
+
+/* Preview en vivo del prompt */
+.pe-preview-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pe-preview-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.pe-preview-box {
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  min-height: 48px;
+  letter-spacing: 0;
+  /* Sin selección de texto — es una demo, no contenido copiable */
+  user-select: none;
+}
+.pe-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  background: var(--accent);
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  animation: pe-blink 1.2s step-start infinite;
+}
+@keyframes pe-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* Checkboxes de segmentos */
+.pe-toggles {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.pe-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.pe-toggle input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 13px;
+  height: 13px;
+  cursor: pointer;
+}
+
+/* Círculos de color */
+.pe-colors {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.pe-color {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--pc, #888);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast),
+              box-shadow var(--transition-fast);
+  padding: 0;
+  flex-shrink: 0;
+}
+.pe-color:hover {
+  transform: scale(1.12);
+}
+.pe-color.active {
+  border-color: var(--text-primary);
+  transform: scale(1.18);
+  box-shadow: 0 0 0 1px var(--bg-sidebar);
+}
+
 /* Texto de ayuda debajo de una fila de settings (ej. "Se aplica al abrir una nueva pestaña") */
 .settings-hint {
   font-size: 11px;
