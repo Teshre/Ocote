@@ -43,220 +43,97 @@ window.OCOTE_PROMPT = (() => {
     return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
   }
 
-  // ─── SVGs inline (Tabler Icons MIT) ─────────────────────────────────────
-  // Se renderizan a 11px, stroke = color que se pasa. Sin fonts externos.
-  const svg = {
-    folder: (c) =>
-      `<svg viewBox="0 0 16 16" width="11" height="11" style="flex-shrink:0;vertical-align:middle">` +
-      `<path d="M1.5 4.2C1.5 3.5 2 3 2.7 3H6L7.2 4.2H13.3C14 4.2 14.5 4.7 14.5 5.4V11.6` +
-      `C14.5 12.3 14 12.8 13.3 12.8H2.7C2 12.8 1.5 12.3 1.5 11.6Z" ` +
-      `fill="none" stroke="${c}" stroke-width="1.3" stroke-linejoin="round"/></svg>`,
-
-    branch: (c) =>
-      `<svg viewBox="0 0 16 16" width="11" height="11" style="flex-shrink:0;vertical-align:middle">` +
-      `<circle cx="4" cy="3.5" r="1.6" fill="none" stroke="${c}" stroke-width="1.3"/>` +
-      `<circle cx="4" cy="12.5" r="1.6" fill="none" stroke="${c}" stroke-width="1.3"/>` +
-      `<circle cx="12" cy="8" r="1.6" fill="none" stroke="${c}" stroke-width="1.3"/>` +
-      `<path d="M4 5.1V10.9M5.6 3.5H10C11.1 3.5 12 4.4 12 5.5V6.4" ` +
-      `fill="none" stroke="${c}" stroke-width="1.3" stroke-linecap="round"/></svg>`,
-
-    clock: (c) =>
-      `<svg viewBox="0 0 16 16" width="11" height="11" style="flex-shrink:0;vertical-align:middle">` +
-      `<circle cx="8" cy="8" r="6" fill="none" stroke="${c}" stroke-width="1.3"/>` +
-      `<path d="M8 4.6V8L10.4 9.4" fill="none" stroke="${c}" stroke-width="1.3" stroke-linecap="round"/></svg>`,
-
-    check: (c) =>
-      `<svg viewBox="0 0 16 16" width="11" height="11" style="flex-shrink:0;vertical-align:middle">` +
-      `<path d="M3 8.5L6.5 12L13 4.5" fill="none" stroke="${c}" ` +
-      `stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-
-    error: (c) =>
-      `<svg viewBox="0 0 16 16" width="11" height="11" style="flex-shrink:0;vertical-align:middle">` +
-      `<circle cx="8" cy="8" r="6" fill="none" stroke="${c}" stroke-width="1.3"/>` +
-      `<path d="M8 5.2V8.8M8 10.2V10.8" stroke="${c}" stroke-width="1.4" stroke-linecap="round"/></svg>`,
-  };
-
-  // ─── Render de presets ───────────────────────────────────────────────────
-  // Cada función recibe (meta, tokens) y devuelve HTML string.
+  // ─── Render de presets (chrome geométrico) ──────────────────────────────
+  // Cada función recibe (tokens, meta) y devuelve {height, css} o null.
   // meta = { cwd, branch, dirty, time, exit }
-  // null = no pintar nada (minimal/passthrough)
+  //
+  // MODELO ANSI-PS1-PRIMERO (ver "Ocote Fix Prompt No Renderiza.md"):
+  //   El shell SIEMPRE pinta el texto del prompt con ANSI (path, git, hora, ❯).
+  //   Estas decoraciones son una capa ADITIVA de SOLO chrome geométrico
+  //   (stripe, subrayado, borde). NUNCA repintan el texto — eso lo hace el PS1,
+  //   y duplicarlo causaría doble-dibujo y peleas con el cursor.
+  //
+  //   pill / minimal / passthrough → null (se dibujan 100% en ANSI)
+  //   ribbon → subrayado con gradiente bajo la línea de info
+  //   rail   → stripe vertical de 3px a la izquierda
+  //   block  → borde de tarjeta alrededor del output (se maneja en onCommandEnd)
   const renders = {
 
-    // ── 01 · PILL — Firma de Ocote. Cápsulas redondeadas con glassmorphism sutil.
-    pill(m, t) {
-      const path =
-        `<span style="display:inline-flex;align-items:center;gap:6px;` +
-        `background:${a(t.accent, 0.18)};color:${t.accent};` +
-        `padding:2px 11px;border-radius:999px;border:1px solid ${a(t.accent, 0.32)};` +
-        `font-weight:600">` +
-        `${svg.folder(t.accent)}&nbsp;${escHtml(m.cwd)}</span>`;
+    pill()        { return null; },  // cápsulas powerline 100% en ANSI
+    minimal()     { return null; },  // ruta + chevron en ANSI
+    passthrough() { return null; },  // prompt del usuario, no tocamos nada
 
-      const git = m.branch
-        ? `<span style="display:inline-flex;align-items:center;gap:5px;` +
-          `color:${t.green};padding:2px 11px;border-radius:999px;` +
-          `border:1px solid ${a(t.green, 0.32)}">` +
-          `${svg.branch(t.green)}&nbsp;${escHtml(m.branch)}` +
-          (m.dirty > 0
-            ? `<span style="color:${t.warning};font-weight:600;margin-left:1px">+${m.dirty}</span>`
-            : '') +
-          `</span>`
-        : '';
-
-      const time =
-        `<span style="display:inline-flex;align-items:center;gap:5px;` +
-        `color:${t.comment};font-size:.92em;margin-left:2px">` +
-        `${svg.clock(t.comment)}&nbsp;${escHtml(m.time)}</span>`;
-
-      return `<div style="display:flex;align-items:center;gap:7px">${path}${git}${time}</div>`;
+    // RIBBON — subrayado con gradiente (alto 2px) que recorre la línea de info.
+    // height:1 = solo la primera línea del prompt (la de info, no la del ❯).
+    ribbon(t) {
+      return {
+        height: 1,
+        css:
+          `pointer-events:none;align-self:flex-end;` +
+          `height:2px;width:100%;margin-top:auto;` +
+          `background:linear-gradient(90deg,${t.accent} 0%,${a(t.accent, 0.15)} 60%,transparent 100%)`,
+      };
     },
 
-    // ── 02 · BLOCK — Modo Pro. La decoración se aplica al output completo del comando.
-    //    El header se pinta antes del comando; el frame después (onCommandEnd).
-    //    Aquí renderizamos el header de contexto.
-    block(m, t) {
-      const gitChip = m.branch
-        ? `<span style="color:${a(t.comment, 0.6)}">·</span>` +
-          `<span style="display:inline-flex;align-items:center;gap:5px;color:${t.green}">` +
-          `${svg.branch(t.green)}&nbsp;${escHtml(m.branch)}` +
-          (m.dirty > 0
-            ? `<span style="color:${t.warning};font-weight:600;margin-left:2px">+${m.dirty}</span>`
-            : '') +
-          `</span>`
-        : '';
-
-      return (
-        `<div style="display:flex;align-items:center;gap:10px;` +
-        `color:${t.comment};font-size:.92em">` +
-        `<span style="display:inline-flex;align-items:center;gap:6px;color:${t.accent};font-weight:600">` +
-        `${svg.folder(t.accent)}&nbsp;${escHtml(m.cwd)}</span>` +
-        gitChip +
-        `<span style="flex:1"></span>` +
-        `<span style="display:inline-flex;align-items:center;gap:5px">` +
-        `${svg.clock(t.comment)}&nbsp;${escHtml(m.time)}</span>` +
-        `</div>`
-      );
+    // RAIL — stripe vertical de 3px a la izquierda, cubre las 2 líneas del prompt.
+    rail(t) {
+      return {
+        height: 2,
+        css:
+          `pointer-events:none;width:3px;height:100%;border-radius:2px;` +
+          `background:linear-gradient(180deg,${t.accent} 0%,${a(t.accent, 0.4)} 100%)`,
+      };
     },
 
-    // ── 03 · MINIMAL — Solo PS1 con ANSI. El renderer no pinta nada.
-    minimal() { return null; },
-
-    // ── 04 · RIBBON — Subrayado tipo tab-indicator con gradiente de color.
-    ribbon(m, t) {
-      const parts = [escHtml(m.cwd)];
-      if (m.branch) {
-        parts.push(m.dirty > 0
-          ? `${escHtml(m.branch)} <span style="color:${t.warning}">+${m.dirty}</span>`
-          : escHtml(m.branch));
-      }
-      parts.push(escHtml(m.time));
-      const info = parts.join(` <span style="color:${a(t.comment, 0.5)}">·</span> `);
-
-      return (
-        `<div style="display:inline-flex;align-items:flex-end;height:100%">` +
-        `<span style="padding-bottom:4px;border-bottom:1.5px solid ${t.accent};` +
-        `color:${t.fg};font-weight:500;position:relative">` +
-        info +
-        `<span style="position:absolute;left:0;right:0;bottom:-1.5px;height:1.5px;` +
-        `background:linear-gradient(90deg,${t.accent} 0%,transparent 100%)"></span>` +
-        `</span></div>`
-      );
-    },
-
-    // ── 05 · RAIL — Riel vertical de 3px en el margen izquierdo.
-    rail(m, t) {
-      const gitPart = m.branch
-        ? `<span style="color:${a(t.comment, 0.6)}">·</span>` +
-          `<span style="display:inline-flex;align-items:center;gap:5px;color:${t.green}">` +
-          `${svg.branch(t.green)}&nbsp;${escHtml(m.branch)}` +
-          (m.dirty > 0
-            ? `<span style="color:${t.warning};margin-left:2px">+${m.dirty}</span>`
-            : '') +
-          `</span>`
-        : '';
-
-      return (
-        `<div style="display:flex;gap:14px;height:100%">` +
-        `<div style="width:3px;align-self:stretch;` +
-        `background:linear-gradient(180deg,${t.accent} 0%,${a(t.accent, 0.4)} 100%);` +
-        `border-radius:2px"></div>` +
-        `<div style="display:inline-flex;align-items:center;gap:10px;color:${t.fg}">` +
-        `<span style="color:${t.accent};font-weight:600;display:inline-flex;align-items:center;gap:6px">` +
-        `${svg.folder(t.accent)}&nbsp;${escHtml(m.cwd)}</span>` +
-        gitPart +
-        `<span style="color:${a(t.comment, 0.6)}">·</span>` +
-        `<span style="color:${t.comment};font-size:.9em">${escHtml(m.time)}</span>` +
-        `</div></div>`
-      );
-    },
-
-    // Passthrough — el usuario usa su propio prompt; no pintamos nada.
-    passthrough() { return null; },
+    // BLOCK — el header NO lleva chrome de prompt; el frame del output se pinta
+    // en onCommandEnd(). Aquí no decoramos la línea del prompt.
+    block() { return null; },
   };
-
-  // ─── Helpers ─────────────────────────────────────────────────────────────
-  function escHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
 
   // ─── Estado interno ───────────────────────────────────────────────────────
   // Para el preset Block: seguimiento de inicio de cada comando
   const blockState = new WeakMap(); // term → { startAbsLine }
 
-  // Lista de decoraciones activas (para refresh al cambiar tema)
-  const activeDecorations = [];
-  const MAX_DECORATIONS = 200; // límite para no acumular indefinidamente
-
   // ─── API pública ──────────────────────────────────────────────────────────
   return {
 
     /**
-     * Pinta el header de prompt (OSC 133 A = inicio de zona prompt).
+     * Pinta el chrome geométrico del prompt (OSC 133 A = inicio de zona prompt).
      * Llamado desde terminal.js al recibir OSC 6731 + OSC 133 A.
+     * El TEXTO del prompt ya lo pintó el shell con ANSI — aquí solo añadimos
+     * stripe (rail) o subrayado (ribbon). Para pill/minimal/block no hacemos nada.
      *
-     * @param {Terminal} term    — instancia xterm.js del tab
-     * @param {object}   meta    — {cwd, branch, dirty, time, exit}
+     * @param {Terminal} term  — instancia xterm.js del tab
+     * @param {object}   meta  — {cwd, branch, dirty, time, exit}  (no usado en chrome)
      */
     renderPrompt(term, meta) {
       const p = preset();
-      if (p === 'minimal' || p === 'passthrough') return;
+      const fn = renders[p];
+      if (!fn) return;
 
-      const t = theme();
-      const html = (renders[p] ?? renders.pill)(meta, t);
-      if (!html) return;
+      const spec = fn(theme(), meta);
+      if (!spec) return; // pill/minimal/passthrough/block → sin chrome aquí
 
-      // Marcador en la línea ACTUAL del cursor (offset 0 = línea del prompt).
-      // Para presets de 2 líneas (nuestro PS1 emite \n antes de ❯), el cursor
-      // está en la línea del ❯; el marcador +offset=-1 apunta a la línea vacía.
-      // Con offset=0, la decoration se pinta sobre la misma línea del cursor
-      // (que en nuestro PS1 = la línea vacía antes del ❯).
+      // Marker en la línea actual del cursor: al emitirse OSC 133 A en precmd,
+      // el cursor está justo donde el shell va a dibujar la 1ª línea del prompt.
       const marker = term.registerMarker(0);
       if (!marker) return;
 
       const dec = term.registerDecoration?.({
         marker,
-        width: term.cols,
-        height: 1,
+        width: spec.height === 2 ? 1 : term.cols, // stripe: 1 celda de ancho
+        height: spec.height,
         layer: 'top',
       });
-
-      if (!dec) return; // xterm.js demasiado viejo — degradación silenciosa
+      if (!dec) return; // xterm.js sin Decoration API — degradación silenciosa
 
       dec.onRender((el) => {
-        el.style.cssText =
-          'pointer-events:none;font-family:inherit;font-size:inherit;' +
-          'display:flex;align-items:center;height:100%';
-        el.innerHTML = html;
+        // El contenedor de la decoración es flex para poder alinear el chrome.
+        el.style.cssText = 'pointer-events:none;display:flex;align-items:stretch;height:100%';
+        const bar = document.createElement('div');
+        bar.style.cssText = spec.css;
+        el.replaceChildren(bar);
       });
-
-      // Guardar para refresh
-      activeDecorations.push({ dec, meta, preset: p });
-      if (activeDecorations.length > MAX_DECORATIONS) {
-        activeDecorations.shift();
-      }
     },
 
     /**

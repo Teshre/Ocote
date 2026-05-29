@@ -101,6 +101,9 @@ struct ShellResources {
     /// Directorio que se usará como ZDOTDIR para zsh.
     /// Contiene .zshenv y .zshrc bundleados de Ocote.
     shell_dir: std::path::PathBuf,
+    /// Path al hook de prompt de zsh (prompt.zsh).
+    /// Se pasa como OCOTE_PROMPT_HOOK para que .zshrc lo sourcee.
+    zsh_hook: Option<std::path::PathBuf>,
     /// Path al archivo principal de zsh-syntax-highlighting.
     /// Se pasa como OCOTE_ZSH_HL para que .zshrc lo sourcee al final.
     zsh_hl: Option<std::path::PathBuf>,
@@ -112,8 +115,11 @@ struct ShellResources {
 /// principal (resources/shell) no existe — caso de degradación segura.
 #[cfg(not(target_os = "windows"))]
 fn resolve_shell_resources(window: &tauri::Window) -> Option<ShellResources> {
-    // El directorio ZDOTDIR con los hooks de zsh
+    // El directorio ZDOTDIR con los bootstraps .zshenv/.zshrc de zsh
     let shell_dir = resolve_resource(window, "resources/shell")?;
+
+    // Hook de prompt de zsh (el .zshrc bootstrap lo sourcea vía OCOTE_PROMPT_HOOK)
+    let zsh_hook = resolve_resource(window, "resources/shell/prompt.zsh");
 
     // Syntax highlighting (opcional — si no existe, el shell arranca igual)
     let zsh_hl = resolve_resource(
@@ -124,7 +130,7 @@ fn resolve_shell_resources(window: &tauri::Window) -> Option<ShellResources> {
     // Hook para bash (opcional)
     let bash_hook = resolve_resource(window, "resources/shell/bash-hook.bash");
 
-    Some(ShellResources { shell_dir, zsh_hl, bash_hook })
+    Some(ShellResources { shell_dir, zsh_hook, zsh_hl, bash_hook })
 }
 
 // ── create_shell ──────────────────────────────────────────────────────────
@@ -201,13 +207,18 @@ pub fn create_shell(
                 .unwrap_or_else(|_| std::env::var("HOME").unwrap_or_default());
             cmd.env("_OCOTE_ZDOTDIR", real_zdotdir);
 
+            // OCOTE_PROMPT_HOOK — path a prompt.zsh (el .zshrc bootstrap lo sourcea)
+            if let Some(hook) = &res.zsh_hook {
+                cmd.env("OCOTE_PROMPT_HOOK", hook.to_string_lossy().to_string());
+            }
+
             // OCOTE_ZSH_HL — path al zsh-syntax-highlighting.zsh (o vacío si no existe)
             if let Some(hl) = &res.zsh_hl {
                 cmd.env("OCOTE_ZSH_HL", hl.to_string_lossy().to_string());
             }
 
             if shell_cmd.contains("zsh") {
-                // zsh: apuntar ZDOTDIR a nuestro directorio con los hooks estáticos
+                // zsh: apuntar ZDOTDIR a nuestro directorio con los bootstraps estáticos
                 cmd.env("ZDOTDIR", res.shell_dir.to_string_lossy().to_string());
 
             } else if shell_cmd.contains("bash") {

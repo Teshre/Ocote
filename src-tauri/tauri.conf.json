@@ -24,7 +24,10 @@
       "targets": "all",
       "identifier": "mx.ocote.terminal",
       "resources": [
-        "resources/shell/*",
+        "resources/shell/.zshenv",
+        "resources/shell/.zshrc",
+        "resources/shell/prompt.zsh",
+        "resources/shell/bash-hook.bash",
         "resources/zsh-syntax-highlighting/**/*"
       ],
       "icon": [
