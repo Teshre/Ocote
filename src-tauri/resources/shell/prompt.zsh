@@ -103,9 +103,13 @@ _ocote_emit_osc() {
   if [[ -n "$branch" ]]; then
     dirty=$(git status --porcelain 2>/dev/null | grep -c . | tr -d ' ')
   fi
+  # OSC 6731 — JSON para el renderer del prompt.
+  # OSC 133 A (inicio de zona prompt) ya NO se emite aquí: se embebe al inicio
+  # del PROMPT string para que xterm.js lo procese EXACTAMENTE cuando el cursor
+  # está en la línea de info (antes de que \n❯ mueva el cursor). Así el marker
+  # se registra en la línea correcta y la decoration no tapa el ❯.
   printf '\033]6731;prompt;{"cwd":"%s","branch":"%s","dirty":%d,"time":"%s","exit":%d}\007' \
     "$cwd" "$branch" "${dirty:-0}" "$(date +%H:%M)" "$exit_code"
-  printf '\033]133;A\007'
 }
 
 _ocote_precmd() {
@@ -133,22 +137,28 @@ _ARR='%(?:'"${_ACC}❯${_R}"':'"${_RED}❯${_R}"') '
 #               La decoración HTML (prompt.js) se pinta sobre la línea vacía.
 #               Si el JS falla → la terminal sigue funcional (solo ❯).
 #
-# Por qué el \n al inicio del PS1:
-#   OSC 133 A dispara en precmd → registerMarker(0) marca la línea actual
-#   (= fin del output del comando anterior). PS1 dibuja \n (nueva línea con
-#   el ❯). La decoration queda en la línea marcada: visualmente entre el
-#   output y el ❯. Si el comando terminó con newline, esa línea está limpia.
+# Por qué OSC 133 A va embebido en el PROMPT (no en precmd):
+#   Si se emite en precmd, la data llega al frontend en el MISMO chunk que el
+#   PS1. El parser xterm.js procesa todo secuencialmente dentro de write(), PERO
+#   cuando el handler de OSC 133 A se llama y registra el marker, xterm.js ya
+#   puede haber avanzado su cursor al procesar la misma cola interna — el timing
+#   es ambiguo entre eventos Tauri. Al embeber OSC 133 A al INICIO del PROMPT,
+#   garantizamos: el handler dispara → marker en línea P → luego \n ❯ se dibuja
+#   en P+1. Decoration en P, ❯ en P+1. Sin overlap, sin input invisible.
+_OSC_A=$'\033]133;A\007'   # OSC 133 A como variable lista para embeber en PROMPT
+
 case "$OCOTE_PROMPT_PRESET" in
 
   minimal)
-    # PS1 completo — la decoration retorna null, sin HTML overlay.
+    # PS1 completo en ANSI — la decoration retorna null para minimal.
     PROMPT="${_MUT}%~${_R}\${_OCOTE_GIT} ${_MUT}· \${_OCOTE_TIME}${_R}"$'\n'"${_ARR}"
     ;;
 
   pill|ribbon|rail|block)
-    # PS1 mínimo: solo newline + chevron dinámico (rojo si error).
-    # La línea de info (ruta, git, hora) la pinta prompt.js con HTML.
-    PROMPT=$'\n'"${_ARR}"
+    # OSC 133 A al inicio: el handler dispara AQUÍ → marker en línea P (info).
+    # \n mueve cursor a P+1 donde se dibuja ❯.
+    # decoration en P (sobre línea vacía), ❯ en P+1 (visible, no tapado).
+    PROMPT="${_OSC_A}"$'\n'"${_ARR}"
     ;;
 
 esac
