@@ -12,6 +12,28 @@ Próximo paso: ícono real de Ocote, landing page, firma de código macOS.
 
 ---
 
+## [0.7.2] — 2026-05-29 — Settings rediseñado + correcciones de prompt
+
+### Agregado
+- **Body overlay para Block y Rail** (`prompt.js`, `terminal.js`): los presets `block` y `rail` ahora cubren visualmente todo el output del comando, no solo la fila del header.
+  - `terminal.js`: OSC 133 D leído síncronamente (antes del rAF) para capturar `endAbsRow` al final del output, sin race condition.
+  - `prompt.js`: nuevo `extendCommandBlock()` crea/actualiza un div cuerpo (`ocote-ol-body`) posicionado desde la fila `❯` hasta el final del output.
+  - Block body: `border-left: 2px solid` + fondo tenue; rojo si exit ≠ 0.
+  - Rail body: solo el stripe vertical de 3px (sin fondo).
+
+### Corregido
+- **Colores incorrectos en temas** (`themes.js`): `TOKENS.accent` no coincidía con `--accent` CSS en Nord, Tokyo Night, Dracula, One Dark, Gruvbox Dark, Solarized Dark/Light. Todos actualizados para usar el mismo valor — los overlays de prompt ahora usan el acento correcto del tema activo.
+- **Watermark cubierta por overlays** (`theme.css`): el `#terminal-watermark` tenía `z-index: 4` mientras los overlay containers tienen `z-index: 8`. Subido a `z-index: 10`. A la opacidad del watermark (~5-12% efectivo) el impacto visual es imperceptible.
+- **Prompts fantasma tras `clear`** (`terminal.js`): `clear` envía `\x1b[2J` que limpiaba el canvas de xterm.js pero no los divs overlay. El listener `pty-output` ahora detecta `\x1b[2J` y `\x1b[3J` y llama `clearOverlays()` antes de escribir.
+
+### Cambiado
+- **Settings → Apariencia rediseñado** (`theme.css`, `index.html`): modal ampliado a 1100px; layout de dos columnas (grid de presets izquierda + preview derecha); grid de 3 columnas; 10 temas en fila única; Tipografía e Iconos combinados en una fila.
+- **Block preview en settings**: eliminado el footer ficticio (`✓ exit 0 · 0.84s · copy · rerun · share`) que mostraba funcionalidades no implementadas.
+- **Rail preview en settings** (`settings.js`): renderer propio para el pane grande con stripe de altura fija (20px), evitando que el gradiente se estirase a toda la altura del contenedor.
+- **Path de demo en settings**: `~/proyecto/src` → `~/dev` para que quepa correctamente en las cards de presets.
+
+---
+
 ## [0.6.4] — 2026-05-25 — Sincronización de tema en todas las terminales
 
 ### Corregido

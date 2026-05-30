@@ -72,8 +72,9 @@ ckb/
 - **UI traducida** (`ui-i18n.js`): settings, onboarding y breadcrumb en 5 idiomas ✅
 - **Breadcrumb navegable** en el explorador: segmentos clicables, dropdown al hover, abreviados si son largos ✅
 - **Nerd Fonts** bundleadas: JetBrainsMono NF, FiraCode NF, MesloLGS NF ✅
-- **Sistema de prompt nativo** con Decoration API + 5 presets ✅ ← NUEVO
-- **Zsh-syntax-highlighting** bundleado (BSD) ✅ ← NUEVO
+- **Sistema de prompt nativo** con overlay HTML propio + 5 presets ✅
+- **Body overlay Block/Rail**: cubre visualmente toda la salida del comando (no solo header) ✅
+- **Zsh-syntax-highlighting** bundleado (BSD) ✅
 
 ---
 
@@ -89,30 +90,48 @@ ckb/
 
 ### Sistema de prompt (IMPORTANTE — leer antes de tocar)
 
-**Arquitectura (diseño aprobado en Claude Design):**
+**Arquitectura: ANSI fallback + Overlay HTML propio (sin Decoration API)**
+
+La Decoration API de xterm.js fue descartada: `registerDecoration` corrompe el canvas renderer. En su lugar, Ocote usa su propio overlay system: divs DOM posicionados sobre el canvas sin pasar por xterm.js.
+
 ```
-zsh precmd → OSC 6731 {"cwd","branch","dirty","time","exit"}
-           → PROMPT = [OSC 133 A]\n❯
-                              ↓
-terminal.js → registerOscHandler(6731) → guarda pendingMeta
-terminal.js → registerOscHandler(133, 'A') → llama OCOTE_PROMPT.renderPrompt(term, meta)
-                              ↓
-prompt.js → term.registerDecoration({marker, height:1, layer:'top'})
-          → pinta HTML overlay sobre la línea de info (encima del ❯)
+zsh precmd → OSC 6731 JSON {cwd, branch, dirty, time, exit}
+           → PROMPT = [línea info ANSI (fallback)]\n[❯ ANSI][OSC 133 A]
+                                                              ↓
+terminal.js → OSC 133 A handler (cursor en fila ❯)
+            → infoAbsRow = cursorAbsRow - 1
+            → OCOTE_PROMPT.showPromptOverlay(term, meta, infoAbsRow)
+                                              ↓
+prompt.js → crea <div class="ocote-ol"> sobre .xterm-screen
+          → position:absolute, top: viewportRow * rowPx
+          → background: termBg() (cubre texto ANSI debajo)
+          → innerHTML = _termRenders[preset](meta, tokens)
 ```
 
-**Presets disponibles** (guardados en `localStorage('ocote_prompt')`):
-| Preset | PS1 | Decoration |
-|--------|-----|------------|
-| `pill` | `\n❯` | Cápsulas con glassmorphism: path + git + hora |
-| `block` | `\n❯` | Header de contexto + frame del output (onCommandEnd) |
-| `ribbon` | `\n❯` | Subrayado 1.5px con gradiente accent→transparent |
-| `rail` | `\n❯` | Stripe vertical 3px + info en línea |
-| `minimal` | ANSI completo (ruta + git + hora + ❯) | ninguna (returns null) |
-| `passthrough` | prompt nativo del usuario | ninguna (hook retorna temprano) |
+**Por qué OSC 133 A va al FINAL del PROMPT (después de ❯):**
+El cursor queda en la fila del ❯. `infoAbsRow = chevronRow - 1` es siempre la fila info sin importar el scroll o el PROMPT_SP de zsh. Si se pusiera al inicio, tendría que predecir dónde terminará el cursor después de procesar `\n❯`.
 
-**Por qué OSC 133 A va embebido en PROMPT (no en precmd):**
-Si se emite en precmd, el timing es ambiguo — cuando el handler JS llama `registerMarker(0)`, xterm.js puede haber ya procesado el `\n❯` del PS1 y el cursor estar en la línea del ❯. La decoration quedaría tapando el ❯. Al embeber `\033]133;A\007` al inicio del string PROMPT, la secuencia dentro de `write()` es determinística: OSC 133 A dispara → cursor en línea P (info) → `\n` mueve a P+1 → `❯` en P+1. Decoration en P, ❯ en P+1.
+**Presets** (guardados en `localStorage('ocote_prompt')`):
+| Preset | ANSI fallback | Overlay HTML |
+|--------|--------------|-------------|
+| `minimal` | `path git · hora \n ❯` | ninguno |
+| `pill` | `[path bg] ◖ git ◗ · hora \n ❯` | cápsulas glassmorphism |
+| `ribbon` | `path_ git · hora \n ❯` | subrayado gradiente |
+| `rail` | `│ path · git · hora \n ❯` | riel vertical 3px |
+| `block` | `┌─ path · git · hora \n ❯` | header de card con borde accent |
+| `passthrough` | prompt nativo | ninguno |
+
+**Overlay management (`prompt.js`):**
+- `showPromptOverlay(term, meta, infoAbsRow)` — crea/actualiza header overlay en fila
+- `extendCommandBlock(term, infoAbsRow, chevronAbsRow, endAbsRow, exitCode)` — crea body overlay para block/rail (llamado desde OSC 133 D)
+- `updateOverlayPositions(term)` — reposiciona headers y bodies al hacer scroll
+- `clearOverlays(term)` — limpia headers y bodies (respawn, cerrar tab, clear command)
+- `refresh()` — actualiza backgrounds y estilos al cambiar tema; descarta body overlays
+
+**Timing crítico de OSC 133 D (para extendCommandBlock):**
+El `endAbsRow` DEBE leerse síncronamente dentro del OSC handler, NO en un requestAnimationFrame. Si se usa rAF, el write() habrá terminado y el cursor estará en la fila del nuevo `❯` — 2 filas más arriba del fin del output real. Leer dentro del handler garantiza capturar el cursor al final del output del comando.
+
+**`_termRenders` (compactos, ajustados a 1 fila ~17px) vs `renders` (tamaño normal para settings picker)**
 
 **Variables de entorno que pty.rs inyecta al shell:**
 - `OCOTE_PROMPT_PRESET` — preset elegido (`pill`|`block`|`minimal`|`ribbon`|`rail`|`passthrough`)
@@ -128,11 +147,12 @@ El `.zshenv` en `resources/shell/` NO reasigna permanentemente ZDOTDIR. Sourcea 
 Los renders NO hardcodean colores. Todos usan `OCOTE_THEMES.getCurrentTokens()` que devuelve `{accent, green, blue, comment, warning, fg}` del tema activo. La FORMA identifica a Ocote; el COLOR hereda del tema.
 
 **API de `window.OCOTE_PROMPT`:**
-- `renderPrompt(term, meta)` — pinta la decoration HTML en la línea de info
-- `onCommandStart(term)` — para Block: guarda posición inicial del output
-- `onCommandEnd(term, exitCode)` — para Block: pinta el frame con borde accent/rojo
-- `refresh()` — limpia texture atlas para re-renderizar con nuevo tema/preset
-- `previewHtml(presetId, meta, tokens)` — devuelve HTML para el picker de settings (minimal tiene preview especial aunque no use decoration en terminal)
+- `showPromptOverlay(term, meta, infoAbsRow)` — crea/actualiza header overlay
+- `extendCommandBlock(term, infoAbsRow, chevronAbsRow, endAbsRow, exitCode)` — body overlay para block/rail
+- `updateOverlayPositions(term)` — reposiciona todo al hacer scroll/resize
+- `clearOverlays(term)` — elimina todos los overlays (tabs, clear, respawn)
+- `refresh()` — re-renderiza headers con nuevo tema; descarta bodies (se recrean solos)
+- `previewHtml(presetId, meta, tokens)` — devuelve HTML para el picker de settings
 
 ### Arquitectura de tabs
 - **`window.ocoteTerminal` está OBSOLETO.** Cada terminal vive en `window.TAB_MANAGER.getAllTabs()`.
@@ -142,11 +162,11 @@ Los renders NO hardcodean colores. Todos usan `OCOTE_THEMES.getCurrentTokens()` 
 - tab-manager.js lee `localStorage('ocote_theme')` para extraer el accent antes de llamar `create_shell`.
 
 ### Sistema de temas
-- Cada tema tiene: `xterm` (paleta xterm.js), `css` (CSS variables), y ahora también `tokens` en `OCOTE_THEMES.TOKENS`.
+- Cada tema tiene: `xterm` (paleta xterm.js), `css` (CSS variables), y también `tokens` en `OCOTE_THEMES.TOKENS`.
 - `window.OCOTE_THEMES.getCurrentTokens()` → `{accent, green, blue, comment, warning, fg}` del tema activo.
 - `window.OCOTE_THEMES.applyTheme(themeId)` llama `OCOTE_PROMPT.refresh()` al final para repintar decorations.
 - `themes.js` **debe cargarse PRIMERO** (antes de `prompt.js`, `terminal.js`, `tab-manager.js`).
-- Tokens semánticos por tema en `OCOTE_THEMES.TOKENS` (tabla de diseño aprobada por Claude Design).
+- **REGLA CRÍTICA DE TOKENS**: `TOKENS[tema].accent` DEBE coincidir con `--accent` del CSS de ese tema. Si divergen, el overlay usa un color y la UI usa otro. La regla es `TOKENS.accent === accentHex` siempre.
 
 ### Notas generales
 - `vt_parser.js` fue eliminado en v0.3.0. xterm.js maneja todo el renderizado.
@@ -190,27 +210,35 @@ Los renders NO hardcodean colores. Todos usan `OCOTE_THEMES.getCurrentTokens()` 
 ✅ Múltiples terminales en tabs.
 ✅ Sincronización tema xterm.js en todos los tabs.
 
-**Fase 4 — Avance al 2026-05-29:**
-✅ **Sistema de prompt nativo con Decoration API** — 5 presets aprobados en Claude Design:
-  - `pill`: cápsulas con glassmorphism (signature de Ocote)
-  - `block`: header de contexto + frame del output (modo Pro, estilo Warp)
-  - `minimal`: ANSI puro, tipografía limpia
-  - `ribbon`: subrayado con gradiente
-  - `rail`: stripe vertical + info en línea
-  - `passthrough`: respeta p10k / oh-my-zsh del usuario
+**Fase 4 — Avance al 2026-05-29 (primera parte):**
+✅ **Overlay system propio** — HTML/CSS sobre canvas xterm.js sin Decoration API.
+  - `_rowPx()` usa `term._core._renderService.dimensions.css.cell.height` (21.5px exacto).
+  - OSC 133 A al final del PROMPT; `requestAnimationFrame` lee cursor después del write().
+  - `infoAbsRow = chevronAbsRow - 1`. Overlays posicionados correctamente.
+  - `refresh()` re-renderiza overlays con nuevos colores al cambiar tema.
+  - `el.dataset.meta` guarda JSON del prompt para re-renderizar.
+✅ **Presets** (5 + passthrough): pill, block, minimal, ribbon, rail, passthrough.
 ✅ **Picker de prompts** en Settings → Apariencia: cards con preview en vivo, preview grande al seleccionar.
-✅ **Bootstrap ZDOTDIR correcto**: `.zshenv` mantiene ZDOTDIR apuntando al directorio de Ocote hasta que `.zshrc` se carga; nunca lo reasigna prematuramente.
-✅ **zsh-syntax-highlighting** bundleado (BSD): resalta comandos en la terminal en tiempo real.
-✅ **Tokens semánticos** en `themes.js`: `getCurrentTokens()` devuelve accent/green/blue/comment/warning/fg del tema activo para los renders de prompt.
-✅ **OSC 6731 + OSC 133** (Shell Integration): shell emite datos estructurados que `terminal.js` captura y pasa a `prompt.js` para las decorations.
-✅ **Fix timing Decoration API**: OSC 133 A embebido en el PROMPT (no en precmd) para garantizar que el marker se registre en la línea de info, no en la línea del ❯.
+✅ **Bootstrap ZDOTDIR correcto**, **zsh-syntax-highlighting** bundleado, **tokens semánticos**.
+✅ **OSC 6731 + OSC 133** Shell Integration funcionando.
+
+**Fase 4 — Avance al 2026-05-29 (segunda parte — sesión 10):**
+✅ **Body overlay Block y Rail**: `extendCommandBlock()` cubre visualmente toda la salida del comando.
+  - OSC 133 D leído síncronamente para `endAbsRow` correcto (sin race condition con rAF).
+  - Block body: `border-left` + fondo tenue; rojo si `exitCode !== 0`.
+  - Rail body: solo stripe de 3px, sin fondo.
+✅ **Fix colores de tema**: `TOKENS.accent` alineado con `--accent` CSS para todos los temas (Nord, Tokyo Night, Dracula, One Dark, Gruvbox, Solarized).
+✅ **Fix watermark cubierta**: `#terminal-watermark` subido de `z-index:4` a `z-index:10`.
+✅ **Fix prompts fantasma tras `clear`**: detectar `\x1b[2J` en listener PTY y llamar `clearOverlays()`.
+✅ **Settings rediseñado**: modal 1100px, layout grid+preview lado a lado, 3 cols, 10 temas en fila, tipografía+iconos combinados.
+✅ **Block preview honesto**: eliminado footer ficticio (exit 0, copy·rerun·share no implementados).
+✅ **Rail big preview corregido**: renderer propio con stripe de altura fija.
 
 **Próximo paso — Fase 4:**
-1. Verificar prompts en producción (pnpm tauri build)
-2. Ícono real de Ocote (diseño propio) — About Ocote sigue mostrando el ícono de macOS por caché
-3. Landing page / sitio web
-4. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
-5. Auto-updater
+1. Ícono real de Ocote (diseño propio) — About Ocote sigue mostrando el ícono de macOS por caché
+2. Landing page / sitio web
+3. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
+4. Auto-updater
 
 ## Cómo ayudar al desarrollador
 - Es developer en aprendizaje, usa IA como asistente principal

@@ -80,50 +80,67 @@ function bindTerminalShell(term, shellId) {
     invoke('write_to_shell', { shellId, input: data }).catch(console.error);
   });
 
-  // ── Handlers de OSC para el sistema de prompt ────────────────────────────
-  // Solo registrar si xterm.js expone el parser (v4+).
+  // ── Handlers de OSC para integración de shell y overlay system ──────────
   if (!term.parser) return;
 
-  // Estado de prompt para este tab (pendingMeta se llena con OSC 6731 y se
-  // consume con OSC 133 A para sincronizar el marker con la línea correcta).
-  const promptState = { pendingMeta: null };
+  // OSC 6731 — metadata del prompt: {cwd, branch, dirty, time, exit}.
+  // Se guarda aquí y se consume en OSC 133 A para generar el overlay.
+  let lastPromptMeta = null;
+  // Coordenadas del prompt anterior — usadas en 133 D para saber dónde empieza el body.
+  let lastChevronRow = null; // { infoAbsRow, chevronAbsRow }
 
-  // OSC 6731 — datos estructurados del prompt
-  // Formato: "prompt;{...json...}"
-  // El shell los emite justo antes de OSC 133 A (inicio de zona prompt).
   term.parser.registerOscHandler(6731, (data) => {
     const sep = data.indexOf(';');
     if (sep === -1 || data.slice(0, sep) !== 'prompt') return false;
-    try {
-      promptState.pendingMeta = JSON.parse(data.slice(sep + 1));
-    } catch (_) {
-      // JSON malformado — no romper el render del terminal, ignorar silenciosamente
-    }
-    return true; // consumir el OSC para que no aparezca como texto
+    try { lastPromptMeta = JSON.parse(data.slice(sep + 1)); } catch (_) {}
+    return true;
   });
 
-  // OSC 133 — marcadores de semántica de shell (Shell Integration)
-  // 133;A = inicio de zona prompt  (justo antes de que zsh dibuje el prompt)
-  // 133;B = fin de zona prompt     (usuario presionó Enter)
-  // 133;D;exitcode = fin del comando anterior
+  // OSC 133 — shell integration markers.
+  //
+  // A: al final del PROMPT (después de ❯).
+  //    Leemos cursor con rAF para que el write() haya terminado y ❯ esté en pantalla.
+  //    Guardamos lastChevronRow para que 133 D lo use más adelante.
+  //
+  // D;exitcode: precmd ha terminado (justo antes del siguiente prompt).
+  //    Leemos endAbsRow SÍNCRONAMENTE aquí — el cursor está al final del output
+  //    del comando, antes de que el siguiente prompt se haya pintado.
+  //    Si esperásemos al rAF, el write() habría terminado y el cursor estaría
+  //    en la fila del nuevo ❯ — demasiado tarde (race condition).
   term.parser.registerOscHandler(133, (data) => {
-    if (data === 'A' && promptState.pendingMeta) {
-      // La línea actual es donde está el prompt (el \n antes de ❯ en nuestro PS1).
-      // renderPrompt() usa registerMarker(0) para decorar esta línea exacta.
-      window.OCOTE_PROMPT?.renderPrompt(term, promptState.pendingMeta);
-      promptState.pendingMeta = null;
+    if (data === 'A' && lastPromptMeta) {
+      const meta = lastPromptMeta;
+      lastPromptMeta = null;
 
-    } else if (data === 'B') {
-      // El usuario envió un comando
-      window.OCOTE_PROMPT?.onCommandStart(term);
+      requestAnimationFrame(() => {
+        const buf = term.buffer.active;
+        const chevronAbsRow = buf.baseY + buf.cursorY;
+        const infoAbsRow = Math.max(0, chevronAbsRow - 1);
+        lastChevronRow = { infoAbsRow, chevronAbsRow };
+        window.OCOTE_PROMPT?.showPromptOverlay(term, meta, infoAbsRow);
+      });
 
-    } else if (data.startsWith('D')) {
-      // Comando terminó — extraer exit code
-      const parts = data.split(';');
-      const exitCode = parts.length > 1 ? parseInt(parts[1], 10) : 0;
-      window.OCOTE_PROMPT?.onCommandEnd(term, exitCode);
+    } else if (data[0] === 'D' && lastChevronRow) {
+      // Leer cursor síncronamente: en este punto del parse, el output del comando
+      // ya está en el buffer pero el siguiente prompt aún NO se ha procesado.
+      const buf = term.buffer.active;
+      const endAbsRow = buf.baseY + buf.cursorY;
+      const exitCode = data.includes(';') ? (parseInt(data.slice(2)) || 0) : 0;
+      const saved = lastChevronRow;
+
+      // DOM update diferido al siguiente frame (fuera del ciclo parse de xterm.js)
+      requestAnimationFrame(() => {
+        window.OCOTE_PROMPT?.extendCommandBlock(
+          term, saved.infoAbsRow, saved.chevronAbsRow, endAbsRow, exitCode
+        );
+      });
     }
     return true;
+  });
+
+  // Reposicionar overlays cuando el usuario hace scroll o la terminal hace resize.
+  term.onScroll(() => {
+    window.OCOTE_PROMPT?.updateOverlayPositions(term);
   });
 }
 
@@ -233,6 +250,13 @@ window.resetTerminalInput = function () {
     const { shell_id, data } = e.payload;
     const tab = window.TAB_MANAGER ? window.TAB_MANAGER.getTab(shell_id) : null;
     if (tab && tab.term) {
+      // Detectar secuencias de limpieza de pantalla (clear, Ctrl+L).
+      // ESC[2J = borrar display; ESC[3J = borrar scrollback.
+      // En estos casos los overlays quedan "flotando" en filas que ya no
+      // corresponden a ningún prompt visible — hay que descartarlos.
+      if (data.includes('\x1b[2J') || data.includes('\x1b[3J')) {
+        window.OCOTE_PROMPT?.clearOverlays(tab.term);
+      }
       tab.term.write(data);
     }
   });

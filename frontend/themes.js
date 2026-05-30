@@ -57,17 +57,20 @@
   // Tokens semánticos por tema — usados por prompt.js para pintar las decoraciones.
   // Los colores heredan del tema activo automáticamente; la "firma" del preset
   // es la FORMA, no el color. Tabla de diseño aprobada por Claude Design.
+  // Tokens semánticos para los renders de prompt.
+  // REGLA: accent SIEMPRE debe coincidir con --accent de la CSS del tema.
+  // Así los overlays de prompt usan el mismo color de acento que el resto de la UI.
   const TOKENS = {
     dark:          { accent:'#E8843A', green:'#7DC97A', blue:'#82A6E0', comment:'#6F6552', warning:'#E8C03A', fg:'#E2D6BD' },
     light:         { accent:'#C25C1F', green:'#3E7A3A', blue:'#3656A3', comment:'#8C7B68', warning:'#A87E14', fg:'#2A2218' },
-    dracula:       { accent:'#BD93F9', green:'#50FA7B', blue:'#8BE9FD', comment:'#6272A4', warning:'#F1FA8C', fg:'#F8F8F2' },
-    oneDark:       { accent:'#E06C75', green:'#98C379', blue:'#61AFEF', comment:'#5C6370', warning:'#E5C07B', fg:'#ABB2BF' },
+    dracula:       { accent:'#ff79c6', green:'#50FA7B', blue:'#8BE9FD', comment:'#6272A4', warning:'#F1FA8C', fg:'#F8F8F2' },
+    oneDark:       { accent:'#528bff', green:'#98C379', blue:'#61AFEF', comment:'#5C6370', warning:'#E5C07B', fg:'#ABB2BF' },
     monokai:       { accent:'#F92672', green:'#A6E22E', blue:'#66D9EF', comment:'#75715E', warning:'#E6DB74', fg:'#F8F8F2' },
-    solarizedDark: { accent:'#CB4B16', green:'#859900', blue:'#268BD2', comment:'#586E75', warning:'#B58900', fg:'#93A1A1' },
-    solarizedLight:{ accent:'#CB4B16', green:'#859900', blue:'#268BD2', comment:'#93A1A1', warning:'#B58900', fg:'#586E75' },
-    gruvboxDark:   { accent:'#FE8019', green:'#B8BB26', blue:'#83A598', comment:'#928374', warning:'#FABD2F', fg:'#EBDBB2' },
-    nord:          { accent:'#D08770', green:'#A3BE8C', blue:'#81A1C1', comment:'#4C566A', warning:'#EBCB8B', fg:'#D8DEE9' },
-    tokyoNight:    { accent:'#FF9E64', green:'#9ECE6A', blue:'#7AA2F7', comment:'#565F89', warning:'#E0AF68', fg:'#C0CAF5' },
+    solarizedDark: { accent:'#b58900', green:'#859900', blue:'#268BD2', comment:'#586E75', warning:'#CB4B16', fg:'#93A1A1' },
+    solarizedLight:{ accent:'#b58900', green:'#859900', blue:'#268BD2', comment:'#93A1A1', warning:'#CB4B16', fg:'#586E75' },
+    gruvboxDark:   { accent:'#d79921', green:'#B8BB26', blue:'#83A598', comment:'#928374', warning:'#FABD2F', fg:'#EBDBB2' },
+    nord:          { accent:'#88c0d0', green:'#A3BE8C', blue:'#81A1C1', comment:'#4C566A', warning:'#EBCB8B', fg:'#D8DEE9' },
+    tokyoNight:    { accent:'#7aa2f7', green:'#9ECE6A', blue:'#7AA2F7', comment:'#565F89', warning:'#E0AF68', fg:'#C0CAF5' },
   };
 
   const THEMES = {
@@ -435,7 +438,9 @@
   /** Devuelve los tokens semánticos del tema activo (accent, green, blue, comment, warning, fg). */
   function getCurrentTokens() {
     const themeId = localStorage.getItem('ocote_theme') || 'dark';
-    return TOKENS[themeId] ?? TOKENS.dark;
+    const tokens = TOKENS[themeId] ?? TOKENS.dark;
+    const theme = THEMES[themeId] ?? THEMES.dark;
+    return { ...tokens, bg: theme.xterm.background };
   }
 
   function getThemeList() {

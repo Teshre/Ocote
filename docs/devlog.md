@@ -5,6 +5,65 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-05-29 — Sesión 10: Body overlay para Block/Rail, correcciones de prompts y rediseño de Settings
+
+**Estado al inicio:** El sistema de overlay HTML estaba funcionando (header de prompt con path/branch/time en todos los presets), pero Block y Rail solo pintaban la fila del header sin cubrir el output del comando. Además había tres bugs activos: colores incorrectos en temas como Nord y Tokyo Night, el watermark siendo cubierto por los divs overlay, y los prompts fantasma que persistían después de `clear`.
+
+### Body overlay para Block y Rail
+
+**El problema:** El preset Block en Settings mostraba una tarjeta Warp-style con header + cuerpo + footer. En la terminal real, solo existía el header. Rail igual: solo la fila de info, no el stripe a lo largo del output.
+
+**Solución arquitectónica:**
+
+La investigación (deep research compartida en sesión anterior) estableció la regla crítica de timing para OSC 133 D:
+- Si se lee `buf.cursorY` en un `requestAnimationFrame` después de que llega 133 D, el write() ya terminó y el cursor está en la fila del **nuevo** `❯` — demasiado tarde.
+- Si se lee **síncronamente dentro del OSC handler**, el parser está en el punto exacto justo después del output del comando, antes de que el siguiente prompt se procese.
+
+```
+terminal.js — OSC 133 D handler:
+  SÍNCRONO: endAbsRow = buf.baseY + buf.cursorY  ← correcto
+  rAF: llama extendCommandBlock(infoAbsRow, chevronAbsRow, endAbsRow, exitCode)
+```
+
+`prompt.js` — nuevo `extendCommandBlock()`:
+- Crea `div.ocote-ol-body` posicionado desde `chevronAbsRow` (fila `❯`) hasta `endAbsRow`
+- Block body: `border-left: 2px solid rgba(accent, 0.30)` + fondo `rgba(accent, 0.04)`. Cambia a rojo si `exitCode !== 0`.
+- Rail body: solo el stripe 3px con gradiente vertical, sin fondo.
+- `updateOverlayPositions()` y `clearOverlays()` actualizados para manejar `_bodyMaps`.
+
+### Tres bugs corregidos
+
+| Bug | Causa raíz | Fix |
+|-----|-----------|-----|
+| Nord y Tokyo Night mostraban naranja de Ocote | `TOKENS.accent` desalineado con `--accent` CSS (Nord: `#D08770` vs CSS `#88c0d0`) | Sincronizar todos los TOKENS con su CSS `--accent` |
+| Watermark cubierta por filas de prompt | `#terminal-watermark z-index:4` < overlay `z-index:8` | Subir watermark a `z-index:10` |
+| Prompts fantasma tras `clear` | `\x1b[2J` limpia el canvas pero no los divs overlay del DOM | Detectar `\x1b[2J` en listener PTY y llamar `clearOverlays()` |
+
+**Lección aprendida — TOKENS vs CSS accent:** Los tokens semánticos del sistema de prompt deben estar siempre alineados con `--accent` del CSS. Si divergen, el overlay usa un color y la UI usa otro, rompiendo la coherencia visual del tema. Se añadió comentario en `themes.js` como recordatorio.
+
+### Settings rediseñado
+
+**Problema:** Modal de 620px era demasiado angosto — la tab Apariencia requería scroll para ver temas, tipografía e íconos.
+
+**Decisiones de diseño:**
+- Modal ampliado a **1100px** (96vw máximo). A 1100px cada card de preset tiene ~230px, suficiente para "~/dev · ⎇ main +2 · 14:32".
+- **Layout lado a lado**: grid de presets (izquierda, `flex:1`) + pane de preview (derecha, 320px fija). El usuario selecciona/hovea en las cards y ve el resultado en tiempo real a la derecha.
+- **Grid de 3 columnas** (antes 2): 6 presets en 2 filas vs 3 filas anteriores.
+- **10 temas en fila única** (`repeat(10, 1fr)`): todos los temas visibles sin scroll.
+- **Tipografía + Iconos en fila horizontal**: dos columnas `.settings-two-col` en vez de dos secciones verticales separadas.
+
+**Block preview simplificado:** Se eliminó el footer `✓ exit 0 · 0.84s · copy · rerun · share` del preview en settings. Ese footer era aspiracional (mostraba features no implementadas: timing de comando, botones copy/rerun/share). El Block real solo tiene header + body overlay (borde izquierdo + fondo tenue). Mostrarlo honestamente evita crear expectativas falsas. Los botones de acción en bloques añaden complejidad alta (overlay con `pointer-events`, timing tracking) para bajo beneficio en la audiencia objetivo.
+
+**Rail big preview:** El renderer genérico `renders.rail()` usa `height:100%` — correcto para el overlay real (el stripe debe abarcar todo el output), pero en el pane de preview de settings se estiraba a toda la altura del contenedor. Solución: `railBigPreview()` personalizado en `settings.js` con stripe de `height:20px` fija.
+
+**Decisiones tomadas:**
+- **`~/dev` como path de demo**: más corto que `~/proyecto/src`. Las cards de Pill tienen capsulas con padding, por lo que el texto total (path + branch + time) fácilmente supera el ancho disponible.
+- **No implementar footer de Block ahora**: bajo valor para audiencia principiante (el exit ya se ve por el color del chevron; el timing añade complejidad de shell; copy/rerun/share requieren pointer-events en overlays que son todos `pointer-events:none`). Se puede revisar en Fase 4 tardía si hay demanda.
+
+**Próximo paso:** Ícono real de Ocote, landing page, firma de código macOS para distribución sin Gatekeeper.
+
+---
+
 ## 2026-05-25 — Sesión 9: Fase 4 avanzada — Temas, configuración, tabs, breadcrumb, i18n
 
 **Estado al inicio:** Sesión 8 cerrada con CKB multilenguaje (153 comandos × 5 idiomas), tooltip traducido e íconos SVG de Tabler Icons. La UI tenía el selector de idioma e íconos hardcodeados en el breadcrumb, un solo tema (oscuro fijo) y una sola terminal a la vez.

@@ -184,52 +184,55 @@
       <!-- Tab: Apariencia -->
       <div class="settings-tab-content hidden" data-tab="appearance">
         <div class="settings-section">
+          <div class="settings-section-head">
+            <h3 data-i18n="settings.prompt.title">Estilo del prompt</h3>
+          </div>
+
+          <div class="prompt-picker-layout">
+            <div class="prompt-preset-grid" id="prompt-preset-grid"></div>
+            <div class="prompt-preview-pane">
+              <div class="prompt-preview-topbar">
+                <span class="ppv-dot" style="background:#ff5f57"></span>
+                <span class="ppv-dot" style="background:#febc2e"></span>
+                <span class="ppv-dot" style="background:#28c840"></span>
+                <span class="ppv-label">~/dev</span>
+              </div>
+              <div class="prompt-preview-screen" id="prompt-preview"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
           <h3 data-i18n="settings.theme.title">Tema de color</h3>
           <div id="theme-grid"></div>
         </div>
 
-        <div class="settings-section">
-          <h3 data-i18n="settings.prompt.title">Prompt</h3>
-          <div class="settings-row">
-            <span class="settings-label" data-i18n="settings.prompt.label">Estilo del prompt</span>
-            <select class="settings-select" id="settings-prompt">
-              <option value="pill"        data-i18n="settings.prompt.pill">Pill — Cápsulas (firma de Ocote)</option>
-              <option value="block"       data-i18n="settings.prompt.block">Block — Modo Pro</option>
-              <option value="minimal"     data-i18n="settings.prompt.minimal">Minimal — Suave</option>
-              <option value="ribbon"      data-i18n="settings.prompt.ribbon">Ribbon — Tenue</option>
-              <option value="rail"        data-i18n="settings.prompt.rail">Rail — Vertical</option>
-              <option value="passthrough" data-i18n="settings.prompt.passthrough">Mi configuración (p10k, oh-my-zsh…)</option>
-            </select>
+        <div class="settings-two-col">
+          <div class="settings-sub">
+            <h3 data-i18n="settings.font.title">Tipografía</h3>
+            <div class="settings-row">
+              <select class="settings-select" id="settings-font">
+                <option value="'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace">JetBrainsMono Nerd Font</option>
+                <option value="'MesloLGS NF', 'JetBrainsMono Nerd Font Mono', 'SF Mono', 'Menlo', monospace">MesloLGS NF</option>
+                <option value="'FiraCode Nerd Font Propo', 'Fira Code', 'SF Mono', monospace">FiraCode Nerd Font</option>
+                <option value="'Hack Nerd Font', 'Menlo', 'SF Mono', monospace">Hack Nerd Font</option>
+                <option value="'SF Mono', 'Menlo', 'Fira Code', 'Cascadia Code', monospace">Sistema</option>
+                <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+                <option value="'Fira Code', monospace">Fira Code</option>
+                <option value="'Cascadia Code', 'Cascadia Mono', monospace">Cascadia Code</option>
+                <option value="'Source Code Pro', monospace">Source Code Pro</option>
+                <option value="'Ubuntu Mono', monospace">Ubuntu Mono</option>
+              </select>
+            </div>
           </div>
-          <p class="settings-hint" data-i18n="settings.prompt.hint">Se aplica al abrir una nueva pestaña.</p>
-        </div>
-
-        <div class="settings-section">
-          <h3 data-i18n="settings.font.title">Tipografía</h3>
-          <div class="settings-row">
-            <span class="settings-label" data-i18n="settings.font.label">Fuente del terminal</span>
-            <select class="settings-select" id="settings-font">
-              <option value="'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace">JetBrainsMono Nerd Font</option>
-              <option value="'MesloLGS NF', 'JetBrainsMono Nerd Font Mono', 'SF Mono', 'Menlo', monospace">MesloLGS NF</option>
-              <option value="'FiraCode Nerd Font Propo', 'Fira Code', 'SF Mono', monospace">FiraCode Nerd Font</option>
-              <option value="'Hack Nerd Font', 'Menlo', 'SF Mono', monospace">Hack Nerd Font</option>
-              <option value="'SF Mono', 'Menlo', 'Fira Code', 'Cascadia Code', monospace">Sistema</option>
-              <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
-              <option value="'Fira Code', monospace">Fira Code</option>
-              <option value="'Cascadia Code', 'Cascadia Mono', monospace">Cascadia Code</option>
-              <option value="'Source Code Pro', monospace">Source Code Pro</option>
-              <option value="'Ubuntu Mono', monospace">Ubuntu Mono</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="settings-section">
-          <h3 data-i18n="settings.icons.title">Explorador de archivos</h3>
-          <div class="settings-row">
-            <span class="settings-label" data-i18n="settings.icons.label">Estilo de íconos</span>
-            <div class="settings-segmented">
-              <button class="settings-seg-btn" data-setting="iconTheme" data-value="seti" data-i18n="settings.icons.svg">SVG Outline</button>
-              <button class="settings-seg-btn" data-setting="iconTheme" data-value="badge" data-i18n="settings.icons.badge">Badge</button>
+          <div class="settings-sub">
+            <h3 data-i18n="settings.icons.title">Explorador de archivos</h3>
+            <div class="settings-row">
+              <span class="settings-label" data-i18n="settings.icons.label">Estilo de íconos</span>
+              <div class="settings-segmented">
+                <button class="settings-seg-btn" data-setting="iconTheme" data-value="seti" data-i18n="settings.icons.svg">SVG Outline</button>
+                <button class="settings-seg-btn" data-setting="iconTheme" data-value="badge" data-i18n="settings.icons.badge">Badge</button>
+              </div>
             </div>
           </div>
         </div>
