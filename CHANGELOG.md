@@ -8,10 +8,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### Fase 4 — En progreso
-Próximo paso: soporte fish, landing page, firma de código macOS.
+Próximo paso: PowerShell (4º shell), landing page, firma de código macOS.
 
 ### Agregado
-- **Bash hook con paridad de overlays** (`bash-hook.bash`): ahora emite OSC 133 A al FINAL de PS1 (no en precmd) para posicionar correctamente los overlays de pill/ribbon/rail/block; OSC 6731 + 133 D ya estaban. Presets con info line (path · git · hora) por preset. fzf integrado (Ctrl+R, Option+C).
+- **Soporte fish** (`prompt.fish`): `fish_prompt` con los 5 presets + OSC 6731/133 A/D. fish trae syntax highlighting y autosuggestions NATIVOS (sin plugins). `pty.rs` spawnea fish con `-C "source <hook>"` (corre después de `config.fish`). fzf integrado (Ctrl+R, Alt+C). Validado en fish 4.7.1.
+- **Bash hook con paridad de overlays** (`bash-hook.bash`): emite OSC 133 A al FINAL de PS1 (no en precmd) para posicionar overlays de pill/ribbon/rail/block; info line (path · git · hora) por preset; fzf integrado. (Sin autosuggestions/highlighting — son plugins solo-zsh.)
+
+### Cambiado
+- **Binarios fzf reestructurados** a subdir por plataforma con nombre `fzf` (`bin/darwin-arm64/fzf`, etc.) en vez de `fzf-darwin-arm64`. El dir se añade al PATH → `fzf` es un comando real en las 3 shells, **sin función wrapper**. Necesario para fish (su integración valida `command -q fzf`, que no encuentra funciones) y más limpio en zsh/bash.
 
 ### Corregido
 - **Bash: escapes de color sin envolver** — `_ocote_git`/`_ocote_arrow` emitían ANSI crudo vía `$(...)`; en bash eso desfasa el cursor (mismo gotcha que el OSC en zsh). Ahora envueltos en `\001`/`\002` (equivalente byte-level de `\[ \]`, que no funciona dentro de command substitution).

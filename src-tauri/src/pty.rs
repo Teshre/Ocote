@@ -93,15 +93,18 @@ fn resolve_resource(window: &tauri::Window, rel: &str) -> Option<std::path::Path
     None
 }
 
-/// Selecciona el nombre del binario de fzf según plataforma y arquitectura.
+/// Ruta (relativa a src-tauri/) del binario fzf según plataforma y arquitectura.
+/// El binario se llama literalmente `fzf` (o `fzf.exe`) dentro de un subdir por
+/// plataforma, para que al añadir ese dir al PATH `fzf` sea un comando real —
+/// requisito de la integración de fish (`command -q fzf`) y más limpio en todas.
 /// Devuelve cadena vacía si la combinación no está soportada.
 fn fzf_binary_name() -> &'static str {
     match (std::env::consts::OS, std::env::consts::ARCH) {
-        ("macos",   "aarch64") => "resources/bin/fzf-darwin-arm64",
-        ("macos",   "x86_64")  => "resources/bin/fzf-darwin-x64",
-        ("linux",   "x86_64")  => "resources/bin/fzf-linux-x64",
-        ("linux",   "aarch64") => "resources/bin/fzf-linux-arm64",
-        ("windows", "x86_64")  => "resources/bin/fzf-win-x64.exe",
+        ("macos",   "aarch64") => "resources/bin/darwin-arm64/fzf",
+        ("macos",   "x86_64")  => "resources/bin/darwin-x64/fzf",
+        ("linux",   "x86_64")  => "resources/bin/linux-x64/fzf",
+        ("linux",   "aarch64") => "resources/bin/linux-arm64/fzf",
+        ("windows", "x86_64")  => "resources/bin/win-x64/fzf.exe",
         _ => "",
     }
 }
@@ -113,6 +116,8 @@ struct ShellResources {
     zsh_hook:        Option<std::path::PathBuf>,
     zsh_hl:          Option<std::path::PathBuf>,
     bash_hook:       Option<std::path::PathBuf>,
+    /// Hook de prompt para fish (prompt.fish).
+    fish_hook:       Option<std::path::PathBuf>,
     /// Binario de fzf para la plataforma actual.
     fzf_bin:         Option<std::path::PathBuf>,
     /// Plugin zsh-autosuggestions (archivo .zsh principal).
@@ -128,6 +133,7 @@ fn resolve_shell_resources(window: &tauri::Window) -> Option<ShellResources> {
         window, "resources/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh",
     );
     let bash_hook = resolve_resource(window, "resources/shell/bash-hook.bash");
+    let fish_hook = resolve_resource(window, "resources/shell/prompt.fish");
 
     // fzf: seleccionar el binario correcto para esta plataforma/arquitectura
     let fzf_name = fzf_binary_name();
@@ -142,7 +148,7 @@ fn resolve_shell_resources(window: &tauri::Window) -> Option<ShellResources> {
         window, "resources/zsh-autosuggestions/zsh-autosuggestions.zsh",
     );
 
-    Some(ShellResources { shell_dir, zsh_hook, zsh_hl, bash_hook, fzf_bin, zsh_autosuggest })
+    Some(ShellResources { shell_dir, zsh_hook, zsh_hl, bash_hook, fish_hook, fzf_bin, zsh_autosuggest })
 }
 
 // ── create_shell ──────────────────────────────────────────────────────────
@@ -208,15 +214,20 @@ pub fn create_shell(
         cmd.env("OCOTE_ACCENT", &accent_val);
 
         if let Some(res) = resolve_shell_resources(&window) {
-            // fzf: disponible en macOS, Linux y Windows
+            // fzf: disponible en macOS, Linux y Windows.
+            // El binario se llama `fzf` dentro de un subdir por plataforma.
+            // Añadimos ese dir al PATH para que `fzf` sea un comando real en
+            // TODAS las shells (requisito de la integración de fish, que valida
+            // `command -q fzf`; y más limpio que la función wrapper anterior).
             if let Some(fzf) = &res.fzf_bin {
-                let fzf_path = fzf.to_string_lossy().to_string();
-                cmd.env("OCOTE_FZF_BIN", &fzf_path);
-                // En Windows añadir al PATH para que cmd/PowerShell encuentren el binario
-                #[cfg(target_os = "windows")]
-                if let Some(parent) = fzf.parent() {
+                cmd.env("OCOTE_FZF_BIN", fzf.to_string_lossy().to_string());
+                if let Some(dir) = fzf.parent() {
                     let cur = std::env::var("PATH").unwrap_or_default();
-                    cmd.env("PATH", format!("{};{}", parent.to_string_lossy(), cur));
+                    #[cfg(target_os = "windows")]
+                    let sep = ";";
+                    #[cfg(not(target_os = "windows"))]
+                    let sep = ":";
+                    cmd.env("PATH", format!("{}{}{}", dir.to_string_lossy(), sep, cur));
                 }
             }
 
@@ -243,6 +254,13 @@ pub fn create_shell(
                     if let Some(bash_hook) = &res.bash_hook {
                         cmd.arg("--rcfile");
                         cmd.arg(bash_hook.to_string_lossy().to_string());
+                    }
+                } else if shell_cmd.contains("fish") {
+                    // fish no tiene --rcfile. Usamos -C "source <hook>", que corre
+                    // DESPUÉS de config.fish del usuario → nuestro fish_prompt gana.
+                    if let Some(fish_hook) = &res.fish_hook {
+                        cmd.arg("-C");
+                        cmd.arg(format!("source '{}'", fish_hook.to_string_lossy()));
                     }
                 }
             }

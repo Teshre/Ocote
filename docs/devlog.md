@@ -5,6 +5,58 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-05-31 — Sesión 12: soporte fish + refactor de binarios fzf
+
+**Estado al inicio:** Sesión 11 dejó zsh completo y bash con prompt+overlays+fzf. El objetivo: añadir fish, el 3er shell (popular entre devs jóvenes, target de Ocote).
+
+### Por qué fish es el caso más fácil
+
+fish trae **syntax highlighting y autosuggestions NATIVOS** (built-in, sin plugins). Así que para fish solo había que: definir `fish_prompt` con los presets + emitir los OSC. Nada de bundlear plugins como en zsh.
+
+### `prompt.fish`
+
+- `fish_prompt` con los 5 presets (pill/block/minimal/ribbon/rail) + OSC 6731 (metadata) + OSC 133 D (al inicio, fin de comando) + OSC 133 A (al final, cursor en ❯).
+- Ventaja de fish: calcula el ancho del prompt interpretando los escapes él mismo → NO necesita los marcadores `%{ %}` (zsh) ni `\[ \]` (bash). Sin el gotcha de cursor desfasado.
+- `pty.rs`: fish no tiene `--rcfile`; se usa `fish -C "source <hook>"` que corre DESPUÉS de `config.fish` del usuario → nuestro `fish_prompt` sobrescribe el suyo.
+
+### El hallazgo clave: `command -q fzf` en fish
+
+La integración `fzf --fish` define `fzf_key_bindings` con un guard: `if not command -q fzf; return`. **`command -q` de fish solo busca ejecutables en PATH, NO funciones.** Como nuestro binario se llamaba `fzf-darwin-arm64` y usábamos una función wrapper `fzf()`, el guard fallaba y las bindings nunca se instalaban.
+
+**Solución universal (refactor):** renombrar los binarios a `fzf` dentro de subdirs por plataforma:
+```
+resources/bin/darwin-arm64/fzf   (antes: fzf-darwin-arm64)
+resources/bin/darwin-x64/fzf
+resources/bin/linux-x64/fzf
+resources/bin/linux-arm64/fzf
+resources/bin/win-x64/fzf.exe
+```
+`pty.rs` añade el dir al PATH → `fzf` es un comando real en las 3 shells. Se eliminaron las funciones wrapper de zsh/bash/fish. Más limpio y consistente.
+
+**Lección:** cuando varias shells necesitan un binario "como si estuviera instalado", la forma robusta es ponerlo en PATH con su nombre real, no funciones wrapper (que no todas las shells resuelven igual — fish `command -q` las ignora).
+
+### Validación
+
+Se instaló fish 4.7.1 (brew) para validar de verdad:
+- `fish --no-execute prompt.fish` → sintaxis OK.
+- Smoke test: `fish_prompt` emite OSC 133 D + 6731 + info line + ❯ + OSC 133 A. ✅
+- fzf: `command -q fzf` = true, Ctrl+R → fzf-history-widget, Alt+C → fzf-cd-widget, Ctrl+T libre. ✅
+- Re-validación zsh (shell del usuario) tras quitar el wrapper: fzf en PATH, Ctrl+R/Alt+C OK, Ctrl+T libre, sin regresión. ✅
+
+### Decisiones
+
+- **Instalar fish para validar** (en vez de commitear a ciegas): tras una sesión 11 llena de bugs de shell, validar contra un fish real evitó otra ronda de ida y vuelta. Encontró el bug de `command -q` que el balance-check de bloques no habría detectado.
+- **No bundlear plugins para fish**: sus built-ins (highlighting + autosuggestions) ya cubren lo que en zsh requiere 2 plugins.
+
+### Pendientes
+
+- **PowerShell** (4º shell) — paradigma muy distinto, esfuerzo alto. Solo si hay demanda en Windows.
+- Verificar ícono del dock + todo lo bundleado en build de producción (`pnpm tauri build`).
+
+**Próximo paso:** verificar build de producción, o PowerShell si se prioriza Windows.
+
+---
+
 ## 2026-05-30 — Sesión 11: fzf + zsh-autosuggestions out-of-the-box, nuevos ajustes y fixes de shell
 
 **Estado al inicio:** Sesión 10 cerró con el body overlay de Block/Rail y el Settings rediseñado. Ocote ya traía zsh-syntax-highlighting bundleado. El objetivo de esta sesión: hacer Ocote "ready out of the box" integrando los plugins que los devs siempre instalan después (fzf, autosuggestions), añadir ajustes de terminal, y el selector de ícono light/dark.

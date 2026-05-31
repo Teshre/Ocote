@@ -117,10 +117,11 @@ esac
 #   Alt+C  → cd interactivo con fuzzy search  (requiere macOptionIsMeta en xterm.js)
 #   Ctrl+T → DESHABILITADO (conflicto con nueva pestaña de Ocote)
 if [[ -n "$OCOTE_FZF_BIN" && -x "$OCOTE_FZF_BIN" ]]; then
-  # Wrapper 'fzf' → binario real (el binario está nombrado fzf-linux-x64 etc.)
-  fzf() { command "$OCOTE_FZF_BIN" "$@"; }
-  export -f fzf  # exportar la función a subshells (pipas, subcomandos)
-  eval "$("$OCOTE_FZF_BIN" --bash 2>/dev/null)"
+  # El binario `fzf` vive en resources/bin/<plataforma>/fzf. Añadir ese dir al
+  # PATH lo hace un comando real (sin wrapper). Se reasegura aquí por si el
+  # .bashrc del usuario reseteó PATH.
+  export PATH="${OCOTE_FZF_BIN%/*}:$PATH"
+  eval "$(fzf --bash 2>/dev/null)"
   bind -r '"\C-t"' 2>/dev/null
   export FZF_DEFAULT_OPTS="
     --height=40% --layout=reverse --border=rounded

@@ -75,8 +75,9 @@ ckb/
 - **Sistema de prompt nativo** con overlay HTML propio + 5 presets ✅
 - **Body overlay Block/Rail**: cubre visualmente toda la salida del comando (no solo header) ✅
 - **Zsh-syntax-highlighting** bundleado (BSD) ✅
-- **fzf v0.73.1** bundleado (Ctrl+R historial, Option+C cd fuzzy) — 5 plataformas ✅
+- **fzf v0.73.1** bundleado (Ctrl+R historial, Option+C/Alt+C cd fuzzy) — 5 plataformas ✅
 - **zsh-autosuggestions v0.7.0** bundleado (texto fantasma, → acepta estilo fish) ✅
+- **Soporte 3 shells**: zsh (completo), bash (prompt+overlays+fzf), fish (prompt+overlays+fzf, highlighting/suggestions nativos) ✅
 - **Ícono light/dark** seleccionable en Settings (`set_app_icon`) ✅
 - **Ajustes de terminal**: tamaño de fuente, cursor, scrollback ✅
 
@@ -161,6 +162,12 @@ Todo escape no-imprimible en `PROMPT` (como OSC 133 A) DEBE ir envuelto en `%{ %
 
 **Bash hook (`bash-hook.bash`) — paridad con zsh:**
 Cargado vía `bash --rcfile` cuando `$SHELL` es bash. Emite OSC 6731 + 133 D en `_ocote_precmd` (PROMPT_COMMAND) y OSC 133 A al FINAL de PS1 (NO en precmd — el cursor debe estar en la fila del ❯ para el overlay). Gotcha bash: `\[ \]` solo funciona en la cadena PS1 directa, NO dentro de `$(...)`. Las funciones dinámicas (`_ocote_git`, `_ocote_arrow`) envuelven sus escapes en `\001`/`\002` (bytes SOH/STX = `\[`/`\]`). Bash NO tiene autosuggestions (plugin solo-zsh); sí tiene fzf. Probar bash en Ocote: lanzar con `SHELL=/bin/bash pnpm tauri dev`.
+
+**Fish hook (`prompt.fish`):**
+Cargado vía `fish -C "source <hook>"` (corre DESPUÉS de `config.fish` → nuestro `fish_prompt` gana). fish trae syntax highlighting y autosuggestions NATIVOS — no se bundlean plugins. `fish_prompt` emite OSC 6731/133 D al inicio y OSC 133 A al final (cursor en ❯). fish calcula el ancho del prompt interpretando los escapes él mismo → NO necesita marcadores `%{ %}`/`\[ \]`. Probar: `SHELL=$(which fish) pnpm tauri dev`.
+
+**fzf — binarios por plataforma en PATH (NO wrapper):**
+Los binarios viven en `resources/bin/<plataforma>/fzf` (darwin-arm64, darwin-x64, linux-x64, linux-arm64, win-x64). `pty.rs` añade el dir al PATH → `fzf` es comando real en las 3 shells. Cada hook re-añade el dir al PATH (por si el config del usuario lo resetea). Razón del rename desde `fzf-<plat>`: la integración de fish valida `command -q fzf`, que solo busca ejecutables en PATH (no funciones), así que la función wrapper anterior no servía en fish.
 
 **fzf bundleado:**
 El binario se llama `fzf-darwin-arm64` (etc.), NO `fzf`. Una función shell `fzf() { command "$OCOTE_FZF_BIN" "$@"; }` permite que la integración y el usuario lo llamen como `fzf`. `Ctrl+T` se desactiva (`bindkey -r "^T"`) porque Ocote lo usa para nueva pestaña. `macOptionIsMeta:true` en xterm.js es necesario para Option+C en macOS.
@@ -272,9 +279,14 @@ Los renders NO hardcodean colores. Todos usan `OCOTE_THEMES.getCurrentTokens()` 
 ✅ **Fix explorador "ruta no existe"**: sync vía OSC 6731 cwd real (no adivinanza del cd).
 ✅ **pty.rs cross-platform**: Windows recibe OCOTE_FZF_BIN.
 
+**Fase 4 — Avance al 2026-05-31 (sesión 12):**
+✅ **Soporte fish** (`prompt.fish`): fish_prompt con 5 presets + OSC 6731/133. Highlighting + autosuggestions nativos de fish. Validado en fish 4.7.1.
+✅ **Refactor binarios fzf**: `bin/<plataforma>/fzf` + PATH (sin wrapper). Arregla `command -q fzf` de fish y simplifica zsh/bash.
+✅ **3 shells soportados**: zsh, bash, fish.
+
 **Próximo paso — Fase 4:**
-1. **Bash hook completo** (paridad OSC con zsh) → luego fish → PowerShell (4 shells)
-2. Verificar cambio de ícono del dock en build de producción
+1. Verificar build de producción (`pnpm tauri build`) — ícono del dock + recursos bundleados
+2. PowerShell (4º shell) — solo si se prioriza Windows (paradigma muy distinto)
 3. Landing page / sitio web
 4. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
 5. Auto-updater

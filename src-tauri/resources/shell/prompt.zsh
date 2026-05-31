@@ -151,16 +151,14 @@ esac
 #   Alt+C   → cd interactivo con fuzzy search de directorios
 #   Ctrl+T  → DESHABILITADO (conflicto con Ctrl+T = nueva pestaña en Ocote)
 if [[ -n "$OCOTE_FZF_BIN" && -x "$OCOTE_FZF_BIN" ]]; then
-  # El binario se llama fzf-darwin-arm64 (etc.) para bundling multiplataforma,
-  # pero fzf's propia integración llama a 'fzf' por nombre.
-  # Definimos una función 'fzf' que delega al binario real — esto hace que:
-  #   1. Los widgets fzf-history-widget, fzf-cd-widget funcionen
-  #   2. El usuario puede llamar 'fzf' directamente desde el shell
-  #   3. Las pipas (echo "x" | fzf) también funcionan (funciones en zsh están en subshells)
-  fzf() { command "$OCOTE_FZF_BIN" "$@"; }
+  # El binario `fzf` vive en un subdir por plataforma (resources/bin/<plat>/fzf).
+  # Añadir ese dir al PATH lo hace un comando real (sin función wrapper) — así
+  # `fzf` funciona en pipas, subshells y la integración de cada shell.
+  # Se hace en el hook (no solo en pty.rs) por si el config del usuario reseteó PATH.
+  export PATH="${OCOTE_FZF_BIN%/*}:$PATH"
 
   # fzf --zsh genera el código de integración para zsh (keybindings + completion)
-  eval "$("$OCOTE_FZF_BIN" --zsh 2>/dev/null)"
+  eval "$(fzf --zsh 2>/dev/null)"
 
   # Tab (^I): fzf lo reasigna a fzf-completion, lo restauramos al completado
   # normal de zsh. Así Tab completa normalmente y no entra en conflicto con
