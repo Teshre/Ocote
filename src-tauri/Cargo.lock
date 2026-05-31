@@ -1918,6 +1918,8 @@ dependencies = [
 name = "ocote"
 version = "0.5.4"
 dependencies = [
+ "cocoa",
+ "objc",
  "portable-pty",
  "rusqlite",
  "serde",

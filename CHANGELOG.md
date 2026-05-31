@@ -19,6 +19,8 @@ Próximo paso: PowerShell (4º shell), landing page, firma de código macOS.
 
 ### Corregido
 - **Bash: escapes de color sin envolver** — `_ocote_git`/`_ocote_arrow` emitían ANSI crudo vía `$(...)`; en bash eso desfasa el cursor (mismo gotcha que el OSC en zsh). Ahora envueltos en `\001`/`\002` (equivalente byte-level de `\[ \]`, que no funciona dentro de command substitution).
+- **Ícono del dock no cambiaba en macOS** — `window.set_icon()` de Tauri v1 es no-op en el dock de macOS (no hay íconos por-ventana). Ahora `set_app_icon` usa una rama nativa vía objc: `[[NSApplication sharedApplication] setApplicationIconImage: img]` (crates `cocoa`/`objc`). Win/Linux siguen con `set_icon`.
+- **Íconos demasiado grandes en el Dock de macOS** — el master era borde-a-borde; macOS espera el arte a 824×824 centrado (margen de 100px) o el ícono se ve más grande que las apps nativas. Regenerados bundle (`pnpm tauri icon`) + runtime swap + preview desde los masters con margen de `Ocote design/export/icons/macos/`. Light/dark se mantienen gemelos (diferencia óptica aceptable, decisión de diseño).
 
 ---
 

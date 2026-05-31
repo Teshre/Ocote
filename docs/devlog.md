@@ -55,6 +55,28 @@ Se instaló fish 4.7.1 (brew) para validar de verdad:
 
 **Próximo paso:** verificar build de producción, o PowerShell si se prioriza Windows.
 
+### Build de producción + fixes de ícono (cierre de sesión 12)
+
+Se corrió `pnpm tauri build` para verificar el empaquetado real:
+- `.app` 34MB, `.dmg` 15MB (comprimido). Exit 0.
+- Confirmado que todos los recursos (fzf, zsh-autosuggestions, syntax-highlighting, los 5 hooks de shell, íconos) quedan dentro del `.app` y `resolve_resource` los encuentra desde el bundle (no desde `target/debug`).
+- Prompt, fzf (Ctrl+R/Alt+C), autosuggestions y syntax highlighting funcionan en el `.app` empaquetado.
+
+**Bug: el ícono del dock no cambiaba (ni en producción).**
+Causa raíz: `window.set_icon()` de Tauri v1 es **no-op en el dock de macOS** — macOS no tiene íconos por-ventana, el dock se controla con `NSApplication`. "Compilaba y corría sin error" pero no hacía nada. Fix: rama nativa vía objc:
+```rust
+[[NSApplication sharedApplication] setApplicationIconImage: img]
+```
+Crates `cocoa`/`objc` (ya en el árbol vía tauri, declaradas target-specific en Cargo.toml). Win/Linux mantienen `set_icon`. **Lección:** en macOS muchas operaciones de "app chrome" (dock, menú) requieren objc directo; las APIs cross-platform de Tauri a veces son no-ops silenciosos en macOS.
+
+**Bug: ícono se veía más grande que apps nativas en el Dock.**
+Claude Design lo aclaró (README-ICONOS-OS.md): el master era borde-a-borde, pero macOS espera el arte a 824×824 centrado en 1024 (margen 100px). Fix: regenerar desde los masters con margen (`Ocote design/export/icons/macos/`):
+- Bundle: `pnpm tauri icon <master-dark>` (dark = default de la app, sin flash al arrancar).
+- Runtime swap (`resources/icons/`) + preview (`frontend/icons/`): copiados/escalados desde los masters con margen.
+- Light/dark se mantienen gemelos — la diferencia de tamaño percibida es irradiación óptica (símbolo claro sobre fondo oscuro se "expande"), decisión de diseño de no corregir.
+
+**Pendiente menor anotado:** el `.app` de cada plataforma bundlea los 5 binarios de fzf (~19MB de peso muerto en macOS). Optimización futura: bundling condicional por plataforma.
+
 ---
 
 ## 2026-05-30 — Sesión 11: fzf + zsh-autosuggestions out-of-the-box, nuevos ajustes y fixes de shell

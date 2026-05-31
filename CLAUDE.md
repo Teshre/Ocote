@@ -163,6 +163,12 @@ Todo escape no-imprimible en `PROMPT` (como OSC 133 A) DEBE ir envuelto en `%{ %
 **Bash hook (`bash-hook.bash`) — paridad con zsh:**
 Cargado vía `bash --rcfile` cuando `$SHELL` es bash. Emite OSC 6731 + 133 D en `_ocote_precmd` (PROMPT_COMMAND) y OSC 133 A al FINAL de PS1 (NO en precmd — el cursor debe estar en la fila del ❯ para el overlay). Gotcha bash: `\[ \]` solo funciona en la cadena PS1 directa, NO dentro de `$(...)`. Las funciones dinámicas (`_ocote_git`, `_ocote_arrow`) envuelven sus escapes en `\001`/`\002` (bytes SOH/STX = `\[`/`\]`). Bash NO tiene autosuggestions (plugin solo-zsh); sí tiene fzf. Probar bash en Ocote: lanzar con `SHELL=/bin/bash pnpm tauri dev`.
 
+**Ícono del dock en macOS (`set_app_icon` en main.rs):**
+`window.set_icon()` de Tauri v1 NO afecta el dock en macOS (no hay íconos por-ventana). Hay rama nativa vía objc: `[[NSApplication sharedApplication] setApplicationIconImage:]` (crates `cocoa`/`objc`, target-specific en Cargo.toml). Dura solo la sesión; el frontend re-aplica la preferencia al arrancar. Win/Linux usan `set_icon` con `Icon::Raw`.
+
+**Encuadre de íconos por OS (README-ICONOS-OS.md en Ocote design):**
+macOS espera el arte a 824×824 centrado en 1024 (margen 100px) o el ícono se ve más grande que las apps nativas. Los masters con margen están en `Ocote design/export/icons/macos/ocote-macos-1024{,-dark}.png`. Para regenerar el bundle: `pnpm tauri icon <master-dark>` (dark = default de la app). Los íconos del runtime swap (`resources/icons/icon-{light,dark}.png/.icns`) y el preview (`frontend/icons/`) también usan los masters con margen. Light/dark son gemelos geométricos a propósito (la diferencia de tamaño percibida es irradiación óptica, NO se corrige).
+
 **Fish hook (`prompt.fish`):**
 Cargado vía `fish -C "source <hook>"` (corre DESPUÉS de `config.fish` → nuestro `fish_prompt` gana). fish trae syntax highlighting y autosuggestions NATIVOS — no se bundlean plugins. `fish_prompt` emite OSC 6731/133 D al inicio y OSC 133 A al final (cursor en ❯). fish calcula el ancho del prompt interpretando los escapes él mismo → NO necesita marcadores `%{ %}`/`\[ \]`. Probar: `SHELL=$(which fish) pnpm tauri dev`.
 
@@ -283,10 +289,13 @@ Los renders NO hardcodean colores. Todos usan `OCOTE_THEMES.getCurrentTokens()` 
 ✅ **Soporte fish** (`prompt.fish`): fish_prompt con 5 presets + OSC 6731/133. Highlighting + autosuggestions nativos de fish. Validado en fish 4.7.1.
 ✅ **Refactor binarios fzf**: `bin/<plataforma>/fzf` + PATH (sin wrapper). Arregla `command -q fzf` de fish y simplifica zsh/bash.
 ✅ **3 shells soportados**: zsh, bash, fish.
+✅ **Build de producción verificado** (`pnpm tauri build`): .app 34MB / .dmg 15MB; todos los recursos (fzf, plugins, hooks, íconos) bundleados y resueltos desde el .app.
+✅ **Fix ícono del dock en macOS**: rama nativa objc `setApplicationIconImage:` (window.set_icon es no-op en dock macOS).
+✅ **Fix encuadre de íconos macOS**: regenerados con margen 824/1024 (antes borde-a-borde se veía más grande que apps nativas).
 
 **Próximo paso — Fase 4:**
-1. Verificar build de producción (`pnpm tauri build`) — ícono del dock + recursos bundleados
-2. PowerShell (4º shell) — solo si se prioriza Windows (paradigma muy distinto)
+1. PowerShell (4º shell) — solo si se prioriza Windows (paradigma muy distinto)
+2. Optimización: bundlear solo el fzf de cada plataforma (hoy el .app lleva los 5, ~19MB de peso muerto)
 3. Landing page / sitio web
 4. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
 5. Auto-updater
