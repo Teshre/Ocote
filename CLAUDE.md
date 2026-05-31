@@ -159,6 +159,9 @@ Si autosuggestions cargara antes que syntax-highlighting, al aceptar una sugeren
 **OSC en PROMPT de zsh — gotcha clásico:**
 Todo escape no-imprimible en `PROMPT` (como OSC 133 A) DEBE ir envuelto en `%{ %}` (bash: `\[ \]`). Si no, zsh cuenta sus bytes como columnas visibles → cursor desfasado → texto fantasma, duplicados al pegar, artefactos en historial.
 
+**Bash hook (`bash-hook.bash`) — paridad con zsh:**
+Cargado vía `bash --rcfile` cuando `$SHELL` es bash. Emite OSC 6731 + 133 D en `_ocote_precmd` (PROMPT_COMMAND) y OSC 133 A al FINAL de PS1 (NO en precmd — el cursor debe estar en la fila del ❯ para el overlay). Gotcha bash: `\[ \]` solo funciona en la cadena PS1 directa, NO dentro de `$(...)`. Las funciones dinámicas (`_ocote_git`, `_ocote_arrow`) envuelven sus escapes en `\001`/`\002` (bytes SOH/STX = `\[`/`\]`). Bash NO tiene autosuggestions (plugin solo-zsh); sí tiene fzf. Probar bash en Ocote: lanzar con `SHELL=/bin/bash pnpm tauri dev`.
+
 **fzf bundleado:**
 El binario se llama `fzf-darwin-arm64` (etc.), NO `fzf`. Una función shell `fzf() { command "$OCOTE_FZF_BIN" "$@"; }` permite que la integración y el usuario lo llamen como `fzf`. `Ctrl+T` se desactiva (`bindkey -r "^T"`) porque Ocote lo usa para nueva pestaña. `macOptionIsMeta:true` en xterm.js es necesario para Option+C en macOS.
 

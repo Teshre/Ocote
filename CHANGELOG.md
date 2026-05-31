@@ -8,7 +8,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### Fase 4 — En progreso
-Próximo paso: landing page, firma de código macOS, cambio de ícono del dock en runtime (verificar en build de producción).
+Próximo paso: soporte fish, landing page, firma de código macOS.
+
+### Agregado
+- **Bash hook con paridad de overlays** (`bash-hook.bash`): ahora emite OSC 133 A al FINAL de PS1 (no en precmd) para posicionar correctamente los overlays de pill/ribbon/rail/block; OSC 6731 + 133 D ya estaban. Presets con info line (path · git · hora) por preset. fzf integrado (Ctrl+R, Option+C).
+
+### Corregido
+- **Bash: escapes de color sin envolver** — `_ocote_git`/`_ocote_arrow` emitían ANSI crudo vía `$(...)`; en bash eso desfasa el cursor (mismo gotcha que el OSC en zsh). Ahora envueltos en `\001`/`\002` (equivalente byte-level de `\[ \]`, que no funciona dentro de command substitution).
 
 ---
 
