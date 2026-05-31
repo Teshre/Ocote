@@ -18,8 +18,8 @@ use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::sync::Mutex;
-#[cfg(not(target_os = "windows"))]
-use tauri::Manager; // trait que provee window.app_handle()
+// Manager se necesita en todas las plataformas para resolve_resource + set_icon
+use tauri::Manager;
 
 // ── Estado de un shell individual ────────────────────────────────────────
 
@@ -80,7 +80,6 @@ struct PtyExit {
 
 /// Resuelve un recurso bundleado por ruta relativa a src-tauri/.
 /// Prod: recurso del .app (path_resolver). Dev: relativo a CARGO_MANIFEST_DIR.
-#[cfg(not(target_os = "windows"))]
 fn resolve_resource(window: &tauri::Window, rel: &str) -> Option<std::path::PathBuf> {
     if let Some(p) = window.app_handle().path_resolver().resolve_resource(rel) {
         if p.exists() {
@@ -94,43 +93,56 @@ fn resolve_resource(window: &tauri::Window, rel: &str) -> Option<std::path::Path
     None
 }
 
+/// Selecciona el nombre del binario de fzf según plataforma y arquitectura.
+/// Devuelve cadena vacía si la combinación no está soportada.
+fn fzf_binary_name() -> &'static str {
+    match (std::env::consts::OS, std::env::consts::ARCH) {
+        ("macos",   "aarch64") => "resources/bin/fzf-darwin-arm64",
+        ("macos",   "x86_64")  => "resources/bin/fzf-darwin-x64",
+        ("linux",   "x86_64")  => "resources/bin/fzf-linux-x64",
+        ("linux",   "aarch64") => "resources/bin/fzf-linux-arm64",
+        ("windows", "x86_64")  => "resources/bin/fzf-win-x64.exe",
+        _ => "",
+    }
+}
+
 /// Información de rutas de recursos bundleados de Ocote para inyectar al shell.
 /// Los archivos son ESTÁTICOS (no se generan en runtime) — Tauri los bundlea.
-#[cfg(not(target_os = "windows"))]
 struct ShellResources {
-    /// Directorio que se usará como ZDOTDIR para zsh.
-    /// Contiene .zshenv y .zshrc bundleados de Ocote.
-    shell_dir: std::path::PathBuf,
-    /// Path al hook de prompt de zsh (prompt.zsh).
-    /// Se pasa como OCOTE_PROMPT_HOOK para que .zshrc lo sourcee.
-    zsh_hook: Option<std::path::PathBuf>,
-    /// Path al archivo principal de zsh-syntax-highlighting.
-    /// Se pasa como OCOTE_ZSH_HL para que .zshrc lo sourcee al final.
-    zsh_hl: Option<std::path::PathBuf>,
-    /// Path al hook para bash (bash no tiene ZDOTDIR, usa --rcfile).
-    bash_hook: Option<std::path::PathBuf>,
+    shell_dir:       std::path::PathBuf,
+    zsh_hook:        Option<std::path::PathBuf>,
+    zsh_hl:          Option<std::path::PathBuf>,
+    bash_hook:       Option<std::path::PathBuf>,
+    /// Binario de fzf para la plataforma actual.
+    fzf_bin:         Option<std::path::PathBuf>,
+    /// Plugin zsh-autosuggestions (archivo .zsh principal).
+    zsh_autosuggest: Option<std::path::PathBuf>,
 }
 
 /// Resuelve los recursos bundleados de shell. Devuelve None si el directorio
 /// principal (resources/shell) no existe — caso de degradación segura.
-#[cfg(not(target_os = "windows"))]
 fn resolve_shell_resources(window: &tauri::Window) -> Option<ShellResources> {
-    // El directorio ZDOTDIR con los bootstraps .zshenv/.zshrc de zsh
     let shell_dir = resolve_resource(window, "resources/shell")?;
-
-    // Hook de prompt de zsh (el .zshrc bootstrap lo sourcea vía OCOTE_PROMPT_HOOK)
-    let zsh_hook = resolve_resource(window, "resources/shell/prompt.zsh");
-
-    // Syntax highlighting (opcional — si no existe, el shell arranca igual)
-    let zsh_hl = resolve_resource(
-        window,
-        "resources/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh",
+    let zsh_hook  = resolve_resource(window, "resources/shell/prompt.zsh");
+    let zsh_hl    = resolve_resource(
+        window, "resources/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh",
     );
-
-    // Hook para bash (opcional)
     let bash_hook = resolve_resource(window, "resources/shell/bash-hook.bash");
 
-    Some(ShellResources { shell_dir, zsh_hook, zsh_hl, bash_hook })
+    // fzf: seleccionar el binario correcto para esta plataforma/arquitectura
+    let fzf_name = fzf_binary_name();
+    let fzf_bin  = if fzf_name.is_empty() {
+        None
+    } else {
+        resolve_resource(window, fzf_name)
+    };
+
+    // zsh-autosuggestions: el archivo principal (no el .plugin.zsh)
+    let zsh_autosuggest = resolve_resource(
+        window, "resources/zsh-autosuggestions/zsh-autosuggestions.zsh",
+    );
+
+    Some(ShellResources { shell_dir, zsh_hook, zsh_hl, bash_hook, fzf_bin, zsh_autosuggest })
 }
 
 // ── create_shell ──────────────────────────────────────────────────────────
@@ -182,50 +194,56 @@ pub fn create_shell(
 
     // Ocote: inyectar hooks de prompt via recursos estáticos bundleados.
     //
-    // Técnica para zsh:  apuntar ZDOTDIR a resources/shell/ (contiene .zshenv + .zshrc).
-    //                    El .zshrc sourcea primero la config del usuario, luego instala
-    //                    los hooks de OSC 6731 (datos para el renderer) y el PS1.
+    // Unix (zsh): ZDOTDIR → resources/shell/ (.zshenv + .zshrc bootstrap)
+    // Unix (bash): --rcfile → bash-hook.bash
+    // Windows (cmd/PowerShell): inyectar OCOTE_FZF_BIN al PATH para uso manual;
+    //   el prompt completo se implementará en una futura actualización.
     //
-    // Técnica para bash: bash ignora ZDOTDIR; se usa --rcfile apuntando a bash-hook.bash.
-    //
-    // Fail-safe: si resolve_shell_resources() devuelve None (recurso no encontrado),
-    //            el usuario obtiene su shell normal sin modificaciones.
-    #[cfg(not(target_os = "windows"))]
+    // Fail-safe: si resolve_shell_resources() devuelve None, el shell arranca normal.
     {
         let preset = prompt.as_deref().unwrap_or("pill").to_string();
         let accent_val = accent.as_deref().unwrap_or("E8843A").to_string();
 
-        // Variables comunes a zsh y bash
-        // OCOTE_PROMPT_PRESET — el preset elegido (pill/block/minimal/ribbon/rail/passthrough)
-        // OCOTE_ACCENT        — hex del accent sin # (para colorear ❯ en el preset minimal)
         cmd.env("OCOTE_PROMPT_PRESET", &preset);
         cmd.env("OCOTE_ACCENT", &accent_val);
 
         if let Some(res) = resolve_shell_resources(&window) {
-            // ZDOTDIR real del usuario (o $HOME) para que .zshrc pueda sourcearlo
-            let real_zdotdir = std::env::var("ZDOTDIR")
-                .unwrap_or_else(|_| std::env::var("HOME").unwrap_or_default());
-            cmd.env("_OCOTE_ZDOTDIR", real_zdotdir);
-
-            // OCOTE_PROMPT_HOOK — path a prompt.zsh (el .zshrc bootstrap lo sourcea)
-            if let Some(hook) = &res.zsh_hook {
-                cmd.env("OCOTE_PROMPT_HOOK", hook.to_string_lossy().to_string());
+            // fzf: disponible en macOS, Linux y Windows
+            if let Some(fzf) = &res.fzf_bin {
+                let fzf_path = fzf.to_string_lossy().to_string();
+                cmd.env("OCOTE_FZF_BIN", &fzf_path);
+                // En Windows añadir al PATH para que cmd/PowerShell encuentren el binario
+                #[cfg(target_os = "windows")]
+                if let Some(parent) = fzf.parent() {
+                    let cur = std::env::var("PATH").unwrap_or_default();
+                    cmd.env("PATH", format!("{};{}", parent.to_string_lossy(), cur));
+                }
             }
 
-            // OCOTE_ZSH_HL — path al zsh-syntax-highlighting.zsh (o vacío si no existe)
-            if let Some(hl) = &res.zsh_hl {
-                cmd.env("OCOTE_ZSH_HL", hl.to_string_lossy().to_string());
-            }
+            // Integraciones Unix-only (zsh/bash hooks, syntax highlighting, autosuggestions)
+            #[cfg(not(target_os = "windows"))]
+            {
+                let real_zdotdir = std::env::var("ZDOTDIR")
+                    .unwrap_or_else(|_| std::env::var("HOME").unwrap_or_default());
+                cmd.env("_OCOTE_ZDOTDIR", real_zdotdir);
 
-            if shell_cmd.contains("zsh") {
-                // zsh: apuntar ZDOTDIR a nuestro directorio con los bootstraps estáticos
-                cmd.env("ZDOTDIR", res.shell_dir.to_string_lossy().to_string());
+                if let Some(hook) = &res.zsh_hook {
+                    cmd.env("OCOTE_PROMPT_HOOK", hook.to_string_lossy().to_string());
+                }
+                if let Some(hl) = &res.zsh_hl {
+                    cmd.env("OCOTE_ZSH_HL", hl.to_string_lossy().to_string());
+                }
+                if let Some(autosuggest) = &res.zsh_autosuggest {
+                    cmd.env("OCOTE_ZSH_AUTOSUGGEST", autosuggest.to_string_lossy().to_string());
+                }
 
-            } else if shell_cmd.contains("bash") {
-                // bash: no tiene ZDOTDIR; usar --rcfile apuntando al hook de bash
-                if let Some(bash_hook) = &res.bash_hook {
-                    cmd.arg("--rcfile");
-                    cmd.arg(bash_hook.to_string_lossy().to_string());
+                if shell_cmd.contains("zsh") {
+                    cmd.env("ZDOTDIR", res.shell_dir.to_string_lossy().to_string());
+                } else if shell_cmd.contains("bash") {
+                    if let Some(bash_hook) = &res.bash_hook {
+                        cmd.arg("--rcfile");
+                        cmd.arg(bash_hook.to_string_lossy().to_string());
+                    }
                 }
             }
         }

@@ -81,3 +81,25 @@ case "$OCOTE_PROMPT_PRESET" in
     PS1="${_OC_ACC}\w${_OC_R}\$(_ocote_git)\n\$(_ocote_arrow) "
     ;;
 esac
+
+# ── fzf integration (bash) ────────────────────────────────────────────────────
+# OCOTE_FZF_BIN es inyectado por pty.rs con el binario correcto para esta plataforma.
+# Keybindings activos:
+#   Ctrl+R → historial fuzzy (reemplaza el reverse-search estándar de bash)
+#   Alt+C  → cd interactivo con fuzzy search  (requiere macOptionIsMeta en xterm.js)
+#   Ctrl+T → DESHABILITADO (conflicto con nueva pestaña de Ocote)
+if [[ -n "$OCOTE_FZF_BIN" && -x "$OCOTE_FZF_BIN" ]]; then
+  # Wrapper 'fzf' → binario real (el binario está nombrado fzf-linux-x64 etc.)
+  fzf() { command "$OCOTE_FZF_BIN" "$@"; }
+  export -f fzf  # exportar la función a subshells (pipas, subcomandos)
+  eval "$("$OCOTE_FZF_BIN" --bash 2>/dev/null)"
+  bind -r '"\C-t"' 2>/dev/null
+  export FZF_DEFAULT_OPTS="
+    --height=40% --layout=reverse --border=rounded
+    --prompt='❯ ' --pointer='▶' --marker='✓'
+    --color=fg:#C8C0B0,bg:-1,hl:#E8C03A
+    --color=fg+:#E2D6BD,bg+:#1C1611,hl+:#E8843A
+    --color=border:#524A42,prompt:#E8843A,pointer:#E8843A
+    --color=marker:#7DC97A,spinner:#E8843A,header:#6F6552
+  "
+fi

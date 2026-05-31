@@ -8,7 +8,37 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### Fase 4 — En progreso
-Próximo paso: ícono real de Ocote, landing page, firma de código macOS.
+Próximo paso: landing page, firma de código macOS, cambio de ícono del dock en runtime (verificar en build de producción).
+
+---
+
+## [0.8.0] — 2026-05-30 — fzf + autosuggestions + nuevos ajustes
+
+### Agregado
+- **fzf v0.73.1 bundleado** (`resources/bin/`): binarios para macOS arm64/x64, Linux x64/arm64, Windows x64. `pty.rs` selecciona el binario correcto por plataforma e inyecta `OCOTE_FZF_BIN`.
+  - `Ctrl+R` → búsqueda fuzzy en historial de comandos.
+  - `Option+C` (Alt+C) → cd interactivo con fuzzy search de directorios.
+  - `Ctrl+T` deshabilitado en fzf (conflicto con nueva pestaña de Ocote).
+  - Función wrapper `fzf()` → delega al binario real (que se llama `fzf-darwin-arm64` etc.).
+  - Colores de fzf alineados con la paleta Ocote.
+- **zsh-autosuggestions v0.7.0 bundleado** (`resources/zsh-autosuggestions/`): texto fantasma gris basado en historial.
+  - Flecha `→` acepta la sugerencia **completa** (estilo fish) y la deja en color normal.
+  - Tab completa sin dejar texto fantasma.
+- **Ícono de la app light/dark** (`set_app_icon` en `main.rs`): selector en Settings con preview. PNG + `.icns` bundleados para ambas variantes. (El cambio del dock en runtime requiere build de producción; en dev mode el `.app` no está completo.)
+- **Ajustes de terminal en Settings → General**: tamaño de fuente (stepper 10–20px), estilo de cursor (bloque/línea/barra), historial de líneas (1K/5K/10K). Selector de tipografía movido a General.
+- **`macOptionIsMeta: true`** en xterm.js — necesario para que Option/Alt envíe secuencias ESC (fzf Alt+C, atajos en vim/emacs).
+- **8 strings i18n nuevos** (settings.icon.*, settings.terminal.*) en ES/EN/PT/FR/DE.
+
+### Corregido
+- **Prompt width / cursor desfasado** (`prompt.zsh`): el marcador OSC 133 A no estaba envuelto en `%{ %}`, así que zsh contaba 9 bytes invisibles como columnas visibles. Causaba texto fantasma pegado, caracteres duplicados al pegar y artefactos al navegar historial. Ahora envuelto correctamente.
+- **Color gris al aceptar sugerencia con →**: orden de carga corregido (syntax-highlighting ANTES de autosuggestions, que ahora carga AL FINAL en `.zshrc`) + `region_highlight=()` + `zle redisplay` en el widget de aceptación. El texto aceptado se recolorea normal.
+- **Explorador "ruta no existe"**: el fast-path adivinaba la ruta del `cd` desde las teclas crudas (fallaba con tab-completion/historial). Ahora sincroniza desde el cwd REAL que el shell reporta vía OSC 6731 (`window.onShellCwdChanged`).
+- **Cross-platform en `pty.rs`**: `resolve_resource`/`ShellResources` ya no son Unix-only; Windows recibe `OCOTE_FZF_BIN` y lo añade al PATH.
+- **`Icon::Raw` + feature `icon-png`** en Cargo.toml (requerido para `set_icon` en Tauri v1).
+
+### Cambiado
+- **Settings reorganizado**: General = idioma + terminal + ícono + tipografía. Apariencia = prompt + tema de color + íconos del explorador.
+- **autocomplete.js**: popup posicionado con el cursor real de xterm.js; `write_to_shell` ahora pasa `shellId` (fix multi-tab).
 
 ---
 

@@ -7,20 +7,28 @@
 
   // ── Defaults ────────────────────────────────────────────────────────────
   const DEFAULTS = {
-    theme:     'dark',
-    font:      "'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
-    iconTheme: 'seti',
-    lang:      'es',
-    prompt:    'pill',  // Preset por defecto — firma visual de Ocote
+    theme:       'dark',
+    font:        "'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
+    iconTheme:   'seti',
+    lang:        'es',
+    prompt:      'pill',
+    appIcon:     'dark',
+    fontSize:    14,
+    cursorStyle: 'block',
+    scrollback:  10000,
   };
 
   // ── Estado actual (lee localStorage) ────────────────────────────────────
   const state = {
-    theme:     localStorage.getItem('ocote_theme')      || DEFAULTS.theme,
-    font:      localStorage.getItem('ocote_font')       || DEFAULTS.font,
-    iconTheme: localStorage.getItem('ocote_icon_theme') || DEFAULTS.iconTheme,
-    lang:      localStorage.getItem('ocote_lang')       || DEFAULTS.lang,
-    prompt:    localStorage.getItem('ocote_prompt')     || DEFAULTS.prompt,
+    theme:       localStorage.getItem('ocote_theme')        || DEFAULTS.theme,
+    font:        localStorage.getItem('ocote_font')         || DEFAULTS.font,
+    iconTheme:   localStorage.getItem('ocote_icon_theme')   || DEFAULTS.iconTheme,
+    lang:        localStorage.getItem('ocote_lang')         || DEFAULTS.lang,
+    prompt:      localStorage.getItem('ocote_prompt')       || DEFAULTS.prompt,
+    appIcon:     localStorage.getItem('ocote_app_icon')     || DEFAULTS.appIcon,
+    fontSize:    parseInt(localStorage.getItem('ocote_font_size') || DEFAULTS.fontSize),
+    cursorStyle: localStorage.getItem('ocote_cursor_style') || DEFAULTS.cursorStyle,
+    scrollback:  parseInt(localStorage.getItem('ocote_scrollback') || DEFAULTS.scrollback),
   };
 
   // ── Helpers de aplicación ───────────────────────────────────────────────
@@ -71,12 +79,57 @@
     localStorage.setItem('ocote_prompt', preset);
   }
 
+  // invoke puede estar en window.__TAURI__.invoke o window.__TAURI__.tauri.invoke
+  // según la versión; usamos la misma ruta que terminal.js confirma que funciona.
+  const _invoke = window.__TAURI__?.invoke ?? window.__TAURI__?.tauri?.invoke ?? null;
+
+  function applyAppIcon(variant) {
+    localStorage.setItem('ocote_app_icon', variant);
+    if (_invoke) {
+      _invoke('set_app_icon', { variant }).catch(e => console.warn('set_app_icon:', e));
+    }
+  }
+
+  function applyFontSize(size) {
+    // Clamp entre 10 y 20
+    size = Math.max(10, Math.min(20, size));
+    state.fontSize = size;
+    localStorage.setItem('ocote_font_size', size);
+    const display = document.getElementById('font-size-display');
+    if (display) display.textContent = size + 'px';
+    setXtermOption('fontSize', size);
+    // Re-fit todos los tabs después de cambiar tamaño — cambia las dimensiones de celda
+    if (window.TAB_MANAGER) {
+      window.TAB_MANAGER.getAllTabs().forEach(([, tab]) => {
+        if (tab?.fitAddon) tab.fitAddon.fit();
+      });
+    }
+  }
+
+  function applyCursorStyle(style) {
+    localStorage.setItem('ocote_cursor_style', style);
+    setXtermOption('cursorStyle', style);
+  }
+
+  function applyScrollback(lines) {
+    localStorage.setItem('ocote_scrollback', lines);
+    setXtermOption('scrollback', lines);
+  }
+
   function applyAll() {
     applyTheme(state.theme);
     applyFont(state.font);
     applyIconTheme(state.iconTheme);
     applyLang(state.lang);
     applyPrompt(state.prompt);
+    applyFontSize(state.fontSize);
+    applyCursorStyle(state.cursorStyle);
+    applyScrollback(state.scrollback);
+    // El ícono de la app se aplica al arrancar solo si difiere del default
+    // (en dev mode set_app_icon puede no estar disponible)
+    if (state.appIcon !== DEFAULTS.appIcon && window.__TAURI__) {
+      applyAppIcon(state.appIcon);
+    }
   }
 
   // ── Sincronizar UI con estado ───────────────────────────────────────────
@@ -104,16 +157,37 @@
     document.querySelectorAll('.theme-swatch').forEach(swatch => {
       swatch.classList.toggle('active', swatch.dataset.theme === state.theme);
     });
+
+    // Ícono de app
+    document.querySelectorAll('.icon-variant-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.icon === state.appIcon);
+    });
+
+    // Tamaño de fuente
+    const display = document.getElementById('font-size-display');
+    if (display) display.textContent = state.fontSize + 'px';
+
+    // Cursor style y scrollback (segmented buttons)
+    document.querySelectorAll('[data-setting="cursorStyle"]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.value === state.cursorStyle);
+    });
+    document.querySelectorAll('[data-setting="scrollback"]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.value === String(state.scrollback));
+    });
   }
 
   // ── Persistir estado ────────────────────────────────────────────────────
 
   function persist() {
-    localStorage.setItem('ocote_theme',      state.theme);
-    localStorage.setItem('ocote_font',       state.font);
-    localStorage.setItem('ocote_icon_theme', state.iconTheme);
-    localStorage.setItem('ocote_lang',       state.lang);
-    localStorage.setItem('ocote_prompt',     state.prompt);
+    localStorage.setItem('ocote_theme',        state.theme);
+    localStorage.setItem('ocote_font',         state.font);
+    localStorage.setItem('ocote_icon_theme',   state.iconTheme);
+    localStorage.setItem('ocote_lang',         state.lang);
+    localStorage.setItem('ocote_prompt',       state.prompt);
+    localStorage.setItem('ocote_app_icon',     state.appIcon);
+    localStorage.setItem('ocote_font_size',    state.fontSize);
+    localStorage.setItem('ocote_cursor_style', state.cursorStyle);
+    localStorage.setItem('ocote_scrollback',   state.scrollback);
   }
 
   // ── Tabs del modal ────────────────────────────────────────────────────────
@@ -367,8 +441,35 @@
     const group = overlay.querySelectorAll(`.settings-seg-btn[data-setting="${setting}"]`);
     group.forEach(b => b.classList.toggle('active', b === btn));
 
-    if (setting === 'iconTheme') applyIconTheme(value);
-    if (setting === 'lang')      applyLang(value);
+    if (setting === 'iconTheme')   applyIconTheme(value);
+    if (setting === 'lang')        applyLang(value);
+    if (setting === 'cursorStyle') applyCursorStyle(value);
+    if (setting === 'scrollback')  applyScrollback(parseInt(value));
+  });
+
+  // ── Ícono de la app ───────────────────────────────────────────────────
+
+  overlay.addEventListener('click', e => {
+    const iconBtn = e.target.closest('.icon-variant-btn');
+    if (!iconBtn) return;
+    const variant = iconBtn.dataset.icon;
+    state.appIcon = variant;
+    persist();
+    document.querySelectorAll('.icon-variant-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.icon === variant);
+    });
+    applyAppIcon(variant);
+  });
+
+  // ── Font size stepper ─────────────────────────────────────────────────
+
+  document.getElementById('font-size-dec')?.addEventListener('click', () => {
+    applyFontSize(state.fontSize - 1);
+    persist();
+  });
+  document.getElementById('font-size-inc')?.addEventListener('click', () => {
+    applyFontSize(state.fontSize + 1);
+    persist();
   });
 
   // ── Theme swatches ────────────────────────────────────────────────────

@@ -167,7 +167,7 @@ function renderPopup(suggestions, prefix) {
   popup.classList.remove('hidden');
 
   // Posicionar debajo del cursor del terminal
-  positionPopupAboveCursor();
+  positionPopupBelowCursor();
 
   // Click en ítem → inyectar en el PTY
   popup.querySelectorAll('.autocomplete-item').forEach((item) => {
@@ -176,16 +176,17 @@ function renderPopup(suggestions, prefix) {
       // Borrar lo que el usuario escribió y enviar el comando completo
       const backspaces = prefix.length;
       const input = '\x08'.repeat(backspaces) + cmdName;
-      window.__TAURI__.invoke('write_to_shell', { input });
+      const shellId = window.ocoteActiveShellId;
+      if (shellId != null) window.__TAURI__.invoke('write_to_shell', { shellId, input });
       hidePopup();
     });
   });
 }
 
 /**
- * Posiciona el popup justo debajo de la línea del cursor en xterm.js.
+ * Posiciona el popup justo debajo del cursor real de xterm.js.
  */
-function positionPopupAboveCursor() {
+function positionPopupBelowCursor() {
   // Con el sistema de tabs, window.ocoteTerminal quedó obsoleto.
   // El terminal activo vive en TAB_MANAGER.getTab(ocoteActiveShellId).
   let term = null;
@@ -195,6 +196,18 @@ function positionPopupAboveCursor() {
   }
   if (!term) term = window.ocoteTerminal;  // fallback legacy
   if (!term) return;
+
+  const parent = popup.offsetParent || document.getElementById('terminal-panel');
+  const cursorEl = term.element?.querySelector('.xterm-cursor');
+  if (cursorEl && parent) {
+    const cursorRect = cursorEl.getBoundingClientRect();
+    const parentRect = parent.getBoundingClientRect();
+    const top = cursorRect.bottom - parentRect.top + 8;
+    const left = Math.max(16, cursorRect.left - parentRect.left);
+    popup.style.top = `${top}px`;
+    popup.style.left = `${left}px`;
+    return;
+  }
 
   // cursorY en xterm.js (= this._buffer.y) YA es relativo al viewport (0..rows-1).
   // El bug anterior restaba viewportY (offset de scroll absoluto), volviéndolo
@@ -215,8 +228,6 @@ function positionPopupAboveCursor() {
   const screenEl = term.element
     ? (term.element.querySelector('.xterm-screen') || term.element)
     : null;
-  const parent = popup.offsetParent || document.getElementById('terminal-panel');
-
   if (screenEl && parent) {
     const screenRect = screenEl.getBoundingClientRect();
     const parentRect = parent.getBoundingClientRect();

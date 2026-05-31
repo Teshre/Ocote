@@ -29,21 +29,24 @@ function createTerminalInstance(container) {
   const savedThemeId = localStorage.getItem('ocote_theme') || 'dark';
   const activeXtermTheme = window.OCOTE_THEMES?.THEMES?.[savedThemeId]?.xterm ?? OCOTE_THEME;
 
+  // Leer preferencias guardadas — font, fontSize, cursorStyle, scrollback
+  const savedFont     = localStorage.getItem('ocote_font') || null;
+  const savedFontSize = parseInt(localStorage.getItem('ocote_font_size') || '14');
+  const savedCursor   = localStorage.getItem('ocote_cursor_style') || 'block';
+  const savedScrollback = parseInt(localStorage.getItem('ocote_scrollback') || '10000');
+
   const term = new Terminal({
-    // Terminal opaca (sin allowTransparency): apps que redibujan como p10k
-    // "borran" con espacios de fondo default; si el fondo es transparente, esos
-    // espacios no tapan el texto viejo y se ve fantasma. El watermark se muestra
-    // ENCIMA con opacidad baja (ver #terminal-watermark en theme.css), no detrás.
     theme: activeXtermTheme,
-    fontFamily: "'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
-    fontSize: 14,
-    // lineHeight 1.2 (no 1.5): con 1.5 los caracteres de marco de p10k
-    // (─ ╮ ╰ │) no conectan entre líneas y el prompt se ve "fantasma"/flotante.
-    // 1.2 deja aire pero los conecta como en Terax/iTerm.
+    fontFamily: savedFont || "'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
+    fontSize: savedFontSize,
     lineHeight: 1.2,
     cursorBlink: true,
-    cursorStyle: 'block',
-    scrollback: 10000,
+    cursorStyle: savedCursor,
+    scrollback: savedScrollback,
+    // macOptionIsMeta: true → en macOS la tecla Option/Alt envía secuencias ESC
+    // en vez de caracteres especiales (©, ∆, etc.). Necesario para que
+    // fzf Alt+C funcione y para atajos Alt en vim, emacs, etc.
+    macOptionIsMeta: true,
     // convertEol: false — un PTY ya envía \r\n. Con true, xterm reconvierte
     // \n→\r\n y desalinea el cursor en redibujados complejos (p10k).
     convertEol: false,
@@ -92,7 +95,17 @@ function bindTerminalShell(term, shellId) {
   term.parser.registerOscHandler(6731, (data) => {
     const sep = data.indexOf(';');
     if (sep === -1 || data.slice(0, sep) !== 'prompt') return false;
-    try { lastPromptMeta = JSON.parse(data.slice(sep + 1)); } catch (_) {}
+    try {
+      lastPromptMeta = JSON.parse(data.slice(sep + 1));
+      // Sync autoritativo del explorador: el shell reporta su PWD REAL aquí
+      // (con ~ abreviado). Reemplaza al fast-path que adivinaba la ruta del
+      // `cd` tecleado — ese fallaba con tab-completion e historial porque solo
+      // veía las teclas crudas, no el texto que el shell completaba.
+      // Solo sincronizamos si este shell es el tab activo.
+      if (lastPromptMeta?.cwd && shellId === window.ocoteActiveShellId) {
+        window.onShellCwdChanged?.(lastPromptMeta.cwd);
+      }
+    } catch (_) {}
     return true;
   });
 
@@ -188,13 +201,12 @@ function updateCurrentInput(data, shellId) {
     if (trimmed) {
       const cmdName = trimmed.split(/\s+/)[0];
 
-      // Fast-path: si el usuario ejecutó un cd, notificar al explorador
-      if (trimmed.startsWith('cd ')) {
-        const target = trimmed.substring(3).trim();
-        if (window.onTerminalCdExecuted) {
-          window.onTerminalCdExecuted(target);
-        }
-      }
+      // NOTA: el sync del explorador en `cd` ya NO se hace aquí. Antes había un
+      // "fast-path" que adivinaba la ruta del `cd <target>` tecleado, pero
+      // currentCommandLine solo captura teclas crudas — con tab-completion o
+      // historial el texto real difería del tecleado → cargaba rutas parciales
+      // inexistentes (error "ruta no existe"). Ahora el explorador sincroniza
+      // desde el cwd REAL que el shell emite vía OSC 6731 (ver handler arriba).
 
       // Notificar a tooltip
       if (window.onTerminalCommandExecuted) {

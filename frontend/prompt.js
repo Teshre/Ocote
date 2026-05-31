@@ -176,77 +176,72 @@ window.OCOTE_PROMPT = (() => {
   const _termRenders = {
 
     pill(m, t) {
-      // Cápsula path: fondo semi-transparente con borde accent.
-      // height:15px = 13px font + 2px para no rebasar los ~17px del row.
       const path =
         `<span style="display:inline-flex;align-items:center;gap:5px;` +
         `background:${a(t.accent, .20)};color:${t.accent};` +
-        `height:15px;padding:0 9px;border-radius:999px;border:1px solid ${a(t.accent, .40)};` +
-        `font-size:12px;font-weight:600;box-sizing:border-box">` +
-        `${SVG.folder(t.accent, 10)}${m.cwd}</span>`;
+        `height:17px;padding:0 10px;border-radius:999px;border:1px solid ${a(t.accent, .40)};` +
+        `font-size:13px;font-weight:600;box-sizing:border-box">` +
+        `${SVG.folder(t.accent, 11)}${m.cwd}</span>`;
 
       const git = m.branch
         ? `<span style="display:inline-flex;align-items:center;gap:5px;color:${t.green};` +
-          `height:15px;padding:0 9px;border-radius:999px;border:1px solid ${a(t.green, .35)};` +
-          `font-size:12px;box-sizing:border-box">` +
-          `${SVG.branch(t.green, 10)}${m.branch}` +
+          `height:17px;padding:0 10px;border-radius:999px;border:1px solid ${a(t.green, .35)};` +
+          `font-size:13px;box-sizing:border-box">` +
+          `${SVG.branch(t.green, 11)}${m.branch}` +
           (m.dirty > 0 ? `<span style="color:${t.warning};font-weight:600;margin-left:2px">+${m.dirty}</span>` : '') +
           `</span>`
         : '';
 
       const time =
         `<span style="display:inline-flex;align-items:center;gap:4px;` +
-        `color:${t.comment};font-size:11px">` +
-        `${SVG.clock(t.comment, 10)}${m.time}</span>`;
+        `color:${t.comment};font-size:12px">` +
+        `${SVG.clock(t.comment, 11)}${m.time}</span>`;
 
       return `<div style="display:flex;align-items:center;gap:6px;padding:0 8px">${path}${git}${time}</div>`;
     },
 
     block(m, t) {
-      // Block: header de card — borde izquierdo accent + borde inferior tenue.
-      // Simula el "techo" de la tarjeta Warp-style del diseño.
       const git = m.branch
         ? `<span style="color:${a(t.comment, .4)}">·</span>` +
-          `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.green};font-size:11px">` +
-          `${SVG.branch(t.green, 10)}${m.branch}` +
+          `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.green};font-size:12px">` +
+          `${SVG.branch(t.green, 11)}${m.branch}` +
           (m.dirty > 0 ? `<span style="color:${t.warning};font-weight:600;margin-left:1px">+${m.dirty}</span>` : '') +
           `</span>`
         : '';
       return (
-        `<div style="display:flex;align-items:center;gap:8px;font-size:12px;` +
+        `<div style="display:flex;align-items:center;gap:8px;font-size:13px;` +
         `padding:0 10px;height:100%;width:100%;box-sizing:border-box;` +
         `border-left:2px solid ${t.accent};` +
         `border-bottom:1px solid ${a(t.accent, .20)};` +
         `background:${a(t.accent, .06)}">` +
         `<span style="display:inline-flex;align-items:center;gap:5px;color:${t.accent};font-weight:600">` +
-        `${SVG.folder(t.accent, 10)}${m.cwd}</span>` +
+        `${SVG.folder(t.accent, 11)}${m.cwd}</span>` +
         git +
         `<span style="flex:1"></span>` +
-        `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.comment};font-size:11px">` +
-        `${SVG.clock(t.comment, 10)}${m.time}</span>` +
+        `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.comment};font-size:12px">` +
+        `${SVG.clock(t.comment, 11)}${m.time}</span>` +
         `</div>`
       );
     },
 
     ribbon(m, t) {
       const git = m.branch
-        ? `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.green};font-size:12px">` +
-          `${SVG.branch(t.green, 10)}${m.branch}` +
+        ? `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.green};font-size:13px">` +
+          `${SVG.branch(t.green, 11)}${m.branch}` +
           (m.dirty > 0 ? `<span style="color:${t.warning};font-weight:600;margin-left:1px">+${m.dirty}</span>` : '') +
           `</span>`
         : '';
-      // El ribbon va pegado al borde inferior de su fila con border-bottom + gradiente.
       return (
         `<div style="display:flex;align-items:flex-end;gap:10px;padding:0 8px;` +
         `width:fit-content;height:calc(100% - 1px);border-bottom:1.5px solid ${t.accent};` +
         `position:relative;box-sizing:border-box">` +
         `<span style="position:absolute;left:0;right:0;bottom:-1.5px;height:1.5px;` +
         `background:linear-gradient(90deg,${t.accent},transparent)"></span>` +
-        `<span style="display:inline-flex;align-items:center;gap:5px;color:${t.accent};font-weight:600;font-size:12px">` +
-        `${SVG.folder(t.accent, 10)}${m.cwd}</span>` +
+        `<span style="display:inline-flex;align-items:center;gap:5px;color:${t.accent};font-weight:600;font-size:13px">` +
+        `${SVG.folder(t.accent, 11)}${m.cwd}</span>` +
         git +
-        `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.comment};font-size:11px">` +
-        `${SVG.clock(t.comment, 10)}${m.time}</span>` +
+        `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.comment};font-size:12px">` +
+        `${SVG.clock(t.comment, 11)}${m.time}</span>` +
         `</div>`
       );
     },
@@ -254,8 +249,8 @@ window.OCOTE_PROMPT = (() => {
     rail(m, t) {
       const git = m.branch
         ? `<span style="color:${a(t.comment, .5)}">·</span>` +
-          `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.green};font-size:12px">` +
-          `${SVG.branch(t.green, 10)}${m.branch}` +
+          `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.green};font-size:13px">` +
+          `${SVG.branch(t.green, 11)}${m.branch}` +
           (m.dirty > 0 ? `<span style="color:${t.warning};margin-left:1px">+${m.dirty}</span>` : '') +
           `</span>`
         : '';
@@ -263,13 +258,13 @@ window.OCOTE_PROMPT = (() => {
         `<div style="display:flex;align-items:center;height:100%;gap:0">` +
         `<div style="width:3px;align-self:stretch;flex-shrink:0;margin-right:10px;` +
         `background:linear-gradient(180deg,${t.accent} 0%,${a(t.accent, .30)} 100%)"></div>` +
-        `<div style="display:inline-flex;align-items:center;gap:8px;font-size:12px">` +
+        `<div style="display:inline-flex;align-items:center;gap:8px;font-size:13px">` +
         `<span style="color:${t.accent};font-weight:600;display:inline-flex;align-items:center;gap:5px">` +
-        `${SVG.folder(t.accent, 10)}${m.cwd}</span>` +
+        `${SVG.folder(t.accent, 11)}${m.cwd}</span>` +
         git +
         `<span style="color:${a(t.comment, .6)}">·</span>` +
-        `<span style="color:${t.comment};font-size:11px;display:inline-flex;align-items:center;gap:3px">` +
-        `${SVG.clock(t.comment, 10)}${m.time}</span>` +
+        `<span style="color:${t.comment};font-size:12px;display:inline-flex;align-items:center;gap:3px">` +
+        `${SVG.clock(t.comment, 11)}${m.time}</span>` +
         `</div></div>`
       );
     },

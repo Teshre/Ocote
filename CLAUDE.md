@@ -62,7 +62,7 @@ ckb/
 - Input carácter a carácter directo al PTY (`terminal.js`) ✅
 - Tab-completion, historial, inline editing, Ctrl+C/D/L vía ZLE ✅
 - Explorador de archivos lateral con cache (`explorer.js` + `fs_explorer.rs`) ✅
-- Sincronización bidireccional terminal↔explorador (fast-path + polling) ✅
+- Sincronización terminal→explorador vía OSC 6731 (cwd real del shell) + polling ✅
 - CKB en SQLite con **153 comandos** en **5 idiomas** (ES/EN/PT/FR/DE) ✅
 - Autocompletado visual posicionado debajo del cursor (`autocomplete.js`) ✅
 - Tooltip educativo funcional con argumentos (`tooltip.js`) ✅
@@ -75,6 +75,10 @@ ckb/
 - **Sistema de prompt nativo** con overlay HTML propio + 5 presets ✅
 - **Body overlay Block/Rail**: cubre visualmente toda la salida del comando (no solo header) ✅
 - **Zsh-syntax-highlighting** bundleado (BSD) ✅
+- **fzf v0.73.1** bundleado (Ctrl+R historial, Option+C cd fuzzy) — 5 plataformas ✅
+- **zsh-autosuggestions v0.7.0** bundleado (texto fantasma, → acepta estilo fish) ✅
+- **Ícono light/dark** seleccionable en Settings (`set_app_icon`) ✅
+- **Ajustes de terminal**: tamaño de fuente, cursor, scrollback ✅
 
 ---
 
@@ -138,10 +142,30 @@ El `endAbsRow` DEBE leerse síncronamente dentro del OSC handler, NO en un reque
 - `OCOTE_ACCENT` — hex del accent del tema SIN `#` (e.g. `E8843A`)
 - `OCOTE_PROMPT_HOOK` — ruta absoluta a `resources/shell/prompt.zsh`
 - `OCOTE_ZSH_HL` — ruta absoluta a `zsh-syntax-highlighting.zsh`
+- `OCOTE_ZSH_AUTOSUGGEST` — ruta a `zsh-autosuggestions.zsh`
+- `OCOTE_FZF_BIN` — ruta al binario de fzf de la plataforma (también en Windows → PATH)
 - `_OCOTE_ZDOTDIR` — ZDOTDIR real del usuario (o `$HOME`) para que el bootstrap sourcee su config
 
 **Bootstrap ZDOTDIR (crítico):**
 El `.zshenv` en `resources/shell/` NO reasigna permanentemente ZDOTDIR. Sourcea el `.zshenv` del usuario con su ZDOTDIR temporal y restaura el nuestro para que zsh lea nuestro `.zshrc`. Si se cambia este orden, zsh leería el `.zshrc` del usuario y nunca el bootstrap de Ocote → terminal vacía.
+
+**Orden de carga de plugins de shell (CRÍTICO — `.zshrc`):**
+```
+1. .zshrc del usuario       2. prompt.zsh (PS1 + fzf widgets)
+3. zsh-syntax-highlighting   4. zsh-autosuggestions  ← DEBE ir AL FINAL
+```
+Si autosuggestions cargara antes que syntax-highlighting, al aceptar una sugerencia con `→` el texto se queda gris (no se recolorea). El widget `_ocote_accept_or_forward` (en `.zshrc`) hace `region_highlight=()` + `zle redisplay` tras aceptar.
+
+**OSC en PROMPT de zsh — gotcha clásico:**
+Todo escape no-imprimible en `PROMPT` (como OSC 133 A) DEBE ir envuelto en `%{ %}` (bash: `\[ \]`). Si no, zsh cuenta sus bytes como columnas visibles → cursor desfasado → texto fantasma, duplicados al pegar, artefactos en historial.
+
+**fzf bundleado:**
+El binario se llama `fzf-darwin-arm64` (etc.), NO `fzf`. Una función shell `fzf() { command "$OCOTE_FZF_BIN" "$@"; }` permite que la integración y el usuario lo llamen como `fzf`. `Ctrl+T` se desactiva (`bindkey -r "^T"`) porque Ocote lo usa para nueva pestaña. `macOptionIsMeta:true` en xterm.js es necesario para Option+C en macOS.
+
+**Sync explorador (NO usar fast-path de adivinanza):**
+El explorador sincroniza desde `window.onShellCwdChanged(cwd)`, llamado por el handler OSC 6731 con el cwd REAL del shell (expande `~`). NO adivinar la ruta del `cd` tecleado — `currentCommandLine` solo captura teclas crudas y falla con tab-completion/historial.
+
+**Dev: resources se sirven desde `target/debug/resources/`**, no desde la fuente. Tras editar `resources/shell/*`, hay que copiar a `target/debug/resources/shell/` o recompilar para que el cambio tome efecto en `pnpm tauri dev`.
 
 **Colores del prompt:**
 Los renders NO hardcodean colores. Todos usan `OCOTE_THEMES.getCurrentTokens()` que devuelve `{accent, green, blue, comment, warning, fg}` del tema activo. La FORMA identifica a Ocote; el COLOR hereda del tema.
@@ -234,11 +258,23 @@ Los renders NO hardcodean colores. Todos usan `OCOTE_THEMES.getCurrentTokens()` 
 ✅ **Block preview honesto**: eliminado footer ficticio (exit 0, copy·rerun·share no implementados).
 ✅ **Rail big preview corregido**: renderer propio con stripe de altura fija.
 
+**Fase 4 — Avance al 2026-05-30 (sesión 11):**
+✅ **fzf v0.73.1** bundleado (5 plataformas): Ctrl+R historial fuzzy, Option+C cd fuzzy.
+  - Wrapper `fzf()` → binario real; Ctrl+T desactivado; `macOptionIsMeta:true` para Alt+C.
+✅ **zsh-autosuggestions v0.7.0** bundleado: → acepta sugerencia completa estilo fish.
+✅ **Ícono light/dark** en Settings (`set_app_icon`, feature `icon-png`, `.icns` generados).
+✅ **Ajustes de terminal**: font size, cursor, scrollback. Reorg General/Apariencia.
+✅ **Fix prompt width**: OSC 133 A envuelto en `%{ %}` (fantasmas, paste, historial).
+✅ **Fix color gris al aceptar →**: orden de carga HL→autosuggestions + `region_highlight=()`.
+✅ **Fix explorador "ruta no existe"**: sync vía OSC 6731 cwd real (no adivinanza del cd).
+✅ **pty.rs cross-platform**: Windows recibe OCOTE_FZF_BIN.
+
 **Próximo paso — Fase 4:**
-1. Ícono real de Ocote (diseño propio) — About Ocote sigue mostrando el ícono de macOS por caché
-2. Landing page / sitio web
-3. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
-4. Auto-updater
+1. **Bash hook completo** (paridad OSC con zsh) → luego fish → PowerShell (4 shells)
+2. Verificar cambio de ícono del dock en build de producción
+3. Landing page / sitio web
+4. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
+5. Auto-updater
 
 ## Cómo ayudar al desarrollador
 - Es developer en aprendizaje, usa IA como asistente principal

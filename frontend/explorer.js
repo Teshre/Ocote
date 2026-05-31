@@ -71,15 +71,26 @@ function startSyncPolling() {
     }, 1000);
 }
 
-// ── Fast-path: cd ejecutado desde la terminal ─────────────────────────────
-// terminal.js llama a esta función inmediatamente cuando detecta Enter
-// después de un comando "cd <target>". Evita esperar al polling de 1s.
+// ── Sync autoritativo desde OSC 6731 ──────────────────────────────────────
+// terminal.js llama a esta función con el cwd REAL que el shell reporta tras
+// cada comando (con ~ abreviado). Es la fuente de verdad: funciona con cd
+// directo, tab-completion, historial, pushd/popd, symlinks — lo que sea, porque
+// es el PWD efectivo del proceso, no una adivinanza del texto tecleado.
 
-window.onTerminalCdExecuted = function (target) {
-    const newPath = resolveCdPath(target, currentPath);
-    if (newPath && newPath !== currentPath) {
-        console.log('[Explorer] Fast sync: cd to', newPath);
-        loadDirectory(newPath, { instant: true });
+window.onShellCwdChanged = function (cwdRaw) {
+    if (!cwdRaw) return;
+    // Expandir ~ → home (el shell envía la ruta abreviada)
+    let path = cwdRaw;
+    if (path === '~') {
+        path = homePath || path;
+    } else if (path.startsWith('~/')) {
+        path = (homePath || '') + path.slice(1);
+    }
+    if (path && path !== currentPath) {
+        loadDirectory(path, { instant: true });
+        if (window.TAB_MANAGER && window.ocoteActiveShellId) {
+            window.TAB_MANAGER.updateTabName(window.ocoteActiveShellId, path);
+        }
     }
 };
 

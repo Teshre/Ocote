@@ -179,6 +179,68 @@
             </div>
           </div>
         </div>
+
+        <div class="settings-two-col">
+          <div class="settings-sub">
+            <h3 data-i18n="settings.terminal.title">Terminal</h3>
+            <div class="settings-row">
+              <span class="settings-label" data-i18n="settings.terminal.fontSize">Tamaño de fuente</span>
+              <div class="font-size-stepper">
+                <button class="font-size-btn" id="font-size-dec" aria-label="Reducir">−</button>
+                <span id="font-size-display">14px</span>
+                <button class="font-size-btn" id="font-size-inc" aria-label="Aumentar">+</button>
+              </div>
+            </div>
+            <div class="settings-row">
+              <span class="settings-label" data-i18n="settings.terminal.cursor">Cursor</span>
+              <div class="settings-segmented">
+                <button class="settings-seg-btn" data-setting="cursorStyle" data-value="block" title="Bloque">▌ Bloque</button>
+                <button class="settings-seg-btn" data-setting="cursorStyle" data-value="underline" title="Subrayado">▁ Línea</button>
+                <button class="settings-seg-btn" data-setting="cursorStyle" data-value="bar" title="Barra">| Barra</button>
+              </div>
+            </div>
+            <div class="settings-row">
+              <span class="settings-label" data-i18n="settings.terminal.scrollback">Historial de líneas</span>
+              <div class="settings-segmented">
+                <button class="settings-seg-btn" data-setting="scrollback" data-value="1000">1K</button>
+                <button class="settings-seg-btn" data-setting="scrollback" data-value="5000">5K</button>
+                <button class="settings-seg-btn" data-setting="scrollback" data-value="10000">10K</button>
+              </div>
+            </div>
+          </div>
+          <div class="settings-sub settings-sub--icon">
+            <h3 data-i18n="settings.icon.title">Ícono de la app</h3>
+            <div class="icon-variant-grid" id="icon-variant-grid">
+              <button class="icon-variant-btn" data-icon="dark">
+                <img src="icons/icon-dark.png" alt="Ícono oscuro" class="icon-variant-img">
+                <span data-i18n="settings.icon.dark">Oscuro</span>
+              </button>
+              <button class="icon-variant-btn" data-icon="light">
+                <img src="icons/icon-light.png" alt="Ícono claro" class="icon-variant-img">
+                <span data-i18n="settings.icon.light">Claro</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3 data-i18n="settings.font.title">Tipografía</h3>
+          <div class="settings-row">
+            <span class="settings-label" data-i18n="settings.font.label">Fuente del terminal</span>
+            <select class="settings-select" id="settings-font">
+              <option value="'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace">JetBrainsMono Nerd Font</option>
+              <option value="'MesloLGS NF', 'JetBrainsMono Nerd Font Mono', 'SF Mono', 'Menlo', monospace">MesloLGS NF</option>
+              <option value="'FiraCode Nerd Font Propo', 'Fira Code', 'SF Mono', monospace">FiraCode Nerd Font</option>
+              <option value="'Hack Nerd Font', 'Menlo', 'SF Mono', monospace">Hack Nerd Font</option>
+              <option value="'SF Mono', 'Menlo', 'Fira Code', 'Cascadia Code', monospace">Sistema</option>
+              <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+              <option value="'Fira Code', monospace">Fira Code</option>
+              <option value="'Cascadia Code', 'Cascadia Mono', monospace">Cascadia Code</option>
+              <option value="'Source Code Pro', monospace">Source Code Pro</option>
+              <option value="'Ubuntu Mono', monospace">Ubuntu Mono</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <!-- Tab: Apariencia -->
@@ -208,23 +270,6 @@
         </div>
 
         <div class="settings-two-col">
-          <div class="settings-sub">
-            <h3 data-i18n="settings.font.title">Tipografía</h3>
-            <div class="settings-row">
-              <select class="settings-select" id="settings-font">
-                <option value="'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace">JetBrainsMono Nerd Font</option>
-                <option value="'MesloLGS NF', 'JetBrainsMono Nerd Font Mono', 'SF Mono', 'Menlo', monospace">MesloLGS NF</option>
-                <option value="'FiraCode Nerd Font Propo', 'Fira Code', 'SF Mono', monospace">FiraCode Nerd Font</option>
-                <option value="'Hack Nerd Font', 'Menlo', 'SF Mono', monospace">Hack Nerd Font</option>
-                <option value="'SF Mono', 'Menlo', 'Fira Code', 'Cascadia Code', monospace">Sistema</option>
-                <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
-                <option value="'Fira Code', monospace">Fira Code</option>
-                <option value="'Cascadia Code', 'Cascadia Mono', monospace">Cascadia Code</option>
-                <option value="'Source Code Pro', monospace">Source Code Pro</option>
-                <option value="'Ubuntu Mono', monospace">Ubuntu Mono</option>
-              </select>
-            </div>
-          </div>
           <div class="settings-sub">
             <h3 data-i18n="settings.icons.title">Explorador de archivos</h3>
             <div class="settings-row">

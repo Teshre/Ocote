@@ -130,6 +130,31 @@
     }
   }
 
+  async function respawnActive() {
+    if (!activeShellId) return;
+    const oldShellId = activeShellId;
+    const oldTab = tabs.get(oldShellId);
+    // Limpiar overlays del tab que se va a cerrar
+    if (oldTab?.term) window.OCOTE_PROMPT?.clearOverlays?.(oldTab.term);
+    if (!oldTab) return;
+
+    let cwd = null;
+    try {
+      cwd = await invoke('get_shell_cwd', { shellId: oldShellId });
+    } catch (_) {}
+
+    const newShellId = await createTab(oldTab.name);
+    if (cwd) {
+      try {
+        await invoke('write_to_shell', { shellId: newShellId, input: `cd ${JSON.stringify(cwd)}\r` });
+        updateTabName(newShellId, cwd);
+      } catch (_) {}
+    }
+
+    await closeTab(oldShellId);
+    switchTab(newShellId);
+  }
+
   // ── Cambiar tab activo ────────────────────────────────────────────────
 
   function switchTab(shellId) {
@@ -169,18 +194,27 @@
     createTab();
   });
 
-  // ── Atajo de teclado: Ctrl+T → nuevo tab ──────────────────────────────
+  // ── Atajos de teclado globales ──────────────────────────────────────────
+  // Se capturan en fase capture (true) para tener prioridad sobre el webview.
+  // Importante: Ctrl+R es "Reload" en WKWebView/Chrome — debemos prevenirlo
+  // para que llegue al shell (fzf Ctrl+R = búsqueda en historial).
 
   document.addEventListener('keydown', (e) => {
+    // Ctrl+T → nueva pestaña
     if (e.ctrlKey && e.key === 't') {
       e.preventDefault();
       createTab();
     }
+    // Ctrl+W → cerrar pestaña activa
     if (e.ctrlKey && e.key === 'w') {
       e.preventDefault();
       if (activeShellId) closeTab(activeShellId);
     }
-  });
+    // Ctrl+R → prevenir recarga del webview; el shell lo recibe como \x12 (fzf)
+    if (e.ctrlKey && e.key === 'r') {
+      e.preventDefault();
+    }
+  }, true); // capture:true para interceptar antes que el webview nativo
 
   // ── Helpers ─────────────────────────────────────────────────────────────
 
@@ -208,6 +242,7 @@
   window.TAB_MANAGER = {
     createTab,
     closeTab,
+    respawnActive,
     switchTab,
     updateTabName,
     getActiveShellId: () => activeShellId,

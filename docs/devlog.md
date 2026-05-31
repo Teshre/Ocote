@@ -5,6 +5,58 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-05-30 — Sesión 11: fzf + zsh-autosuggestions out-of-the-box, nuevos ajustes y fixes de shell
+
+**Estado al inicio:** Sesión 10 cerró con el body overlay de Block/Rail y el Settings rediseñado. Ocote ya traía zsh-syntax-highlighting bundleado. El objetivo de esta sesión: hacer Ocote "ready out of the box" integrando los plugins que los devs siempre instalan después (fzf, autosuggestions), añadir ajustes de terminal, y el selector de ícono light/dark.
+
+### Nuevos ajustes en Settings
+
+- **Ícono de la app (light/dark)**: comando Rust `set_app_icon(variant)` que lee el PNG bundleado y llama `window.set_icon(Icon::Raw(bytes))`. Requirió añadir el feature `icon-png` a Cargo.toml (sin él, `Icon::Raw`/`Icon::File` no existen). Generé `.icns` completos (16–1024px) con `sips`+`iconutil`. **Limitación dev:** el cambio del dock en runtime no se ve en `pnpm tauri dev` porque el binario de desarrollo no tiene `.app` bundle completo — funciona en producción.
+- **Terminal**: tamaño de fuente (stepper 10–20px), cursor (bloque/línea/barra), scrollback (1K/5K/10K). Todo en `localStorage`, leído por `createTerminalInstance` para que tabs nuevos nazcan con la preferencia.
+- **Reorganización**: General = idioma + terminal + ícono + tipografía. Apariencia = prompt + tema + íconos del explorador. (El usuario pidió no saturar Apariencia.)
+
+### fzf v0.73.1 — bundleado multiplataforma
+
+- Binarios para macOS arm64/x64, Linux x64/arm64, Windows x64 en `resources/bin/`.
+- `pty.rs`: `fzf_binary_name()` selecciona por `(OS, ARCH)`; inyecta `OCOTE_FZF_BIN`.
+- Keybindings: `Ctrl+R` (historial fuzzy), `Option+C` (cd fuzzy). `Ctrl+T` deshabilitado (conflicto con nueva pestaña).
+- **Wrapper `fzf()`**: el binario se llama `fzf-darwin-arm64`, pero la integración de fzf llama `fzf` por nombre. Una función shell `fzf() { command "$OCOTE_FZF_BIN" "$@"; }` resuelve esto sin symlinks (que serían read-only en el `.app`).
+
+### zsh-autosuggestions v0.7.0 — bundleado
+
+- Texto fantasma gris desde historial. Flecha `→` acepta la sugerencia completa (estilo fish) vía widget custom `_ocote_accept_or_forward`.
+
+### Bugs resueltos (mucho debugging de shell)
+
+**1. Prompt width / cursor desfasado (causa raíz de varios bugs):**
+El OSC 133 A en `PROMPT` estaba sin envolver en `%{ %}`. zsh contaba esos 9 bytes invisibles como columnas → el cursor quedaba 9 columnas desfasado. Síntomas: texto fantasma pegado, duplicados al pegar, artefactos al navegar historial. **Lección clave:** todo escape no-imprimible en un PROMPT de zsh DEBE ir en `%{ %}` (en bash, `\[ \]`). Es un gotcha clásico.
+
+**2. Color gris al aceptar sugerencia con →:**
+Orden de carga incorrecto. zsh-autosuggestions y zsh-syntax-highlighting ambos envuelven widgets ZLE; el que carga ÚLTIMO es el wrapper externo. **Orden canónico: syntax-highlighting ANTES, autosuggestions AL FINAL.** Se movió autosuggestions de `prompt.zsh` a `.zshrc` (después de HL). Además el widget de aceptación necesitó `region_highlight=()` + `zle redisplay` para que syntax-highlighting recoloree el texto aceptado (autosuggest-accept dejaba el highlight gris pegado en las posiciones del buffer).
+
+**3. Explorador "ruta no existe":**
+El fast-path adivinaba la ruta del `cd` desde `currentCommandLine`, que solo captura teclas crudas — con tab-completion o historial el texto real difería → cargaba rutas parciales inexistentes. **Fix:** sincronizar desde el cwd REAL que el shell reporta vía OSC 6731 (`window.onShellCwdChanged`, expande `~`). Funciona con cd directo, tab, historial, pushd/popd, symlinks. Se eliminó el fast-path de adivinanza.
+
+**4. macOS Option/Alt:** `macOptionIsMeta: true` en xterm.js para que Alt envíe ESC (sin esto Alt+C generaba © en vez de la secuencia que fzf espera).
+
+### Decisiones tomadas
+
+- **Bundlear binarios fzf (23MB total)**: aceptable para un producto "offline, todo incluido". El usuario no instala nada.
+- **No usar symlinks para fzf**: el `.app` bundle es read-only; la función wrapper es más robusta cross-platform.
+- **Sincronizar `resources/shell/*` a `target/debug/`**: en dev, `resolve_resource` devuelve la copia de `target/debug/resources` (no la fuente). Editar la fuente requiere copiar a target o rebuild. Se copió manualmente para iterar rápido sin recompilar.
+- **Limpiar zsh-autosuggestions**: se quitaron spec/Docker/Gemfile/.github del bundle; solo queda el `.zsh` + LICENSE + README.
+
+### Pendientes / a futuro
+
+- **Bash hook completo** con OSC 6731/133 al nivel de zsh (próximo paso de cross-shell).
+- **fish y PowerShell** (soporte de los 4 shells principales).
+- **Ícono del dock en producción**: verificar que `set_app_icon` cambia el dock en el build firmado.
+- **zoxide / eza** (plugins de media prioridad) si hay demanda.
+
+**Próximo paso:** bash hook con paridad de OSC, luego fish.
+
+---
+
 ## 2026-05-29 — Sesión 10: Body overlay para Block/Rail, correcciones de prompts y rediseño de Settings
 
 **Estado al inicio:** El sistema de overlay HTML estaba funcionando (header de prompt con path/branch/time en todos los presets), pero Block y Rail solo pintaban la fila del header sin cubrir el output del comando. Además había tres bugs activos: colores incorrectos en temas como Nord y Tokyo Night, el watermark siendo cubierto por los divs overlay, y los prompts fantasma que persistían después de `clear`.
