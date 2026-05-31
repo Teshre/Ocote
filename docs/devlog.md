@@ -5,6 +5,37 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-05-31 — Sesión 13: PowerShell (4º shell) + zoxide + bat
+
+**Estado al inicio:** 3 shells (zsh/bash/fish). Objetivo: PowerShell + más tools out-of-the-box.
+
+### Decisión de tools (con el usuario)
+
+Se eligieron zoxide + eza + bat. Al descargar binarios: **eza NO publica binarios de macOS** (solo Linux/Windows; macOS usa brew). Eso rompe el bundling cross-platform → eza se descartó (es además el más cuestionable pedagógicamente porque reemplaza `ls`). Quedaron zoxide (`z`) y bat, ambos con binarios limpios para las 5 plataformas. bat se deja como comando `bat` SIN aliasear `cat` (preserva la enseñanza del CKB).
+
+### PowerShell (`prompt.ps1`)
+
+- `function prompt` con los 5 presets + OSC 6731/133. PSReadLine 7 aporta autosuggestions (`PredictionSource History`) + syntax highlighting NATIVOS — como fish.
+- fzf: NO tiene `fzf --powershell`, así que se escribieron handlers manuales de PSReadLine (`Set-PSReadLineKeyHandler` Ctrl+R / Alt+C).
+- `pty.rs`: Windows ahora prefiere `pwsh.exe` (antes hardcodeaba `cmd.exe` sin prompt de Ocote); inyección vía `-NoExit -Command`. PowerShell aplica también en unix si `SHELL=pwsh`.
+- Instalado PowerShell 7.6.2 (brew) para validar en vivo.
+
+### Bug: explorador se revertía solo con PowerShell
+
+**Causa:** `Set-Location` de PowerShell NO cambia el cwd del proceso a nivel OS (PS mantiene su ubicación interna). El polling `get_shell_cwd` leía el cwd del proceso (sin cambiar) y revertía el sync correcto del OSC 6731. En zsh/bash/fish el `cd` sí cambia el cwd del proceso, por eso no pasaba.
+
+**Fix:** `explorer.js` marca como `_oscManagedShells` a los shells que emiten OSC 6731 y el polling los ignora (el OSC es la fuente de verdad). El polling queda solo de fallback para passthrough. Esto también hace más robustos a las otras shells. **Lección:** no todos los shells cambian el cwd del proceso al navegar; el OSC del shell es más confiable que leer el cwd del proceso.
+
+Este mismo bug hacía PARECER que zoxide no funcionaba: `z <dir>` cambiaba la ubicación de PS y emitía OSC, pero el explorador revertía. Al arreglar el sync, `z` y `cd` funcionan y el explorador los sigue. (zoxide validado: registra dirs y salta correctamente.)
+
+### Idea registrada
+
+`z`, `bat`, `fzf` (Ctrl+R) son comandos potentes que un principiante no conoce → candidatos perfectos para el CKB / tooltips educativos de Ocote.
+
+**Próximo paso:** optimización de bundling (cada plataforma solo lleva sus binarios; hoy el .app lleva los 15).
+
+---
+
 ## 2026-05-31 — Sesión 12: soporte fish + refactor de binarios fzf
 
 **Estado al inicio:** Sesión 11 dejó zsh completo y bash con prompt+overlays+fzf. El objetivo: añadir fish, el 3er shell (popular entre devs jóvenes, target de Ocote).

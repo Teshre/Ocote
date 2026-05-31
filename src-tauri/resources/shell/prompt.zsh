@@ -184,3 +184,9 @@ if [[ -n "$OCOTE_FZF_BIN" && -x "$OCOTE_FZF_BIN" ]]; then
     --color=marker:#7DC97A,spinner:#E8843A,header:#6F6552
   "
 fi
+
+# ── zoxide (cd inteligente: comando `z`) + bat (cat mejorado) ─────────────────
+# Ambos viven en el mismo dir que fzf (ya en PATH). bat queda disponible como
+# comando `bat` sin aliasear cat (preserva la enseñanza del CKB). zoxide aporta
+# `z <dir>` para saltar a directorios frecuentes.
+command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"

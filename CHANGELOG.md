@@ -8,9 +8,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### Fase 4 — En progreso
-Próximo paso: PowerShell (4º shell), landing page, firma de código macOS.
+Próximo paso: optimización de bundling (solo binarios de la plataforma), landing page, firma de código macOS.
 
 ### Agregado
+- **Soporte PowerShell** (`prompt.ps1`): `function prompt` con los 5 presets + OSC 6731/133 A/D. PSReadLine aporta autosuggestions (PredictionSource History) + syntax highlighting NATIVOS. fzf vía handlers manuales de PSReadLine (Ctrl+R historial, Alt+C cd — fzf no tiene `--powershell`). `pty.rs`: Windows ahora prefiere `pwsh.exe` (antes hardcodeaba `cmd.exe`); inyección vía `-NoExit -Command ". 'hook'"`. Validado en PowerShell 7.6.2. **4 shells soportados.**
+- **zoxide v0.9.9** (`z` — cd inteligente) bundleado e integrado en las 4 shells.
+- **bat v0.26.1** (cat con syntax highlighting) bundleado, disponible como comando `bat` (sin aliasear `cat` — preserva la enseñanza del CKB).
+- 15 binarios bundleados (fzf+zoxide+bat × 5 plataformas), vía glob `resources/bin/**/*`.
 - **Soporte fish** (`prompt.fish`): `fish_prompt` con los 5 presets + OSC 6731/133 A/D. fish trae syntax highlighting y autosuggestions NATIVOS (sin plugins). `pty.rs` spawnea fish con `-C "source <hook>"` (corre después de `config.fish`). fzf integrado (Ctrl+R, Alt+C). Validado en fish 4.7.1.
 - **Bash hook con paridad de overlays** (`bash-hook.bash`): emite OSC 133 A al FINAL de PS1 (no en precmd) para posicionar overlays de pill/ribbon/rail/block; info line (path · git · hora) por preset; fzf integrado. (Sin autosuggestions/highlighting — son plugins solo-zsh.)
 
@@ -18,6 +22,7 @@ Próximo paso: PowerShell (4º shell), landing page, firma de código macOS.
 - **Binarios fzf reestructurados** a subdir por plataforma con nombre `fzf` (`bin/darwin-arm64/fzf`, etc.) en vez de `fzf-darwin-arm64`. El dir se añade al PATH → `fzf` es un comando real en las 3 shells, **sin función wrapper**. Necesario para fish (su integración valida `command -q fzf`, que no encuentra funciones) y más limpio en zsh/bash.
 
 ### Corregido
+- **Explorador se revertía con PowerShell** — el polling `get_shell_cwd` lee el cwd del PROCESO a nivel OS, pero `Set-Location` de PowerShell NO lo cambia (PS mantiene su ubicación interna). El polling revertía el sync correcto del OSC 6731. Ahora, una vez que un shell emite OSC 6731 queda "OSC-managed" y el polling no lo toca (solo es fallback para passthrough). También hace más robustos a zsh/bash/fish.
 - **Bash: escapes de color sin envolver** — `_ocote_git`/`_ocote_arrow` emitían ANSI crudo vía `$(...)`; en bash eso desfasa el cursor (mismo gotcha que el OSC en zsh). Ahora envueltos en `\001`/`\002` (equivalente byte-level de `\[ \]`, que no funciona dentro de command substitution).
 - **Ícono del dock no cambiaba en macOS** — `window.set_icon()` de Tauri v1 es no-op en el dock de macOS (no hay íconos por-ventana). Ahora `set_app_icon` usa una rama nativa vía objc: `[[NSApplication sharedApplication] setApplicationIconImage: img]` (crates `cocoa`/`objc`). Win/Linux siguen con `set_icon`.
 - **Íconos demasiado grandes en el Dock de macOS** — el master era borde-a-borde; macOS espera el arte a 824×824 centrado (margen de 100px) o el ícono se ve más grande que las apps nativas. Regenerados bundle (`pnpm tauri icon`) + runtime swap + preview desde los masters con margen de `Ocote design/export/icons/macos/`. Light/dark se mantienen gemelos (diferencia óptica aceptable, decisión de diseño).

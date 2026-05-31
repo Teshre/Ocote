@@ -76,8 +76,9 @@ ckb/
 - **Body overlay Block/Rail**: cubre visualmente toda la salida del comando (no solo header) ✅
 - **Zsh-syntax-highlighting** bundleado (BSD) ✅
 - **fzf v0.73.1** bundleado (Ctrl+R historial, Option+C/Alt+C cd fuzzy) — 5 plataformas ✅
+- **zoxide v0.9.9** (`z` cd inteligente) + **bat v0.26.1** bundleados, en las 4 shells ✅
 - **zsh-autosuggestions v0.7.0** bundleado (texto fantasma, → acepta estilo fish) ✅
-- **Soporte 3 shells**: zsh (completo), bash (prompt+overlays+fzf), fish (prompt+overlays+fzf, highlighting/suggestions nativos) ✅
+- **Soporte 4 shells**: zsh (completo), bash (prompt+overlays+fzf), fish y PowerShell (prompt+overlays+fzf, highlighting/suggestions nativos) ✅
 - **Ícono light/dark** seleccionable en Settings (`set_app_icon`) ✅
 - **Ajustes de terminal**: tamaño de fuente, cursor, scrollback ✅
 
@@ -168,6 +169,15 @@ Cargado vía `bash --rcfile` cuando `$SHELL` es bash. Emite OSC 6731 + 133 D en 
 
 **Encuadre de íconos por OS (README-ICONOS-OS.md en Ocote design):**
 macOS espera el arte a 824×824 centrado en 1024 (margen 100px) o el ícono se ve más grande que las apps nativas. Los masters con margen están en `Ocote design/export/icons/macos/ocote-macos-1024{,-dark}.png`. Para regenerar el bundle: `pnpm tauri icon <master-dark>` (dark = default de la app). Los íconos del runtime swap (`resources/icons/icon-{light,dark}.png/.icns`) y el preview (`frontend/icons/`) también usan los masters con margen. Light/dark son gemelos geométricos a propósito (la diferencia de tamaño percibida es irradiación óptica, NO se corrige).
+
+**PowerShell hook (`prompt.ps1`):**
+Cargado vía `pwsh -NoExit -Command ". '<hook>'"` (corre tras los `$PROFILE`). `function prompt` emite OSC 6731/133 D al inicio (Write-Host, side-effect) y OSC 133 A al final del string retornado. Exit code: capturar `$?`/`$LASTEXITCODE` en la PRIMERA línea de prompt. PSReadLine aporta autosuggestions (`PredictionSource History`) + highlighting nativos. fzf: handlers manuales de PSReadLine (no hay `fzf --powershell`). En Windows, `pty.rs` prefiere `pwsh.exe`, fallback `powershell.exe`. Probar en macOS: `SHELL=$(which pwsh) pnpm tauri dev`.
+
+**Sync explorador con PowerShell (gotcha):**
+PowerShell `Set-Location` NO cambia el cwd del proceso a nivel OS (mantiene su ubicación interna). Por eso el polling `get_shell_cwd` (que lee el cwd del proceso) revierte el sync. Solución: `explorer.js` marca shells que emiten OSC 6731 como `_oscManagedShells` y el polling los ignora (el OSC es autoritativo). El polling queda solo para passthrough.
+
+**zoxide + bat (bundleados, en `bin/<plataforma>/`):**
+zoxide (`z`) se inicializa en cada hook (`zoxide init <shell>`); envuelve la función prompt para registrar dirs visitados. bat queda como comando `bat` SIN aliasear `cat` (preserva la enseñanza del CKB). Ambos en PATH vía el mismo dir que fzf. eza NO se bundlea: no publica binarios de macOS.
 
 **Fish hook (`prompt.fish`):**
 Cargado vía `fish -C "source <hook>"` (corre DESPUÉS de `config.fish` → nuestro `fish_prompt` gana). fish trae syntax highlighting y autosuggestions NATIVOS — no se bundlean plugins. `fish_prompt` emite OSC 6731/133 D al inicio y OSC 133 A al final (cursor en ❯). fish calcula el ancho del prompt interpretando los escapes él mismo → NO necesita marcadores `%{ %}`/`\[ \]`. Probar: `SHELL=$(which fish) pnpm tauri dev`.

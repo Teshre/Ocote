@@ -109,3 +109,8 @@ if test -n "$OCOTE_FZF_BIN"; and test -x "$OCOTE_FZF_BIN"
     set -gx FZF_DEFAULT_OPTS "--height=40% --layout=reverse --border=rounded --prompt='❯ ' --pointer='▶' --marker='✓' --color=fg:#C8C0B0,bg:-1,hl:#E8C03A --color=fg+:#E2D6BD,bg+:#1C1611,hl+:#E8843A --color=border:#524A42,prompt:#E8843A,pointer:#E8843A --color=marker:#7DC97A,spinner:#E8843A,header:#6F6552"
     set -gx FZF_ALT_C_COMMAND "find -L . -mindepth 1 -maxdepth 5 -type d -not -path '*/.*' 2>/dev/null"
 end
+
+# ── zoxide (cd inteligente: comando `z`) + bat (disponible como `bat`) ───────
+if type -q zoxide
+    zoxide init fish | source
+end

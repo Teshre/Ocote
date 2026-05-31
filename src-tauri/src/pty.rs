@@ -118,6 +118,8 @@ struct ShellResources {
     bash_hook:       Option<std::path::PathBuf>,
     /// Hook de prompt para fish (prompt.fish).
     fish_hook:       Option<std::path::PathBuf>,
+    /// Hook de prompt para PowerShell (prompt.ps1).
+    ps1_hook:        Option<std::path::PathBuf>,
     /// Binario de fzf para la plataforma actual.
     fzf_bin:         Option<std::path::PathBuf>,
     /// Plugin zsh-autosuggestions (archivo .zsh principal).
@@ -134,6 +136,7 @@ fn resolve_shell_resources(window: &tauri::Window) -> Option<ShellResources> {
     );
     let bash_hook = resolve_resource(window, "resources/shell/bash-hook.bash");
     let fish_hook = resolve_resource(window, "resources/shell/prompt.fish");
+    let ps1_hook  = resolve_resource(window, "resources/shell/prompt.ps1");
 
     // fzf: seleccionar el binario correcto para esta plataforma/arquitectura
     let fzf_name = fzf_binary_name();
@@ -148,7 +151,21 @@ fn resolve_shell_resources(window: &tauri::Window) -> Option<ShellResources> {
         window, "resources/zsh-autosuggestions/zsh-autosuggestions.zsh",
     );
 
-    Some(ShellResources { shell_dir, zsh_hook, zsh_hl, bash_hook, fish_hook, fzf_bin, zsh_autosuggest })
+    Some(ShellResources { shell_dir, zsh_hook, zsh_hl, bash_hook, fish_hook, ps1_hook, fzf_bin, zsh_autosuggest })
+}
+
+/// Windows: elige el shell. Prefiere PowerShell 7 (pwsh) si está instalado;
+/// si no, Windows PowerShell 5.1 (powershell.exe, siempre presente en Win10+).
+/// Ambos cargan nuestro prompt.ps1; pwsh tiene mejores autosuggestions (PSReadLine).
+#[cfg(target_os = "windows")]
+fn windows_shell() -> String {
+    use std::process::Command;
+    // Probar pwsh: si responde, usarlo. Output rápido y silencioso.
+    let pwsh_ok = Command::new("pwsh")
+        .arg("-NoProfile").arg("-Command").arg("exit")
+        .output()
+        .is_ok();
+    if pwsh_ok { "pwsh.exe".to_string() } else { "powershell.exe".to_string() }
 }
 
 // ── create_shell ──────────────────────────────────────────────────────────
@@ -187,7 +204,7 @@ pub fn create_shell(
 
     // Shell del usuario
     #[cfg(target_os = "windows")]
-    let shell_cmd = "cmd.exe".to_string();
+    let shell_cmd = windows_shell();   // pwsh.exe si existe, si no powershell.exe
     #[cfg(not(target_os = "windows"))]
     let shell_cmd = std::env::var("SHELL")
         .unwrap_or_else(|_| "/bin/bash".to_string());
@@ -219,15 +236,29 @@ pub fn create_shell(
             // Añadimos ese dir al PATH para que `fzf` sea un comando real en
             // TODAS las shells (requisito de la integración de fish, que valida
             // `command -q fzf`; y más limpio que la función wrapper anterior).
+            // El dir de la plataforma contiene fzf, zoxide y bat. Añadirlo al PATH
+            // hace que los 3 sean comandos reales en todas las shells.
             if let Some(fzf) = &res.fzf_bin {
                 cmd.env("OCOTE_FZF_BIN", fzf.to_string_lossy().to_string());
                 if let Some(dir) = fzf.parent() {
+                    cmd.env("OCOTE_BIN_DIR", dir.to_string_lossy().to_string());
                     let cur = std::env::var("PATH").unwrap_or_default();
                     #[cfg(target_os = "windows")]
                     let sep = ";";
                     #[cfg(not(target_os = "windows"))]
                     let sep = ":";
                     cmd.env("PATH", format!("{}{}{}", dir.to_string_lossy(), sep, cur));
+                }
+            }
+
+            // PowerShell — aplica en Windows (shell por defecto) y en unix si el
+            // usuario puso SHELL=pwsh. -NoExit -Command corre tras los $PROFILE
+            // del usuario → nuestra función prompt y keybindings ganan.
+            if shell_cmd.contains("pwsh") || shell_cmd.contains("powershell") {
+                if let Some(ps1) = &res.ps1_hook {
+                    cmd.arg("-NoExit");
+                    cmd.arg("-Command");
+                    cmd.arg(format!(". '{}'", ps1.to_string_lossy()));
                 }
             }
 

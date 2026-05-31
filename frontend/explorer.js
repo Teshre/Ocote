@@ -49,13 +49,22 @@ async function initExplorer() {
 // Cada 2 segundos lee el CWD real del proceso shell y actualiza el explorador
 // si el usuario hizo cd manualmente en la terminal.
 
+// Shells que ya emitieron OSC 6731 (cwd autoritativo). Para ellos NO usamos el
+// polling de get_shell_cwd, porque ese lee el cwd del PROCESO a nivel OS — que
+// en PowerShell NO cambia con Set-Location (PS mantiene su ubicación interna).
+// El polling revertiría el sync correcto del OSC. Queda solo como fallback para
+// passthrough (shells sin integración OSC).
+const _oscManagedShells = new Set();
+
 function startSyncPolling() {
     if (syncInterval) clearInterval(syncInterval);
-    
+
     syncInterval = setInterval(async () => {
         try {
             const activeShell = window.ocoteActiveShellId;
             if (!activeShell) return;
+            // Si este shell emite OSC 6731, el OSC es la fuente de verdad — no pollear.
+            if (_oscManagedShells.has(activeShell)) return;
             const cwd = await window.__TAURI__.invoke('get_shell_cwd', { shellId: activeShell });
             if (cwd && cwd !== lastSyncedPath) {
                 console.log('[Explorer] Sync: terminal CWD changed to', cwd);
@@ -79,6 +88,8 @@ function startSyncPolling() {
 
 window.onShellCwdChanged = function (cwdRaw) {
     if (!cwdRaw) return;
+    // Este shell tiene integración OSC → marcarlo para que el polling no lo toque.
+    if (window.ocoteActiveShellId) _oscManagedShells.add(window.ocoteActiveShellId);
     // Expandir ~ → home (el shell envía la ruta abreviada)
     let path = cwdRaw;
     if (path === '~') {
