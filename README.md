@@ -15,8 +15,7 @@
 [![No AI](https://img.shields.io/badge/runtime%20AI-zero-E8635A.svg)]()
 [![GitHub stars](https://img.shields.io/github/stars/Teshre/Ocote?style=social)](https://github.com/Teshre/Ocote/stargazers)
 
-<video src="docs/assets/demo.mp4" controls width="800" alt="Ocote in action"></video>  
-<sup>See also: [demo.mp4](docs/assets/demo.mp4) (higher quality)</sup>
+<video src="docs/assets/demo.mp4" width="800" controls></video>
 
 </div>
 
