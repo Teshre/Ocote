@@ -15,7 +15,7 @@
 [![No AI](https://img.shields.io/badge/runtime%20AI-zero-E8635A.svg)]()
 [![GitHub stars](https://img.shields.io/github/stars/Teshre/Ocote?style=social)](https://github.com/Teshre/Ocote/stargazers)
 
-<video src="docs/assets/demo.mp4" width="800" controls></video>
+<video src="https://github.com/user-attachments/assets/d8507064-9b59-4821-a684-7fa7c51472bd" width="800" controls></video>
 
 </div>
 
