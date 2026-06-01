@@ -8,7 +8,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### Fase 4 — En progreso
-Próximo paso: optimización de bundling (solo binarios de la plataforma), landing page, firma de código macOS.
+Próximo paso: landing page, firma de código macOS, auto-updater.
+
+### Cambiado
+- **Bundling de binarios por plataforma** — antes cada build empaquetaba los 15 binarios (fzf+zoxide+bat × 5 plataformas, ~59MB). Ahora usa configs de plataforma de Tauri v1 (`tauri.macos/linux/windows.conf.json`) para que cada OS bundlee solo sus binarios. macOS verificado: 6 binarios darwin (23MB), cero peso muerto de linux/windows. NOTA: el merge de Tauri v1 reemplaza arrays (no concatena), por eso cada config repite la lista completa de recursos + sus binarios; el base ya no lista `resources/bin`.
 
 ### Agregado
 - **Soporte PowerShell** (`prompt.ps1`): `function prompt` con los 5 presets + OSC 6731/133 A/D. PSReadLine aporta autosuggestions (PredictionSource History) + syntax highlighting NATIVOS. fzf vía handlers manuales de PSReadLine (Ctrl+R historial, Alt+C cd — fzf no tiene `--powershell`). `pty.rs`: Windows ahora prefiere `pwsh.exe` (antes hardcodeaba `cmd.exe`); inyección vía `-NoExit -Command ". 'hook'"`. Validado en PowerShell 7.6.2. **4 shells soportados.**

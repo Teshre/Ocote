@@ -176,6 +176,9 @@ Cargado vía `pwsh -NoExit -Command ". '<hook>'"` (corre tras los `$PROFILE`). `
 **Sync explorador con PowerShell (gotcha):**
 PowerShell `Set-Location` NO cambia el cwd del proceso a nivel OS (mantiene su ubicación interna). Por eso el polling `get_shell_cwd` (que lee el cwd del proceso) revierte el sync. Solución: `explorer.js` marca shells que emiten OSC 6731 como `_oscManagedShells` y el polling los ignora (el OSC es autoritativo). El polling queda solo para passthrough.
 
+**Bundling de binarios por plataforma (Tauri v1):**
+Los binarios viven en `resources/bin/<plataforma>/`. El bundle NO los lista en `tauri.conf.json` (base); cada build los toma de `tauri.macos.conf.json` / `tauri.linux.conf.json` / `tauri.windows.conf.json`, que Tauri auto-mergea según el OS. GOTCHA: el merge REEMPLAZA arrays (no concatena), así que cada config de plataforma repite la lista COMPLETA de recursos (hooks, plugins, íconos) + solo sus binarios. Si agregas un recurso común nuevo, hay que añadirlo a los 3 configs de plataforma (o el base si no es por-plataforma). macOS incluye darwin-arm64 + darwin-x64 (para builds universales).
+
 **zoxide + bat (bundleados, en `bin/<plataforma>/`):**
 zoxide (`z`) se inicializa en cada hook (`zoxide init <shell>`); envuelve la función prompt para registrar dirs visitados. bat queda como comando `bat` SIN aliasear `cat` (preserva la enseñanza del CKB). Ambos en PATH vía el mismo dir que fzf. eza NO se bundlea: no publica binarios de macOS.
 

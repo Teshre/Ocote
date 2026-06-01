@@ -1,0 +1,22 @@
+{
+  "tauri": {
+    "bundle": {
+      "resources": [
+        "resources/shell/.zshenv",
+        "resources/shell/.zshrc",
+        "resources/shell/prompt.zsh",
+        "resources/shell/bash-hook.bash",
+        "resources/shell/prompt.fish",
+        "resources/shell/prompt.ps1",
+        "resources/zsh-syntax-highlighting/**/*",
+        "resources/zsh-autosuggestions/zsh-autosuggestions.zsh",
+        "resources/bin/darwin-arm64/*",
+        "resources/bin/darwin-x64/*",
+        "resources/icons/icon-light.png",
+        "resources/icons/icon-dark.png",
+        "resources/icons/icon-light.icns",
+        "resources/icons/icon-dark.icns"
+      ]
+    }
+  }
+}

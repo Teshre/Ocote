@@ -32,7 +32,6 @@
         "resources/shell/prompt.ps1",
         "resources/zsh-syntax-highlighting/**/*",
         "resources/zsh-autosuggestions/zsh-autosuggestions.zsh",
-        "resources/bin/**/*",
         "resources/icons/icon-light.png",
         "resources/icons/icon-dark.png",
         "resources/icons/icon-light.icns",

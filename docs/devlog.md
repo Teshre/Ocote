@@ -32,7 +32,17 @@ Este mismo bug hacía PARECER que zoxide no funcionaba: `z <dir>` cambiaba la ub
 
 `z`, `bat`, `fzf` (Ctrl+R) son comandos potentes que un principiante no conoce → candidatos perfectos para el CKB / tooltips educativos de Ocote.
 
-**Próximo paso:** optimización de bundling (cada plataforma solo lleva sus binarios; hoy el .app lleva los 15).
+### Optimización de bundling por plataforma
+
+Hoy el bundle metía los 15 binarios (fzf+zoxide+bat × 5 plataformas, 59MB) en TODOS los builds → un .app de macOS cargaba ~36MB de peso muerto (linux+windows).
+
+**Solución (Tauri v1 platform configs):** se quitó `resources/bin/**/*` del `tauri.conf.json` base y se crearon `tauri.macos.conf.json`, `tauri.linux.conf.json`, `tauri.windows.conf.json`. Tauri auto-mergea el config de la plataforma con el base al construir en cada OS. Cada uno lista solo los binarios de su plataforma (macOS incluye darwin arm64+x64 para builds universales).
+
+**Gotcha clave:** el merge de Tauri v1 REEMPLAZA arrays (no concatena). Por eso cada config de plataforma repite la lista COMPLETA de `resources` (hooks, plugins, íconos) + sus binarios — si solo listara los binarios, perdería los demás recursos.
+
+**Verificado con build real de macOS:** el .app lleva solo darwin-arm64 + darwin-x64 (23MB de binarios), cero linux/windows. Evaluado: se descartó `beforeBuildCommand` (más imperativo, más superficie de error) por ser los platform configs el mecanismo idiomático y declarativo.
+
+**Próximo paso:** landing page, firma de código macOS, o enseñar z/bat/fzf en el CKB.
 
 ---
 
