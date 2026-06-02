@@ -5,6 +5,48 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-06-01 — Sesión 14: temas oficiales de Ocote + README de lanzamiento
+
+**Estado al inicio:** Ocote tenía 10 temas (Ocote Dark/Light + 8 ajenos como Dracula/Nord). Se creó un repo aparte de marca, [ocote-themes](https://github.com/Teshre/ocote-themes), con 8 paletas originales "alma de lumbre". Objetivo de la sesión: adoptar los temas oficiales, preparar el README de lanzamiento.
+
+### README bilingüe de pre-lanzamiento
+
+- `README.md` (inglés, principal — convención GitHub, público dev mayoritariamente angloparlante) + `README.es.md` (español, identidad LatAm), con links cruzados de idioma.
+- Estructura estilo Warp/Ghostty/Alacritty: hero con ícono real (no emoji), badges, qué es, características por sección, tabla de 4 shells, instalación, stack, roadmap, star history (star-history.com), contribuir, licencia.
+- Datos verificados contra el proyecto (153 comandos × 5 idiomas, ~33MB, etc.).
+- Placeholder de GIF/MP4 de demo con guía para grabarlo (`docs/assets/README.md`).
+
+### Temas oficiales (decisión de marca)
+
+**Decisión (con el usuario):** quedarse SOLO con los 8 temas de Ocote, eliminar los ajenos. Razón: los temas originales son un activo de marca; tener Dracula/Nord diluye la identidad y pone a Ocote como "otro terminal con los temas de siempre". Default = `ocote`.
+
+**Implementación — generación programática:** `themes.js` se reescribió para generar los 8 temas desde `OCOTE_THEME_DATA` (espejo de `ocote-themes/ocote-themes.js`: paleta base16 por tema). `buildTheme()` deriva automáticamente `xterm` (16 colores ANSI), `css` (variables UI, con sidebar/input calculados del bg vía `shade()`) y `tokens` (prompts). Antes cada tema era ~40 líneas de hex a mano; ahora se agregan/quitan editando solo `OCOTE_THEME_DATA`. La regla `tokens.accent === --accent` se cumple sola (ambos = `cursor`).
+
+**Migración:** usuarios con `dark`/`light`/temas ajenos en localStorage se mapean (`dark`→`ocote`, `light`→`papel`, resto→`ocote`) en `settings.js migrateThemeId`, para que nadie quede con un tema inexistente al actualizar.
+
+### Selector de temas con mini-preview
+
+El círculo simple anterior no encajaba con el resto de la UI (que ya tiene preview en el picker de prompts). Se portó el renderer de `ocote-themes/gallery.js`: cada tema es una card con un **mini-terminal coloreado con su paleta ANSI real** (prompt + `ls` + `cat theme.rs` + cursor), nombre, etiqueta Oscuro/Claro, descripción y swatches de paleta. Layout 2×4, coherente con el picker de prompts.
+
+### Sincronización del repo ocote-themes
+
+La carpeta local `../ocote-themes` no tenía git y el remoto estaba más actualizado. Se clonó el remoto (respaldando lo local); al comparar, las paletas ANSI ya eran idénticas a las de Ocote — solo difería la indentación. Ahora la carpeta tiene git para futuros updates.
+
+### Decisiones tomadas
+
+- **Solo temas oficiales** (no import de ajenos por ahora): identidad de marca pura. Quien quiera otro tema usa el repo base16 en su terminal externa.
+- **Import de temas custom** (base16/JSON, guardados como `custom`): documentado como **feature futura del roadmap**, no implementado esta sesión.
+- **README en inglés principal:** maximiza alcance; el español preserva la identidad sin sacrificar público.
+
+### Pendientes
+
+- GIF/MP4 de demo para el README (lo graba el usuario; guía lista en `docs/assets/`).
+- Import de temas custom (roadmap).
+
+**Próximo paso:** verificar el README renderizado en GitHub, luego landing page o firma de código.
+
+---
+
 ## 2026-05-31 — Sesión 13: PowerShell (4º shell) + zoxide + bat
 
 **Estado al inicio:** 3 shells (zsh/bash/fish). Objetivo: PowerShell + más tools out-of-the-box.

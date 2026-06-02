@@ -1272,60 +1272,120 @@ button:focus-visible {
 
 /* ── Grid de temas (swatches) ────────────────────────────────────────────── */
 
+/* ── Grid de temas — cards con mini-preview de terminal ──────────────────── */
 #theme-grid {
   display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
 }
 
 .theme-swatch {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: 2px solid transparent;
-  border-radius: 8px;
-  padding: 6px 2px 5px;
+  text-align: left;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0;
+  overflow: hidden;
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
 }
 .theme-swatch:hover {
-  background: var(--hover-bg);
+  border-color: var(--border-strong);
 }
 .theme-swatch.active {
   border-color: var(--accent);
-  background: var(--accent-dim);
 }
-
-.theme-swatch-color {
-  width: 28px;
-  height: 28px;
+.theme-swatch.active::after {
+  content: '✓';
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  border: 2px solid var(--border-strong);
-  box-shadow:
-    inset 0 0 0 2px var(--bg-sidebar),
-    0 2px 4px rgba(0, 0, 0, 0.2);
+  background: var(--accent);
+  color: var(--bg-terminal);
+  font-size: 10px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  line-height: 1;
 }
-.theme-swatch.active .theme-swatch-color {
-  border-color: var(--accent);
-  box-shadow:
-    inset 0 0 0 2px var(--bg-sidebar),
-    0 0 12px var(--accent-glow);
+.theme-swatch { position: relative; }
+
+/* Mini-terminal: fondo del tema + barra superior con los 3 dots */
+.tsw-preview {
+  height: 78px;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.45;
+  border-bottom: 1px solid var(--border);
+}
+.tsw-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+}
+.tsw-dot { width: 6px; height: 6px; border-radius: 50%; }
+.tsw-title {
+  margin-left: 4px;
+  font-size: 8.5px;
+  opacity: 0.7;
+}
+.tsw-body {
+  padding: 4px 9px 8px;
+  white-space: pre;
+}
+.tsw-body .b { font-weight: 700; }
+.tsw-cur {
+  display: inline-block;
+  width: 5px;
+  height: 10px;
+  vertical-align: -1px;
 }
 
-.theme-swatch-name {
-  font-size: 8.5px;
-  color: var(--text-secondary);
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+/* Meta: nombre + descripción + swatches de paleta */
+.tsw-meta {
+  padding: 8px 10px 9px;
 }
-.theme-swatch.active .theme-swatch-name {
-  color: var(--accent);
+.tsw-name {
+  font-size: 12.5px;
   font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.tsw-tag {
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 1px 6px;
+}
+.tsw-desc {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+.tsw-palette {
+  display: flex;
+  gap: 3px;
+  margin-top: 8px;
+}
+.tsw-palette i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
 }
 
 /* Fila de dos secciones lado a lado (Tipografía + Iconos) */

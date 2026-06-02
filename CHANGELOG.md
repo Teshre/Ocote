@@ -10,7 +10,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ### Fase 4 — En progreso
 Próximo paso: landing page, firma de código macOS, auto-updater.
 
+### Agregado
+- **8 temas oficiales de Ocote** (paletas originales "alma de lumbre", base16): Ocote, Brasa, Bosque, Noche, Papel, Tinta, Mezcal, Cacao. Generados programáticamente en `themes.js` desde `OCOTE_THEME_DATA` (espejo del repo [ocote-themes](https://github.com/Teshre/ocote-themes)) — cada tema deriva su `xterm`, `css` y `tokens` de la paleta base16. Para agregar/quitar: editar solo `OCOTE_THEME_DATA`.
+- **Selector de temas con mini-preview** — cada tema se muestra como una card con un mini-terminal coloreado con su paleta ANSI real (porteado de `ocote-themes/gallery.js`), nombre, etiqueta Oscuro/Claro, descripción y swatches de paleta. Reemplaza el círculo simple anterior.
+
 ### Cambiado
+- **Temas: solo los 8 oficiales de Ocote** — se eliminaron los 8 temas ajenos (Dracula, One Dark, Monokai, Solarized×2, Gruvbox, Nord, Tokyo Night) por identidad de marca. Default cambiado de `dark` a `ocote`. Migración automática para usuarios existentes: `dark`→`ocote`, `light`→`papel`, cualquier otro→`ocote`.
+- **README bilingüe** (`README.md` inglés principal + `README.es.md` español) con ícono real, badges, star history y sección de los 8 temas con link a ocote-themes.
 - **Bundling de binarios por plataforma** — antes cada build empaquetaba los 15 binarios (fzf+zoxide+bat × 5 plataformas, ~59MB). Ahora usa configs de plataforma de Tauri v1 (`tauri.macos/linux/windows.conf.json`) para que cada OS bundlee solo sus binarios. macOS verificado: 6 binarios darwin (23MB), cero peso muerto de linux/windows. NOTA: el merge de Tauri v1 reemplaza arrays (no concatena), por eso cada config repite la lista completa de recursos + sus binarios; el base ya no lista `resources/bin`.
 
 ### Agregado

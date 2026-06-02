@@ -40,7 +40,7 @@
     // El preset elegido en Settings. Default 'pill' = firma visual de Ocote.
     const promptPreset = localStorage.getItem('ocote_prompt') || 'pill';
     // Accent del tema activo (hex sin #) para que el shell coloree el ❯ en minimal.
-    const themeId = localStorage.getItem('ocote_theme') || 'dark';
+    const themeId = localStorage.getItem('ocote_theme') || 'ocote';
     const accentHex = window.OCOTE_THEMES?.TOKENS?.[themeId]?.accent?.replace('#', '') ?? 'E8843A';
     const shellId = await invoke('create_shell', { rows, cols, prompt: promptPreset, accent: accentHex });
     container.dataset.shellId = shellId;

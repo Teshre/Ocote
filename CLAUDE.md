@@ -32,7 +32,7 @@ src-tauri/
   tauri.conf.json
 frontend/
   index.html         ← layout principal; orden de scripts crítico (ver abajo)
-  themes.js          ← 10 temas + tokens semánticos + getCurrentTokens()
+  themes.js          ← 8 temas oficiales generados desde OCOTE_THEME_DATA (base16)
   prompt.js          ← Decoration API: renders HTML por preset + previewHtml()
   terminal.js        ← factory xterm.js + OSC handlers (6731, 133) en bindTerminalShell()
   tab-manager.js     ← barra de tabs, múltiples terminales
@@ -67,7 +67,7 @@ ckb/
 - Autocompletado visual posicionado debajo del cursor (`autocomplete.js`) ✅
 - Tooltip educativo funcional con argumentos (`tooltip.js`) ✅
 - **Múltiples terminales** en tabs (`tab-manager.js`): Ctrl+T nuevo tab, Ctrl+W cerrar ✅
-- **10 temas de color** (`themes.js`): Ocote Dark/Light, Dracula, One Dark, Monokai, Solarized Dark/Light, Gruvbox, Nord, Tokyo Night ✅
+- **8 temas oficiales de Ocote** (`themes.js`): Ocote, Brasa, Bosque, Noche, Papel, Tinta, Mezcal, Cacao — paletas originales base16 ✅
 - **Panel de configuración** (`settings.js`): modal centrado, tabs General y Apariencia ✅
 - **UI traducida** (`ui-i18n.js`): settings, onboarding y breadcrumb en 5 idiomas ✅
 - **Breadcrumb navegable** en el explorador: segmentos clicables, dropdown al hover, abreviados si son largos ✅
@@ -215,11 +215,17 @@ Los renders NO hardcodean colores. Todos usan `OCOTE_THEMES.getCurrentTokens()` 
 - tab-manager.js lee `localStorage('ocote_theme')` para extraer el accent antes de llamar `create_shell`.
 
 ### Sistema de temas
-- Cada tema tiene: `xterm` (paleta xterm.js), `css` (CSS variables), y también `tokens` en `OCOTE_THEMES.TOKENS`.
-- `window.OCOTE_THEMES.getCurrentTokens()` → `{accent, green, blue, comment, warning, fg}` del tema activo.
-- `window.OCOTE_THEMES.applyTheme(themeId)` llama `OCOTE_PROMPT.refresh()` al final para repintar decorations.
+- **8 temas oficiales de Ocote** (ids: `ocote`, `brasa`, `bosque`, `noche`, `papel`, `tinta`, `mezcal`, `cacao`). Default = `ocote`. Solo los nuestros — los temas ajenos (Dracula/Nord/etc.) se eliminaron por identidad de marca.
+- **Generación programática**: `themes.js` define `OCOTE_THEME_DATA` (espejo de github.com/Teshre/ocote-themes — `bg, fg, cursor, comment, selection, ansi[16]` base16). `buildTheme()` deriva `xterm`, `css` y `tokens` de cada paleta. **Para agregar/quitar un tema: editar SOLO `OCOTE_THEME_DATA`.** No hay que mantener xterm/css/tokens a mano.
+- Mapeo base16 → tokens: `accent=cursor`, `green=ansi[2]`, `blue=ansi[4]`, `warning=ansi[3]`, `comment`, `fg`. La regla `tokens.accent === --accent` se cumple automáticamente (ambos = `cursor`).
+- `getCurrentTokens()` → tokens del tema activo. `getThemeList()` → datos para el picker (incluye `ansi`, `bg`, etc. para el mini-preview). `applyTheme()` llama `OCOTE_PROMPT.refresh()`.
+- **Migración** (`settings.js` `migrateThemeId`): IDs viejos guardados en localStorage (`dark`→`ocote`, `light`→`papel`, ajenos→`ocote`) para que usuarios existentes no queden con tema roto.
+- **Selector con mini-preview** (`settings.js` `themeCard`): card con mini-terminal coloreado por la paleta ANSI del tema (porteado de `ocote-themes/gallery.js`).
 - `themes.js` **debe cargarse PRIMERO** (antes de `prompt.js`, `terminal.js`, `tab-manager.js`).
-- **REGLA CRÍTICA DE TOKENS**: `TOKENS[tema].accent` DEBE coincidir con `--accent` del CSS de ese tema. Si divergen, el overlay usa un color y la UI usa otro. La regla es `TOKENS.accent === accentHex` siempre.
+- **Repo de temas**: `../ocote-themes` (git, github.com/Teshre/ocote-themes) tiene los temas standalone base16 + exports para 6 terminales. Si se actualizan paletas ahí, hay que reflejar `OCOTE_THEME_DATA` en `themes.js`.
+
+### Pendiente (roadmap): import de temas custom
+Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, guardados en localStorage como `custom`. Decidido como feature futura — por ahora solo los 8 oficiales para mantener identidad de marca.
 
 ### Notas generales
 - `vt_parser.js` fue eliminado en v0.3.0. xterm.js maneja todo el renderizado.

@@ -26,7 +26,7 @@ const OCOTE_THEME = {
 function createTerminalInstance(container) {
   // Leer el tema activo guardado en localStorage.
   // Si themes.js ya cargó, usar su paleta; si no, caer al default oscuro.
-  const savedThemeId = localStorage.getItem('ocote_theme') || 'dark';
+  const savedThemeId = localStorage.getItem('ocote_theme') || 'ocote';
   const activeXtermTheme = window.OCOTE_THEMES?.THEMES?.[savedThemeId]?.xterm ?? OCOTE_THEME;
 
   // Leer preferencias guardadas — font, fontSize, cursorStyle, scrollback

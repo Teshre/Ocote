@@ -7,7 +7,7 @@
 
   // ── Defaults ────────────────────────────────────────────────────────────
   const DEFAULTS = {
-    theme:       'dark',
+    theme:       'ocote',
     font:        "'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
     iconTheme:   'seti',
     lang:        'es',
@@ -18,9 +18,18 @@
     scrollback:  10000,
   };
 
+  // Migración: los IDs viejos ('dark'/'light' + temas ajenos) ya no existen.
+  // Mapear lo razonable al nuevo set oficial; cualquier otro → 'ocote'.
+  function migrateThemeId(id) {
+    if (!id) return DEFAULTS.theme;
+    if (window.OCOTE_THEMES?.THEMES?.[id]) return id;  // ya es un tema válido
+    const map = { dark: 'ocote', light: 'papel' };     // equivalentes más cercanos
+    return map[id] || DEFAULTS.theme;
+  }
+
   // ── Estado actual (lee localStorage) ────────────────────────────────────
   const state = {
-    theme:       localStorage.getItem('ocote_theme')        || DEFAULTS.theme,
+    theme:       migrateThemeId(localStorage.getItem('ocote_theme')),
     font:        localStorage.getItem('ocote_font')         || DEFAULTS.font,
     iconTheme:   localStorage.getItem('ocote_icon_theme')   || DEFAULTS.iconTheme,
     lang:        localStorage.getItem('ocote_lang')         || DEFAULTS.lang,
@@ -523,19 +532,59 @@
     });
   }
 
-  // ── Grid de temas ─────────────────────────────────────────────────────
+  // ── Grid de temas — card con mini-preview de terminal ─────────────────────
+  // Porteado de ocote-themes/gallery.js: muestra un mini-terminal coloreado con
+  // la paleta ANSI real del tema, su nombre, descripción y swatches de paleta.
+
+  function themeCard(t) {
+    const isLight = t.type === 'light';
+    const a = t.ansi, fg = t.fg, c = t.comment;
+    // helpers de coloreado (índices ANSI: 1 red, 2 green, 3 yellow, 4 blue, 5 magenta, 6 cyan)
+    const S = (i, s, bold) => `<span class="${bold ? 'b' : ''}" style="color:${a[i]}">${s}</span>`;
+    const F = (s) => `<span style="color:${fg}">${s}</span>`;
+    const D = (s) => `<span style="color:${c}">${s}</span>`;
+    const chev = `<span style="color:${t.cursor}">❯</span>`;
+    const prompt = `${S(6, '~/ocote', 1)} ${S(2, '⎇ main', 0)} ${chev} `;
+
+    // Mini-sesión: 2 comandos cortos para que quepa en la card
+    const body = [
+      `${prompt}${F('ls')}`,
+      `${S(4, 'src/', 1)} ${S(2, 'build.sh', 1)} ${F('README')} ${S(5, 'ocote.toml', 0)}`,
+      `${prompt}${F('cat')} ${S(3, 'theme.rs', 0)}`,
+      `${S(5, 'pub fn', 0)} ${S(4, 'load', 0)}() ${D('// lumbre')}`,
+      `${prompt}<span class="tsw-cur" style="background:${t.cursor}"></span>`,
+    ].join('\n');
+
+    const barBg = isLight ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.04)';
+    // Swatches: una muestra representativa de la paleta (red, green, yellow, blue, magenta, cyan)
+    const palette = [a[1], a[2], a[3], a[4], a[5], a[6], t.cursor]
+      .map(hex => `<i style="background:${hex}"></i>`).join('');
+
+    return `
+      <button class="theme-swatch" data-theme="${t.id}" title="${t.name} — ${t.desc || ''}">
+        <div class="tsw-preview" style="background:${t.bg}">
+          <div class="tsw-bar" style="background:${barBg}">
+            <span class="tsw-dot" style="background:#ff5f57"></span>
+            <span class="tsw-dot" style="background:#febc2e"></span>
+            <span class="tsw-dot" style="background:#28c840"></span>
+            <span class="tsw-title" style="color:${t.fg}">ocote — ${t.id}</span>
+          </div>
+          <div class="tsw-body" style="color:${t.fg}">${body}</div>
+        </div>
+        <div class="tsw-meta">
+          <div class="tsw-name">${t.name}<span class="tsw-tag">${isLight ? 'Claro' : 'Oscuro'}</span></div>
+          <div class="tsw-desc">${t.desc || ''}</div>
+          <div class="tsw-palette">${palette}</div>
+        </div>
+      </button>`;
+  }
 
   function renderThemeGrid() {
     const grid = document.getElementById('theme-grid');
     if (!grid || !window.OCOTE_THEMES) return;
 
     const list = window.OCOTE_THEMES.getThemeList();
-    grid.innerHTML = list.map(t => `
-      <button class="theme-swatch" data-theme="${t.id}" title="${t.name}">
-        <span class="theme-swatch-color" style="background:${t.preview};border-color:${t.accent}"></span>
-        <span class="theme-swatch-name">${t.name}</span>
-      </button>
-    `).join('');
+    grid.innerHTML = list.map(t => themeCard(t)).join('');
   }
 
   // ── Inicializar ─────────────────────────────────────────────────────────

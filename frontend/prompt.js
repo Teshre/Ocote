@@ -25,9 +25,9 @@ window.OCOTE_PROMPT = (() => {
 
   function termBg() {
     // Leer el background del tema activo — el mismo color que xterm.js usa para el canvas.
-    const id = localStorage.getItem('ocote_theme') || 'dark';
+    const id = localStorage.getItem('ocote_theme') || 'ocote';
     return window.OCOTE_THEMES?.THEMES?.[id]?.xterm?.background
-      || window.OCOTE_THEMES?.THEMES?.['dark']?.xterm?.background
+      || window.OCOTE_THEMES?.THEMES?.['ocote']?.xterm?.background
       || '#14100C';
   }
 

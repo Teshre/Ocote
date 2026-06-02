@@ -56,7 +56,7 @@ Unlike modern terminals betting on cloud AI assistants, Ocote is **radically off
 | `minimal` | Typography only, clean and quiet |
 | `passthrough` | Respects your native prompt (p10k, oh-my-zsh…) |
 
-- **10 color themes:** Ocote Dark/Light, Dracula, One Dark, Monokai, Solarized Dark/Light, Gruvbox, Nord, Tokyo Night.
+- **8 original color themes** — warm, "Mexican ember" palettes designed from scratch (not derived from Dracula/Nord/etc.): **Ocote** (the signature), **Brasa**, **Bosque**, **Noche**, **Papel**, **Tinta**, **Mezcal**, **Cacao**. Available standalone for any terminal at [**ocote-themes**](https://github.com/Teshre/ocote-themes) (base16, exports for Alacritty, Ghostty, kitty, WezTerm, iTerm2, Windows Terminal).
 - **Nerd Fonts** bundled: JetBrainsMono NF, FiraCode NF, MesloLGS NF.
 
 ### 🐚 Ready out of the box — 4 shells, zero config
@@ -145,7 +145,7 @@ Ocote is in **Phase 4** of its roadmap (release prep). Already working:
 - ✅ File explorer with sync
 - ✅ Multilingual CKB (153 commands × 5 languages)
 - ✅ Autocomplete and educational tooltip
-- ✅ 10 themes + 5 prompt presets
+- ✅ 8 original themes + 5 prompt presets
 - ✅ Out-of-the-box tools (fzf, zoxide, bat, syntax highlighting, autosuggestions)
 - ✅ Cross-platform distribution via GitHub Actions
 

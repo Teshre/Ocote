@@ -1,416 +1,167 @@
-// themes.js — Definición de temas para Ocote
-// Cada tema incluye colores para xterm.js + CSS variables.
+// themes.js — Temas oficiales de Ocote.
+// ---------------------------------------------------------------------------
+// Los 8 temas se generan PROGRAMÁTICAMENTE desde OCOTE_THEME_DATA (la misma
+// fuente que el repo github.com/Teshre/ocote-themes). Cada entrada trae:
+//   bg, fg, cursor, cursorText, selection, comment + ansi[16] (paleta base16).
+// De ahí derivamos:
+//   - xterm:  paleta para xterm.js
+//   - css:    CSS variables de la UI (bg/sidebar/input se calculan del bg)
+//   - tokens: {accent, green, blue, comment, warning, fg} para los prompts
+//
+// Para agregar/quitar un tema: editar OCOTE_THEME_DATA. Nada más.
 
 (function () {
   'use strict';
 
+  // ── Fuente de verdad: paletas oficiales de Ocote (base16) ─────────────────
+  // Espejo de ocote-themes/ocote-themes.js. ansi = [black,red,green,yellow,
+  // blue,magenta,cyan,white, brightBlack..brightWhite].
+  const OCOTE_THEME_DATA = [
+    { id: 'ocote',  name: 'Ocote',  type: 'dark',
+      desc: 'Carbón y lumbre. La firma de la casa.',
+      bg: '#14100C', fg: '#E7DCC6', cursor: '#E8843A', cursorText: '#14100C',
+      selection: '#3A2E1C', comment: '#6B6253',
+      ansi: ['#2A2218','#E8635A','#7DC97A','#E8B43A','#82A6E0','#C58AE0','#6DD8C8','#D8CDB6',
+             '#4A3E2C','#F2847B','#97D894','#F2C863','#A0BEE8','#D6A6EC','#92E6D8','#FAF6EC'] },
+    { id: 'brasa',  name: 'Brasa',  type: 'dark',
+      desc: 'Rescoldos al rojo. Cálido e intenso.',
+      bg: '#1A0F0A', fg: '#F0D8C0', cursor: '#FF7A4D', cursorText: '#1A0F0A',
+      selection: '#45261A', comment: '#7A6150',
+      ansi: ['#36241A','#F2685A','#B8C24A','#F0B23A','#9AA6E0','#E68AA2','#6BC8B8','#E8D0BC',
+             '#5A3A28','#FF8A6A','#CCD66A','#FFC95E','#B4BEEC','#F2A6BA','#8EE0D2','#FBEAD8'] },
+    { id: 'bosque', name: 'Bosque', type: 'dark',
+      desc: 'Verde de monte y resina.',
+      bg: '#0E1410', fg: '#CFE5D2', cursor: '#7DC97A', cursorText: '#0E1410',
+      selection: '#1E3023', comment: '#5C6E5E',
+      ansi: ['#1C2A20','#E2706A','#6FC56E','#C8B84A','#6DAE9E','#B894D0','#5FD0B8','#BCD4BE',
+             '#35503E','#F08A82','#8FD88C','#DCCC66','#8FC4B6','#CEAAE2','#82E0CC','#E4F0E2'] },
+    { id: 'noche',  name: 'Noche',  type: 'dark',
+      desc: 'Azules profundos para la madrugada.',
+      bg: '#0C0E16', fg: '#CBD4EC', cursor: '#82A6E0', cursorText: '#0C0E16',
+      selection: '#232A40', comment: '#5A6178',
+      ansi: ['#20253A','#E2727E','#7CC596','#D8C062','#7AA0E8','#B79AE0','#6DD8D0','#BAC2DC',
+             '#3A4260','#F08A96','#98D8AE','#E8D484','#9CBAF0','#CEB4EC','#8EE6DE','#E6ECFA'] },
+    { id: 'papel',  name: 'Papel',  type: 'light',
+      desc: 'Claro, de día. Tinta sobre papel cálido.',
+      bg: '#F5EFE2', fg: '#3A2E20', cursor: '#C25C1F', cursorText: '#F5EFE2',
+      selection: '#E0D0AC', comment: '#9A8C76',
+      ansi: ['#4A3E2E','#C0392B','#5E7A28','#A8761A','#2C6CA0','#9B4D8E','#2A8A7A','#D8CCB4',
+             '#6E6353','#D04A38','#6E8A30','#C28A24','#3A7CB0','#A85C9C','#36A090','#EFE8D8'] },
+    { id: 'tinta',  name: 'Tinta',  type: 'dark',
+      desc: 'Casi monocromo. Negro tinta, acento brasa.',
+      bg: '#101012', fg: '#D8D6D0', cursor: '#E8843A', cursorText: '#101012',
+      selection: '#2C2C30', comment: '#62626A',
+      ansi: ['#2A2A2E','#D0726A','#9AA890','#C8B86A','#8A9AB0','#B0A0B8','#80B8B4','#C4C2BC',
+             '#4A4A50','#E08A80','#B2C0A8','#DCCC84','#A6B4C8','#C6B6CE','#98CEC8','#EEECE6'] },
+    { id: 'mezcal', name: 'Mezcal', type: 'dark',
+      desc: 'Agave y oro. Terroso y dorado.',
+      bg: '#13110E', fg: '#E0D8C8', cursor: '#D9A441', cursorText: '#13110E',
+      selection: '#36301E', comment: '#6E6450',
+      ansi: ['#2C2818','#DA6E54','#A8B84A','#D9A441','#8AA6C0','#C28AA8','#6FC8AE','#D2C8B0',
+             '#4E462C','#EC8A6E','#C0D066','#ECC468','#A6BED4','#DCA6C2','#8EE0C8','#F2EAD6'] },
+    { id: 'cacao',  name: 'Cacao',  type: 'dark',
+      desc: 'Chocolate amargo y ámbar.',
+      bg: '#160F0C', fg: '#E8D6C4', cursor: '#C77B4A', cursorText: '#160F0C',
+      selection: '#3A281E', comment: '#766052',
+      ansi: ['#2E2018','#E0705C','#9AC97A','#E8A84A','#A89AD0','#CE8AB0','#74C8B0','#D8C4B0',
+             '#4E382A','#F08A74','#B2D896','#F4C268','#BEB2E0','#E2A6C6','#92E0CC','#F4E6D6'] },
+  ];
+
+  // ── Helpers de color ───────────────────────────────────────────────────────
   function toRgb(hex) {
     const h = hex.replace('#', '');
-    const r = parseInt(h.slice(0,2), 16);
-    const g = parseInt(h.slice(2,4), 16);
-    const b = parseInt(h.slice(4,6), 16);
-    return { r, g, b };
+    return { r: parseInt(h.slice(0,2),16), g: parseInt(h.slice(2,4),16), b: parseInt(h.slice(4,6),16) };
+  }
+  function rgba(hex, o) { const c = toRgb(hex); return `rgba(${c.r},${c.g},${c.b},${o})`; }
+
+  /** Aclara/oscurece un hex por un factor: amount>0 aclara, <0 oscurece. */
+  function shade(hex, amount) {
+    const c = toRgb(hex);
+    const adj = (v) => Math.max(0, Math.min(255, Math.round(v + 255 * amount)));
+    const h = (v) => adj(v).toString(16).padStart(2, '0');
+    return `#${h(c.r)}${h(c.g)}${h(c.b)}`;
   }
 
-  function makeTheme(config) {
-    const { css, accentHex, isLight } = config;
-    const a = toRgb(accentHex);
+  // ── Generar un tema completo desde su entrada base16 ──────────────────────
+  function buildTheme(d) {
+    const isLight = d.type === 'light';
+    const accent  = d.cursor;        // el cursor es el acento de marca del tema
+    const a       = toRgb(accent);
     const accentRgba = (o) => `rgba(${a.r},${a.g},${a.b},${o})`;
 
-    const commonLight = {
-      '--focus-ring':         accentRgba(0.4),
-      '--selection-bg':       accentRgba(0.15),
-      '--accent-glow':        accentRgba(0.1),
-      '--accent-muted':       accentRgba(0.04),
-      '--scrollbar-thumb':    accentRgba(0.28),
-      '--scrollbar-thumb-hover': accentRgba(0.55),
-      '--scrollbar-track':    'transparent',
-      '--bg-overlay':         'rgba(0,0,0,0.4)',
-      '--shadow-sm':  '0 1px 3px rgba(0,0,0,0.08)',
-      '--shadow-md':  '0 4px 12px rgba(0,0,0,0.1)',
-      '--shadow-lg':  '0 8px 30px rgba(0,0,0,0.15)',
-      '--transition-fast':   '100ms ease',
-      '--transition-normal': '200ms ease',
-      '--transition-slow':   '300ms ease',
+    // ── Paleta xterm.js (16 colores ANSI + especiales) ──────────────────────
+    const n = d.ansi;
+    const xterm = {
+      background: d.bg,
+      foreground: d.fg,
+      cursor: d.cursor,
+      cursorAccent: d.cursorText,
+      selectionBackground: rgba(d.selection, isLight ? 0.5 : 0.9),
+      black:   n[0],  red:     n[1],  green:   n[2],  yellow:  n[3],
+      blue:    n[4],  magenta: n[5],  cyan:    n[6],  white:   n[7],
+      brightBlack:   n[8],  brightRed:     n[9],  brightGreen:   n[10], brightYellow:  n[11],
+      brightBlue:    n[12], brightMagenta: n[13], brightCyan:    n[14], brightWhite:   n[15],
     };
 
-    const commonDark = {
-      '--focus-ring':         accentRgba(0.5),
-      '--selection-bg':       accentRgba(0.25),
-      '--accent-glow':        accentRgba(0.12),
-      '--accent-muted':       accentRgba(0.06),
-      '--scrollbar-thumb':    accentRgba(0.38),
-      '--scrollbar-thumb-hover': accentRgba(0.62),
-      '--scrollbar-track':    'transparent',
-      '--bg-overlay':         'rgba(0,0,0,0.65)',
-      '--shadow-sm':  '0 1px 3px rgba(0,0,0,0.3)',
-      '--shadow-md':  '0 4px 12px rgba(0,0,0,0.4)',
-      '--shadow-lg':  '0 8px 30px rgba(0,0,0,0.5)',
-      '--transition-fast':   '100ms ease',
-      '--transition-normal': '200ms ease',
-      '--transition-slow':   '300ms ease',
+    // ── CSS variables de la UI — bg/sidebar/input derivados del bg del tema ──
+    // En oscuros el sidebar va más oscuro; en claros, más claro/distinto.
+    const sidebar = isLight ? shade(d.bg, -0.03) : shade(d.bg, -0.025);
+    const input   = isLight ? '#FFFFFF'          : shade(d.bg, +0.035);
+    const border       = isLight ? 'rgba(0,0,0,0.07)'  : 'rgba(255,255,255,0.06)';
+    const borderStrong = isLight ? 'rgba(0,0,0,0.13)'  : 'rgba(255,255,255,0.12)';
+    const hoverBg      = isLight ? 'rgba(0,0,0,0.04)'  : 'rgba(255,255,255,0.06)';
+
+    const common = isLight ? {
+      '--focus-ring': accentRgba(0.4), '--selection-bg': accentRgba(0.15),
+      '--accent-glow': accentRgba(0.1), '--accent-muted': accentRgba(0.04),
+      '--scrollbar-thumb': accentRgba(0.28), '--scrollbar-thumb-hover': accentRgba(0.55),
+      '--scrollbar-track': 'transparent', '--bg-overlay': 'rgba(0,0,0,0.4)',
+      '--shadow-sm': '0 1px 3px rgba(0,0,0,0.08)', '--shadow-md': '0 4px 12px rgba(0,0,0,0.1)',
+      '--shadow-lg': '0 8px 30px rgba(0,0,0,0.15)',
+    } : {
+      '--focus-ring': accentRgba(0.5), '--selection-bg': accentRgba(0.25),
+      '--accent-glow': accentRgba(0.12), '--accent-muted': accentRgba(0.06),
+      '--scrollbar-thumb': accentRgba(0.38), '--scrollbar-thumb-hover': accentRgba(0.62),
+      '--scrollbar-track': 'transparent', '--bg-overlay': 'rgba(0,0,0,0.65)',
+      '--shadow-sm': '0 1px 3px rgba(0,0,0,0.3)', '--shadow-md': '0 4px 12px rgba(0,0,0,0.4)',
+      '--shadow-lg': '0 8px 30px rgba(0,0,0,0.5)',
     };
 
-    return { ...css, ...(isLight ? commonLight : commonDark) };
+    const css = {
+      '--bg-terminal': d.bg, '--bg-sidebar': sidebar, '--bg-input': input, '--bg-tooltip': input,
+      '--text-primary': d.fg, '--text-secondary': isLight ? shade(d.fg,+0.18) : shade(d.fg,-0.18),
+      '--text-dim': d.comment,
+      '--accent': accent, '--accent-dim': accentRgba(isLight ? 0.14 : 0.18),
+      '--border': border, '--border-strong': borderStrong, '--hover-bg': hoverBg,
+      '--watermark': accent,
+      '--transition-fast': '100ms ease', '--transition-normal': '200ms ease', '--transition-slow': '300ms ease',
+      ...common,
+    };
+
+    // ── Tokens semánticos para los prompts ──────────────────────────────────
+    // Mapeo base16: accent=cursor, green=ansi[2], blue=ansi[4], warning=ansi[3].
+    // REGLA: tokens.accent === --accent del CSS (coherencia overlay ↔ UI).
+    const tokens = {
+      accent, green: n[2], blue: n[4], warning: n[3], comment: d.comment, fg: d.fg,
+    };
+
+    return { name: d.name, type: d.type, desc: d.desc, xterm, css, tokens };
   }
 
-  // Tokens semánticos por tema — usados por prompt.js para pintar las decoraciones.
-  // Los colores heredan del tema activo automáticamente; la "firma" del preset
-  // es la FORMA, no el color. Tabla de diseño aprobada por Claude Design.
-  // Tokens semánticos para los renders de prompt.
-  // REGLA: accent SIEMPRE debe coincidir con --accent de la CSS del tema.
-  // Así los overlays de prompt usan el mismo color de acento que el resto de la UI.
-  const TOKENS = {
-    dark:          { accent:'#E8843A', green:'#7DC97A', blue:'#82A6E0', comment:'#6F6552', warning:'#E8C03A', fg:'#E2D6BD' },
-    light:         { accent:'#C25C1F', green:'#3E7A3A', blue:'#3656A3', comment:'#8C7B68', warning:'#A87E14', fg:'#2A2218' },
-    dracula:       { accent:'#ff79c6', green:'#50FA7B', blue:'#8BE9FD', comment:'#6272A4', warning:'#F1FA8C', fg:'#F8F8F2' },
-    oneDark:       { accent:'#528bff', green:'#98C379', blue:'#61AFEF', comment:'#5C6370', warning:'#E5C07B', fg:'#ABB2BF' },
-    monokai:       { accent:'#F92672', green:'#A6E22E', blue:'#66D9EF', comment:'#75715E', warning:'#E6DB74', fg:'#F8F8F2' },
-    solarizedDark: { accent:'#b58900', green:'#859900', blue:'#268BD2', comment:'#586E75', warning:'#CB4B16', fg:'#93A1A1' },
-    solarizedLight:{ accent:'#b58900', green:'#859900', blue:'#268BD2', comment:'#93A1A1', warning:'#CB4B16', fg:'#586E75' },
-    gruvboxDark:   { accent:'#d79921', green:'#B8BB26', blue:'#83A598', comment:'#928374', warning:'#FABD2F', fg:'#EBDBB2' },
-    nord:          { accent:'#88c0d0', green:'#A3BE8C', blue:'#81A1C1', comment:'#4C566A', warning:'#EBCB8B', fg:'#D8DEE9' },
-    tokyoNight:    { accent:'#7aa2f7', green:'#9ECE6A', blue:'#7AA2F7', comment:'#565F89', warning:'#E0AF68', fg:'#C0CAF5' },
-  };
+  // ── Construir THEMES + TOKENS desde los datos ─────────────────────────────
+  const THEMES = {};
+  const TOKENS = {};
+  for (const d of OCOTE_THEME_DATA) {
+    const t = buildTheme(d);
+    THEMES[d.id] = { name: t.name, type: t.type, desc: t.desc, xterm: t.xterm, css: t.css };
+    TOKENS[d.id] = t.tokens;
+  }
 
-  const THEMES = {
-    // ── Ocote Dark (default) — Paleta oficial: ember #E8843A / charcoal #14100C ─
-    dark: {
-      name: 'Ocote Dark',
-      xterm: {
-        background: '#14100C',          // charcoal-900 (fallback; en runtime canvas es transparent)
-        foreground: '#E2D6BD',          // fg-dark
-        cursor: '#E8843A',              // ember-400
-        selectionBackground: 'rgba(232,132,58,0.28)',
-        black:   '#14100C', red:     '#E8635A', green:   '#7DC97A', yellow:  '#E8C03A',
-        blue:    '#82A6E0', magenta: '#C678DD', cyan:    '#6DD8C8', white:   '#C8C0B0',
-        brightBlack:   '#524A42', brightRed:     '#E8635A', brightGreen:   '#7DC97A',
-        brightYellow:  '#E8C03A', brightBlue:    '#82A6E0', brightMagenta: '#C678DD',
-        brightCyan:    '#6DD8C8', brightWhite:   '#E2D6BD',
-      },
-      css: makeTheme({
-        css: {
-          '--bg-terminal': '#14100C',   // charcoal-900
-          '--bg-sidebar':  '#0E0B08',   // charcoal-950
-          '--bg-input':    '#1C1611',   // charcoal-850
-          '--bg-tooltip':  '#1C1611',
-          '--text-primary':   '#E2D6BD', // fg-dark
-          '--text-secondary': '#9C9480',
-          '--text-dim':       '#5E5648',
-          '--accent':         '#E8843A', // ember-400
-          '--accent-dim':     'rgba(232,132,58,0.18)',
-          '--border':         'rgba(255,255,255,0.06)',
-          '--border-strong':  'rgba(255,255,255,0.12)',
-          '--hover-bg':       'rgba(255,255,255,0.06)',
-          '--watermark':      '#E8843A', // ember — refuerza la marca "en casa"
-        },
-        accentHex: '#E8843A',
-      }),
-    },
+  const DEFAULT_THEME = 'ocote';
 
-    // ── Ocote Light — Paleta oficial: ember-600 #C25C1F / bone #FAF6EC ──────
-    light: {
-      name: 'Ocote Light',
-      xterm: {
-        background: '#FAF6EC',          // bone-100 (fallback; en runtime canvas es transparent)
-        foreground: '#2A2218',          // fg-light
-        cursor: '#C25C1F',              // ember-600
-        selectionBackground: 'rgba(194,92,31,0.2)',
-        black:   '#2A2218', red:     '#C0392B', green:   '#27AE60', yellow:  '#B8860B',
-        blue:    '#2E6DA4', magenta: '#8E44AD', cyan:    '#16A085', white:   '#B8B0A0',
-        brightBlack:   '#7A7268', brightRed:     '#C0392B', brightGreen:   '#27AE60',
-        brightYellow:  '#B8860B', brightBlue:    '#2E6DA4', brightMagenta: '#8E44AD',
-        brightCyan:    '#16A085', brightWhite:   '#FAF6EC',
-      },
-      css: makeTheme({
-        css: {
-          '--bg-terminal': '#FAF6EC',   // bone-100
-          '--bg-sidebar':  '#F0EBE0',   // bone-200
-          '--bg-input':    '#FFFFFF',
-          '--bg-tooltip':  '#FFFFFF',
-          '--text-primary':   '#2A2218', // fg-light
-          '--text-secondary': '#6B5D4F',
-          '--text-dim':       '#A09282',
-          '--accent':         '#C25C1F', // ember-600
-          '--accent-dim':     'rgba(194,92,31,0.14)',
-          '--border':         'rgba(0,0,0,0.07)',
-          '--border-strong':  'rgba(0,0,0,0.13)',
-          '--hover-bg':       'rgba(0,0,0,0.04)',
-          '--watermark':      '#C25C1F', // ember-600 — brasa profunda sobre bone
-        },
-        accentHex: '#C25C1F',
-        isLight: true,
-      }),
-    },
-
-    dracula: {
-      name: 'Dracula',
-      xterm: {
-        background: '#282a36',
-        foreground: '#f8f8f2',
-        cursor: '#f8f8f2',
-        selectionBackground: 'rgba(68, 71, 90, 0.6)',
-        black: '#000000', red: '#ff5555', green: '#50fa7b', yellow: '#f1fa8c',
-        blue: '#bd93f9', magenta: '#ff79c6', cyan: '#8be9fd', white: '#bfbfbf',
-        brightBlack: '#4d4d4d', brightRed: '#ff6e67', brightGreen: '#5af78e',
-        brightYellow: '#ffffa5', brightBlue: '#caa9fa', brightMagenta: '#ff92d0',
-        brightCyan: '#9aedfe', brightWhite: '#e6e6e6',
-      },
-      css: makeTheme({
-        css: {
-          '--bg-terminal': '#282a36',
-          '--bg-sidebar':  '#21222c',
-          '--bg-input':    '#44475a',
-          '--bg-tooltip':  '#44475a',
-          '--text-primary':   '#f8f8f2',
-          '--text-secondary': '#bfbfbf',
-          '--text-dim':       '#6272a4',
-          '--accent':         '#ff79c6',
-          '--accent-dim':     'rgba(255,121,198,0.15)',
-          '--border':         'rgba(255,255,255,0.08)',
-          '--border-strong':  'rgba(255,255,255,0.15)',
-          '--hover-bg':       'rgba(255,255,255,0.07)',
-          '--watermark':      '#F8F8F2',
-        },
-        accentHex: '#ff79c6',
-      }),
-    },
-
-    oneDark: {
-      name: 'One Dark',
-      xterm: {
-        background: '#282c34',
-        foreground: '#abb2bf',
-        cursor: '#528bff',
-        selectionBackground: 'rgba(82, 139, 255, 0.3)',
-        black: '#282c34', red: '#e06c75', green: '#98c379', yellow: '#e5c07b',
-        blue: '#61afef', magenta: '#c678dd', cyan: '#56b6c2', white: '#abb2bf',
-        brightBlack: '#5c6370', brightRed: '#e06c75', brightGreen: '#98c379',
-        brightYellow: '#e5c07b', brightBlue: '#61afef', brightMagenta: '#c678dd',
-        brightCyan: '#56b6c2', brightWhite: '#ffffff',
-      },
-      css: makeTheme({
-        css: {
-          '--bg-terminal': '#282c34',
-          '--bg-sidebar':  '#21252b',
-          '--bg-input':    '#3a3f4b',
-          '--bg-tooltip':  '#3a3f4b',
-          '--text-primary':   '#abb2bf',
-          '--text-secondary': '#828997',
-          '--text-dim':       '#5c6370',
-          '--accent':         '#528bff',
-          '--accent-dim':     'rgba(82,139,255,0.15)',
-          '--border':         'rgba(255,255,255,0.08)',
-          '--border-strong':  'rgba(255,255,255,0.15)',
-          '--hover-bg':       'rgba(255,255,255,0.07)',
-          '--watermark':      '#ABB2BF',
-        },
-        accentHex: '#528bff',
-      }),
-    },
-
-    monokai: {
-      name: 'Monokai',
-      xterm: {
-        background: '#272822',
-        foreground: '#f8f8f2',
-        cursor: '#f8f8f2',
-        selectionBackground: 'rgba(73, 72, 62, 0.8)',
-        black: '#272822', red: '#f92672', green: '#a6e22e', yellow: '#f4bf75',
-        blue: '#66d9ef', magenta: '#ae81ff', cyan: '#a1efe4', white: '#f8f8f2',
-        brightBlack: '#75715e', brightRed: '#f92672', brightGreen: '#a6e22e',
-        brightYellow: '#f4bf75', brightBlue: '#66d9ef', brightMagenta: '#ae81ff',
-        brightCyan: '#a1efe4', brightWhite: '#f9f8f5',
-      },
-      css: makeTheme({
-        css: {
-          '--bg-terminal': '#272822',
-          '--bg-sidebar':  '#1e1f1c',
-          '--bg-input':    '#3e3d32',
-          '--bg-tooltip':  '#3e3d32',
-          '--text-primary':   '#f8f8f2',
-          '--text-secondary': '#cfcfc2',
-          '--text-dim':       '#75715e',
-          '--accent':         '#f92672',
-          '--accent-dim':     'rgba(249,38,114,0.15)',
-          '--border':         'rgba(255,255,255,0.08)',
-          '--border-strong':  'rgba(255,255,255,0.15)',
-          '--hover-bg':       'rgba(255,255,255,0.07)',
-          '--watermark':      '#F8F8F2',
-        },
-        accentHex: '#f92672',
-      }),
-    },
-
-    solarizedDark: {
-      name: 'Solarized Dark',
-      xterm: {
-        background: '#002b36',
-        foreground: '#839496',
-        cursor: '#93a1a1',
-        selectionBackground: 'rgba(7, 54, 66, 0.8)',
-        black: '#073642', red: '#dc322f', green: '#859900', yellow: '#b58900',
-        blue: '#268bd2', magenta: '#d33682', cyan: '#2aa198', white: '#eee8d5',
-        brightBlack: '#002b36', brightRed: '#cb4b16', brightGreen: '#586e75',
-        brightYellow: '#657b83', brightBlue: '#839496', brightMagenta: '#6c71c4',
-        brightCyan: '#93a1a1', brightWhite: '#fdf6e3',
-      },
-      css: makeTheme({
-        css: {
-          '--bg-terminal': '#002b36',
-          '--bg-sidebar':  '#001f27',
-          '--bg-input':    '#073642',
-          '--bg-tooltip':  '#073642',
-          '--text-primary':   '#93a1a1',
-          '--text-secondary': '#839496',
-          '--text-dim':       '#586e75',
-          '--accent':         '#b58900',
-          '--accent-dim':     'rgba(181,137,0,0.15)',
-          '--border':         'rgba(255,255,255,0.08)',
-          '--border-strong':  'rgba(255,255,255,0.15)',
-          '--hover-bg':       'rgba(255,255,255,0.07)',
-          '--watermark':      '#93A1A1',
-        },
-        accentHex: '#b58900',
-      }),
-    },
-
-    solarizedLight: {
-      name: 'Solarized Light',
-      xterm: {
-        background: '#fdf6e3',
-        foreground: '#657b83',
-        cursor: '#586e75',
-        selectionBackground: 'rgba(238, 232, 213, 0.8)',
-        black: '#073642', red: '#dc322f', green: '#859900', yellow: '#b58900',
-        blue: '#268bd2', magenta: '#d33682', cyan: '#2aa198', white: '#eee8d5',
-        brightBlack: '#002b36', brightRed: '#cb4b16', brightGreen: '#586e75',
-        brightYellow: '#657b83', brightBlue: '#839496', brightMagenta: '#6c71c4',
-        brightCyan: '#93a1a1', brightWhite: '#fdf6e3',
-      },
-      css: makeTheme({
-        css: {
-          '--bg-terminal': '#fdf6e3',
-          '--bg-sidebar':  '#eee8d5',
-          '--bg-input':    '#ffffff',
-          '--bg-tooltip':  '#ffffff',
-          '--text-primary':   '#586e75',
-          '--text-secondary': '#657b83',
-          '--text-dim':       '#93a1a1',
-          '--accent':         '#b58900',
-          '--accent-dim':     'rgba(181,137,0,0.12)',
-          '--border':         'rgba(0,0,0,0.08)',
-          '--border-strong':  'rgba(0,0,0,0.12)',
-          '--hover-bg':       'rgba(0,0,0,0.04)',
-          '--watermark':      '#073642',
-        },
-        accentHex: '#b58900',
-        isLight: true,
-      }),
-    },
-
-    gruvboxDark: {
-      name: 'Gruvbox Dark',
-      xterm: {
-        background: '#282828',
-        foreground: '#ebdbb2',
-        cursor: '#ebdbb2',
-        selectionBackground: 'rgba(102, 92, 84, 0.6)',
-        black: '#282828', red: '#cc241d', green: '#98971a', yellow: '#d79921',
-        blue: '#458588', magenta: '#b16286', cyan: '#689d6a', white: '#a89984',
-        brightBlack: '#928374', brightRed: '#fb4934', brightGreen: '#b8bb26',
-        brightYellow: '#fabd2f', brightBlue: '#83a598', brightMagenta: '#d3869b',
-        brightCyan: '#8ec07c', brightWhite: '#ebdbb2',
-      },
-      css: makeTheme({
-        css: {
-          '--bg-terminal': '#282828',
-          '--bg-sidebar':  '#1d2021',
-          '--bg-input':    '#3c3836',
-          '--bg-tooltip':  '#3c3836',
-          '--text-primary':   '#ebdbb2',
-          '--text-secondary': '#a89984',
-          '--text-dim':       '#928374',
-          '--accent':         '#d79921',
-          '--accent-dim':     'rgba(215,153,33,0.15)',
-          '--border':         'rgba(255,255,255,0.08)',
-          '--border-strong':  'rgba(255,255,255,0.15)',
-          '--hover-bg':       'rgba(255,255,255,0.07)',
-          '--watermark':      '#EBDBB2',
-        },
-        accentHex: '#d79921',
-      }),
-    },
-
-    nord: {
-      name: 'Nord',
-      xterm: {
-        background: '#2e3440',
-        foreground: '#d8dee9',
-        cursor: '#d8dee9',
-        selectionBackground: 'rgba(76, 86, 106, 0.6)',
-        black: '#3b4252', red: '#bf616a', green: '#a3be8c', yellow: '#ebcb8b',
-        blue: '#81a1c1', magenta: '#b48ead', cyan: '#88c0d0', white: '#e5e9f0',
-        brightBlack: '#4c566a', brightRed: '#bf616a', brightGreen: '#a3be8c',
-        brightYellow: '#ebcb8b', brightBlue: '#81a1c1', brightMagenta: '#b48ead',
-        brightCyan: '#8fbcbb', brightWhite: '#eceff4',
-      },
-      css: makeTheme({
-        css: {
-          '--bg-terminal': '#2e3440',
-          '--bg-sidebar':  '#242933',
-          '--bg-input':    '#3b4252',
-          '--bg-tooltip':  '#3b4252',
-          '--text-primary':   '#d8dee9',
-          '--text-secondary': '#81a1c1',
-          '--text-dim':       '#4c566a',
-          '--accent':         '#88c0d0',
-          '--accent-dim':     'rgba(136,192,208,0.15)',
-          '--border':         'rgba(255,255,255,0.08)',
-          '--border-strong':  'rgba(255,255,255,0.15)',
-          '--hover-bg':       'rgba(255,255,255,0.07)',
-          '--watermark':      '#D8DEE9',
-        },
-        accentHex: '#88c0d0',
-      }),
-    },
-
-    tokyoNight: {
-      name: 'Tokyo Night',
-      xterm: {
-        background: '#1a1b26',
-        foreground: '#a9b1d6',
-        cursor: '#a9b1d6',
-        selectionBackground: 'rgba(41, 46, 66, 0.8)',
-        black: '#15161e', red: '#f7768e', green: '#9ece6a', yellow: '#e0af68',
-        blue: '#7aa2f7', magenta: '#bb9af7', cyan: '#7dcfff', white: '#a9b1d6',
-        brightBlack: '#414868', brightRed: '#f7768e', brightGreen: '#9ece6a',
-        brightYellow: '#e0af68', brightBlue: '#7aa2f7', brightMagenta: '#bb9af7',
-        brightCyan: '#7dcfff', brightWhite: '#c0caf5',
-      },
-      css: makeTheme({
-        css: {
-          '--bg-terminal': '#1a1b26',
-          '--bg-sidebar':  '#16161e',
-          '--bg-input':    '#24283b',
-          '--bg-tooltip':  '#24283b',
-          '--text-primary':   '#c0caf5',
-          '--text-secondary': '#a9b1d6',
-          '--text-dim':       '#565f89',
-          '--accent':         '#7aa2f7',
-          '--accent-dim':     'rgba(122,162,247,0.15)',
-          '--border':         'rgba(255,255,255,0.08)',
-          '--border-strong':  'rgba(255,255,255,0.15)',
-          '--hover-bg':       'rgba(255,255,255,0.07)',
-          '--watermark':      '#C0CAF5',
-        },
-        accentHex: '#7aa2f7',
-      }),
-    },
-  };
-
+  // ── API ─────────────────────────────────────────────────────────────────
   function applyTheme(themeId) {
-    const theme = THEMES[themeId];
+    const theme = THEMES[themeId] || THEMES[DEFAULT_THEME];
     if (!theme) return;
 
     const root = document.documentElement;
@@ -418,8 +169,6 @@
       root.style.setProperty(prop, value);
     }
 
-    // Terminal opaca: el fondo viene del tema (no transparente). El watermark
-    // se muestra encima con opacidad baja, así apps como p10k no dejan fantasma.
     if (window.TAB_MANAGER) {
       window.TAB_MANAGER.getAllTabs().forEach(([, tab]) => {
         if (!tab || !tab.term) return;
@@ -431,30 +180,36 @@
       });
     }
 
-    // Notificar a prompt.js para que repinte los presets con los nuevos tokens
     window.OCOTE_PROMPT?.refresh?.();
   }
 
-  /** Devuelve los tokens semánticos del tema activo (accent, green, blue, comment, warning, fg). */
+  /** Tokens semánticos del tema activo (accent, green, blue, comment, warning, fg, bg). */
   function getCurrentTokens() {
-    const themeId = localStorage.getItem('ocote_theme') || 'dark';
-    const tokens = TOKENS[themeId] ?? TOKENS.dark;
-    const theme = THEMES[themeId] ?? THEMES.dark;
+    const themeId = localStorage.getItem('ocote_theme') || DEFAULT_THEME;
+    const tokens = TOKENS[themeId] ?? TOKENS[DEFAULT_THEME];
+    const theme = THEMES[themeId] ?? THEMES[DEFAULT_THEME];
     return { ...tokens, bg: theme.xterm.background };
   }
 
+  /** Lista de temas para el picker de Settings (en orden de OCOTE_THEME_DATA).
+   *  Incluye los datos crudos (bg, fg, cursor, ansi…) para el mini-preview. */
   function getThemeList() {
-    return Object.entries(THEMES).map(([id, t]) => ({
-      id,
-      name: t.name,
-      preview: t.xterm.background,
-      accent: t.xterm.cursor || t.css['--accent'],
+    return OCOTE_THEME_DATA.map(d => ({
+      id: d.id,
+      name: d.name,
+      type: d.type,
+      desc: d.desc,
+      preview: d.bg,
+      accent: d.cursor,
+      // datos para el preview de terminal en el picker
+      bg: d.bg, fg: d.fg, cursor: d.cursor, comment: d.comment, ansi: d.ansi,
     }));
   }
 
   window.OCOTE_THEMES = {
     THEMES,
     TOKENS,
+    DEFAULT_THEME,
     applyTheme,
     getThemeList,
     getCurrentTokens,
