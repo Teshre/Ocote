@@ -852,6 +852,9 @@ button:focus-visible {
 .pane-split[data-dir="row"] > .pane-resizer { cursor: col-resize; }
 .pane-split[data-dir="col"] > .pane-resizer { cursor: row-resize; }
 
+/* Línea del divisor — transparente por defecto (cada pane ya tiene su borde
+   caja que lo delimita); se ilumina al acento del tema en hover/arrastre
+   como feedback de que es arrastrable. */
 .pane-resizer::after {
   content: '';
   position: absolute;
@@ -867,8 +870,13 @@ button:focus-visible {
   box-shadow: 0 0 8px var(--accent-glow);
 }
 
-/* Borde del pane enfocado — solo visible cuando hay más de un pane (dentro
-   de un split). Un tab con un solo pane no necesita resaltado. */
+/* Cada pane (dentro de un split) tiene un borde sutil que marca su límite.
+   El pane enfocado usa el acento del tema — así se distingue cuál recibe el
+   teclado. Un tab con un solo pane no entra aquí (no necesita resaltado). */
+.pane-split .terminal-pane {
+  outline: 1px solid var(--border);
+  outline-offset: -1px;
+}
 .pane-split .terminal-pane.pane-active {
   outline: 1px solid var(--accent);
   outline-offset: -1px;
