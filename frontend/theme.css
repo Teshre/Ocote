@@ -202,7 +202,8 @@ button:focus-visible {
   color: var(--text-dim);
 }
 
-#settings-btn {
+#settings-btn,
+#file-search-btn {
   background: transparent;
   border: none;
   color: var(--text-dim);
@@ -212,9 +213,13 @@ button:focus-visible {
   border-radius: var(--radius-sm);
   line-height: 1;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
-#settings-btn:hover {
+#settings-btn:hover,
+#file-search-btn:hover {
   background: var(--hover-bg);
   color: var(--accent);
 }
@@ -703,7 +708,8 @@ button:focus-visible {
   color: var(--text-primary);
 }
 
-#tab-new {
+#tab-new,
+#terminal-search-btn {
   background: transparent;
   border: none;
   color: var(--text-dim);
@@ -713,11 +719,21 @@ button:focus-visible {
   cursor: pointer;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
-#tab-new:hover {
+#tab-new:hover,
+#terminal-search-btn:hover {
   background: var(--hover-bg);
   color: var(--accent);
+}
+
+/* Resaltar el botón de búsqueda cuando la barra está activa */
+#terminal-search-btn.active {
+  color: var(--accent);
+  background: var(--accent-dim);
 }
 
 /* ── Contenedor de terminales ────────────────────────────────────────────── */

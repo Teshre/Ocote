@@ -50,8 +50,12 @@
 
   // ── Abrir / cerrar ─────────────────────────────────────────────────────────
 
+  // Botón visual en la barra de tabs — se resalta cuando la barra está abierta
+  const toggleBtn = document.getElementById('terminal-search-btn');
+
   function open() {
     bar.classList.remove('hidden');
+    toggleBtn?.classList.add('active');
     input.focus();
     input.select();
     // Si ya hay texto en el input, buscar de inmediato
@@ -62,6 +66,7 @@
 
   function close() {
     bar.classList.add('hidden');
+    toggleBtn?.classList.remove('active');
     countEl.textContent = '';
 
     // Limpiar los highlights del terminal
@@ -147,6 +152,11 @@
   btnPrev?.addEventListener('click', findPrev);
   btnNext?.addEventListener('click', () => findNext());
   btnClose?.addEventListener('click', close);
+
+  // ── Botón visual en la barra de tabs (toggle) ─────────────────────────────
+  toggleBtn?.addEventListener('click', () => {
+    isOpen() ? close() : open();
+  });
 
   // ── Atajo global: Ctrl+F ──────────────────────────────────────────────────
   // capture: true — se intercepta antes de que xterm.js procese la tecla.

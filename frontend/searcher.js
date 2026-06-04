@@ -292,6 +292,9 @@
     );
   }
 
+  // ── Botón visual en la barra superior ────────────────────────────────────
+  document.getElementById('file-search-btn')?.addEventListener('click', open);
+
   // ── Atajo de teclado global: Ctrl+P ───────────────────────────────────────
   // capture: true para interceptar ANTES que xterm.js reciba la tecla.
   // Ctrl+P en readline = "ir al comando anterior" (como ↑), pero es un
