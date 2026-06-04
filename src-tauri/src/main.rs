@@ -14,22 +14,57 @@ mod context;
 
 /// Envía una notificación al sistema operativo.
 ///
-/// Usa el canal nativo de cada plataforma:
-///   macOS → Centro de notificaciones (UNUserNotificationCenter)
-///   Windows → Toast notifications (Action Center)
-///   Linux → libnotify / D-Bus
+/// macOS (dev Y producción):
+///   Usa `osascript` — no necesita registro de app, entitlements ni permiso del usuario.
+///   Funciona tanto en el binario de dev (`target/debug/ocote`) como en el .app bundleado.
+///   Limitación: el ícono de la notificación muestra "Script Editor" en vez de Ocote
+///   hasta que la app esté firmada con Developer ID. El contenido (título/body) es correcto.
 ///
-/// Si el usuario denegó el permiso de notificaciones, show() falla
-/// silenciosamente — no produce error visible en la app.
+/// Linux:
+///   Usa `notify-send` (libnotify), disponible en la mayoría de distros.
+///
+/// Windows:
+///   Usa la API de Tauri (funciona correctamente con el bundle .exe).
 #[tauri::command]
 fn send_notification(app: tauri::AppHandle, title: String, body: String) {
-    // Ignoramos el error: si el usuario denegó permisos, simplemente no aparece.
-    let _ = tauri::api::notification::Notification::new(
-        &app.config().tauri.bundle.identifier
-    )
-    .title(&title)
-    .body(&body)
-    .show();
+    // macOS: osascript no necesita permisos ni registro — funciona en dev y prod
+    #[cfg(target_os = "macos")]
+    {
+        // Escapar comillas y barras para que el string AppleScript sea válido
+        let safe_title = title.replace('\\', "\\\\").replace('"', "\\\"");
+        let safe_body  = body.replace('\\',  "\\\\").replace('"', "\\\"");
+        let script = format!(
+            r#"display notification "{}" with title "{}""#,
+            safe_body, safe_title
+        );
+        let _ = std::process::Command::new("osascript")
+            .args(["-e", &script])
+            .spawn();
+        return; // no caer en el bloque de abajo
+    }
+
+    // Linux: notify-send (libnotify)
+    #[cfg(target_os = "linux")]
+    {
+        let _ = std::process::Command::new("notify-send")
+            .args([&title, &body])
+            .spawn();
+        return;
+    }
+
+    // Windows: API de Tauri (funciona bien con el bundle NSIS/MSI)
+    #[cfg(target_os = "windows")]
+    {
+        let _ = tauri::api::notification::Notification::new(
+            &app.config().tauri.bundle.identifier
+        )
+        .title(&title)
+        .body(&body)
+        .show();
+    }
+
+    // Silenciar warning de "unused variable" en macOS/Linux donde `app` no se usa
+    let _ = &app;
 }
 
 /// Cambia el ícono del dock/app en runtime. `variant` = "light" | "dark".
