@@ -305,6 +305,37 @@
     if (nameEl) nameEl.textContent = name;
   }
 
+  // ── Recuperación de foco (AeroSpace / tiling WMs / alt+tab) ────────────────
+  //
+  // Cuando un window manager como AeroSpace mueve o cambia el foco de ventana,
+  // WKWebView pierde el foco del DOM → xterm.js deja de capturar el teclado
+  // (el terminal "se traba"). Solución: al recuperar el foco de ventana, llamar
+  // term.focus() en el tab activo para restaurar la captura de input.
+  //
+  // También manejamos 'resize' porque AeroSpace redimensiona la ventana al
+  // reorganizar el layout — sin esto el PTY quedaría con las dimensiones viejas
+  // hasta el próximo fit manual.
+
+  window.addEventListener('focus', () => {
+    const tab = tabs.get(activeShellId);
+    if (tab?.term) tab.term.focus();
+  });
+
+  // Debounce del resize: AeroSpace puede enviar eventos de resize continuamente
+  // mientras anima la ventana. Esperamos 150ms al último evento antes de hacer
+  // fit, para no saturar el PTY con SIGWINCHs innecesarios.
+  let _resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(() => {
+      tabs.forEach(tab => {
+        if (tab?.fitAddon) {
+          try { tab.fitAddon.fit(); } catch (_) {}
+        }
+      });
+    }, 150);
+  });
+
   // ── Inicializar ─────────────────────────────────────────────────────────
   // Crear tab inicial al cargar (sin nombre → usará basename del CWD)
   createTab();
