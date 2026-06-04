@@ -8,7 +8,38 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### Fase 4 — En progreso
-Próximo paso: landing page, firma de código macOS, auto-updater.
+Próximo paso: ícono real de Ocote, landing page, firma de código macOS, auto-updater.
+
+### Agregado — 2026-06-03
+
+- **Menú contextual del explorador rediseñado** — íconos SVG Tabler inline (consistentes con el explorador, sin emojis), hover con `accent-dim` + borde izquierdo naranja, grupo "CREAR" con etiqueta, animación `scale+translateY` al aparecer.
+- **Operaciones de archivo completas** en el explorador:
+  - Crear archivo o carpeta (input inline en el panel).
+  - Renombrar inline (input sobre el nombre del ítem).
+  - Eliminar con confirmación nativa HTML (`ocoteConfirm`).
+  - Copiar ruta al portapapeles.
+- **`ocoteConfirm(message)`** — modal HTML propio que reemplaza `window.confirm()`. Este diálogo nativo del navegador no funciona en Tauri/WKWebView (macOS): retorna `true` inmediatamente sin mostrar nada. El modal de Ocote usa las variables CSS del tema activo, animación pop-in, backdrop blur, foco en "Cancelar" por seguridad, y Esc/Enter como atajos. Retorna `Promise<boolean>`.
+- **Borrado recursivo de carpetas** con confirmación informativa: se muestra el número de elementos contenidos ("contiene 5 elementos. ⚠️ Todo se eliminará permanentemente"). Dos nuevos comandos Rust en `fs_explorer.rs`:
+  - `count_dir_entries(path)` → número de hijos directos.
+  - `delete_item_recursive(path)` → `remove_dir_all` para carpetas, `remove_file` para archivos.
+- **Preview de archivos** (`preview.js` + `highlight.js` bundleado):
+  - Código con syntax highlighting automático (40+ lenguajes, sin CDN).
+  - Imágenes (png/jpg/gif/svg/webp) via `read_file_base64` → data URL.
+  - Warning para archivos >500KB; mensaje de fallback para binarios.
+  - Se abre con doble-click en el explorador o desde el menú contextual → "Vista previa".
+- **Redimensionamiento de paneles** (`resizer.js`):
+  - Handles de arrastre entre explorador↔terminal y terminal↔preview.
+  - Anchos mínimos: explorador 120px, preview 180px. El terminal toma el resto (`flex:1`).
+  - Los anchos se persisten en `localStorage` y se restauran al reiniciar.
+  - Durante el drag se desactiva `transition` para fluidez; al soltar se llama `fitAddon.fit()`.
+  - `MutationObserver` oculta el handle cuando el panel adyacente está colapsado u oculto.
+- **5 temas de íconos** en el explorador (Settings → Apariencia → Estilo de íconos):
+  - `Outline` — SVGs stroke de Tabler Icons, ya existía.
+  - `Badge` — etiquetas de texto con fondo de color, ya existía.
+  - `Ember` ✨ — cuadrado con borde + fill 18% en los colores del tema activo. Cambia automáticamente al cambiar el tema de color.
+  - `Brand` ✨ — cuadrado sólido con el color oficial de cada tecnología (JS amarillo, TS azul, Rust naranja…).
+  - `Symbols` ✨ — glifo Unicode desnudo, sin fondo (`λ` JS, `π` Python, `⚙` Rust, `☕` Java…).
+- **Preview en vivo de íconos en Settings** — cuadrícula de 12 ítems (8 archivos + 4 carpetas) que se actualiza instantáneamente al cambiar el tema de íconos, sin salir del modal.
 
 ### Agregado
 - **8 temas oficiales de Ocote** (paletas originales "alma de lumbre", base16): Ocote, Brasa, Bosque, Noche, Papel, Tinta, Mezcal, Cacao. Generados programáticamente en `themes.js` desde `OCOTE_THEME_DATA` (espejo del repo [ocote-themes](https://github.com/Teshre/ocote-themes)) — cada tema deriva su `xterm`, `css` y `tokens` de la paleta base16. Para agregar/quitar: editar solo `OCOTE_THEME_DATA`.

@@ -63,12 +63,21 @@ Ocote/
 │   ├── tauri.conf.json — Configuración de ventana y bundle
 │   └── icons/          — Íconos de la app
 ├── frontend/           — UI (HTML/CSS/JS)
-│   ├── index.html      — Layout principal
-│   ├── terminal.js     — Render de output + manejo de input
-│   ├── explorer.js     — Panel lateral de archivos
-│   ├── autocomplete.js — Popup de sugerencias
-│   ├── tooltip.js      — Card educativa de comandos
-│   └── theme.css       — Estilos y variables de color
+│   ├── index.html      — Layout principal (3 paneles: explorador, terminal, preview)
+│   ├── terminal.js     — xterm.js + OSC handlers (6731, 133 A/D)
+│   ├── tab-manager.js  — Múltiples terminales en tabs
+│   ├── explorer.js     — Panel lateral, breadcrumb, menú contextual, operaciones
+│   ├── preview.js      — Preview de archivos (highlight.js + imágenes base64)
+│   ├── resizer.js      — Drag-to-resize de los 3 paneles
+│   ├── icons.js        — SVG Tabler Icons + 5 temas de íconos
+│   ├── autocomplete.js — Popup de sugerencias contextuales
+│   ├── tooltip.js      — Card educativa de comandos (CKB)
+│   ├── settings.js     — Modal de configuración con previews en vivo
+│   ├── prompt.js       — Overlay HTML de prompts (5 presets)
+│   ├── themes.js       — 8 temas Ocote generados desde OCOTE_THEME_DATA
+│   ├── ui-i18n.js      — Internacionalización (ES/EN/PT/FR/DE)
+│   ├── onboarding.js   — Overlay de primer uso
+│   └── theme.css       — Variables CSS + estilos base
 ├── ckb/
 │   └── commands.json   — Fuente de datos de la CKB (editable por humanos)
 ├── docs/               — Esta carpeta
@@ -136,9 +145,67 @@ outputEl (#terminal-output)
 
 ---
 
+## Por qué `ocoteConfirm()` en lugar de `window.confirm()`
+
+`window.confirm()` no funciona de forma fiable en Tauri/WKWebView (macOS). WKWebView requiere que el `WKUIDelegate` implemente `webView:runJavaScriptConfirmPanelWithMessage:...` para que `confirm()` muestre un diálogo; si no se implementa, retorna `true` inmediatamente sin bloquear — lo que causaba borrados silenciosos al hacer click en "Eliminar".
+
+Solución: `ocoteConfirm(message)` en `explorer.js` crea un modal HTML propio con `Promise<boolean>`. Ventajas adicionales: se puede estilizar con las variables CSS de Ocote (fondo charcoal, borde ember), muestra el conteo de elementos para carpetas no vacías, y tiene `Escape`/`Enter` como atajos. Foco inicial en "Cancelar" para proteger contra click accidental.
+
+## Layout de 3 paneles y resize (`resizer.js`)
+
+El layout principal es `flex-direction: row` con tres paneles:
+
+```
+[#explorer-panel] [#resizer-explorer] [#terminal-panel] [#resizer-preview] [#preview-panel]
+```
+
+- **Explorer** y **Preview**: ancho fijo en px, controlado por inline `style.width`.
+- **Terminal**: `flex: 1`, toma el espacio restante automáticamente.
+- **Resizers**: divs de 5px. Transparentes por defecto; línea accent en hover/drag.
+- El CSS tiene `transition: width 200ms ease` en los paneles para la animación del colapso. Durante el drag se desactiva (`style.transition = 'none'`) para que el resize sea fluido sin lag visual.
+- Después de cada cambio de tamaño se llama `fitAddon.fit()` para que xterm.js recalcule filas/columnas y el PTY reciba `SIGWINCH`.
+- Los anchos se persisten en `localStorage` y se restauran antes del primer paint.
+- Cuando el explorador está colapsado (`.collapsed` → `width: 0 !important`), el `!important` del CSS prevalece sobre el inline style del resizer — el colapso siempre gana. Al expandir, el inline width toma efecto de nuevo.
+- `MutationObserver` sobre las clases del panel oculta/muestra el handle correspondiente.
+
+## Sistema de temas de íconos (`icons.js`)
+
+Cinco temas con una API unificada:
+
+| Tema | Renderizado | Colores |
+|---|---|---|
+| `seti` | SVG stroke Tabler Icons | Fijos por extensión (del mapa `ICON_FILE_MAP`) |
+| `badge` | SVG rect + texto | Fijos (colores de tecnología) |
+| `ember` | SVG rect outline + fill 18% | **CSS runtime** — lee `getComputedStyle(documentElement)` en cada render |
+| `brand` | SVG rect sólido | Fijos (colores oficiales de tecnología) |
+| `symbols` | SVG texto Unicode | Fijos (colores de tecnología) |
+
+El tema Ember es el único que reacciona al tema de color activo porque resuelve variables CSS (`--syntax-yellow`, `--accent`, etc.) en tiempo de ejecución. Esto significa que cuando el usuario cambia de "Ocote" a "Noche", los íconos Ember también cambian de color sin recargar el explorador — solo hay que llamar `_explorerRefresh()`.
+
+Las funciones están divididas en tres capas:
+- `getIconForFile / getIconForFolder` — flujo legacy seti (retorna `{svg, color}`)
+- `getThemedIconHtml / getThemedFolderHtml` — brand/ember/symbols (retorna HTML string completo)
+- `getIconHtmlForTheme / getFolderHtmlForTheme` — API unificada para los 5 temas (usada por el preview de settings)
+
+## Preview de archivos (`preview.js`)
+
+El backend tiene dos comandos:
+- `read_text_file(path)` → `String` (UTF-8). Falla si es binario.
+- `read_file_base64(path)` → `String` (base64). Para imágenes.
+
+El frontend detecta la extensión y decide qué hacer:
+- Código/texto → `read_text_file` + `hljs.highlightAuto()` (highlight.js bundleado, sin CDN).
+- Imágenes (png/jpg/gif/svg/webp) → `read_file_base64` + data URL en `<img>`.
+- Archivos >500KB → warning sin cargar.
+- Resto → mensaje "Vista previa no disponible".
+
+Highlight.js corre completamente en el frontend, sin servidor. El archivo bundleado pesa ~400KB y soporta 40+ lenguajes.
+
 ## Consideraciones de seguridad
 
 - La app no hace ninguna petición de red en runtime. Todo es local.
 - El PTY corre el shell con los mismos permisos del usuario — no hay escalada de privilegios.
 - La CKB es de solo lectura en runtime; los usuarios no pueden modificarla desde la UI.
 - No se almacenan contraseñas ni tokens en ninguna parte.
+- `delete_item_recursive` usa `remove_dir_all` — operación irreversible. El frontend siempre llama `count_dir_entries` primero y muestra confirmación explícita con el número de elementos. Nunca se llama sin confirmación del usuario.
+- Los SVG de íconos se generan desde constantes locales (no input del usuario), por lo que `innerHTML` de SVG strings es seguro.

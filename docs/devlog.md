@@ -5,6 +5,62 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-06-03 — Sesión 15: explorador completo — operaciones, preview, resize, temas de íconos
+
+**Estado al inicio:** el explorador tenía navegación y git badges. Sin operaciones de archivo, sin preview, sin resize entre paneles, 2 temas de íconos (Outline y Badge).
+
+### Menú contextual rediseñado
+
+El menú anterior usaba emojis (📋 ✏️ 🗑) que renderizan inconsistente entre plataformas y no encajan con el estilo de Ocote. Se reemplazaron por SVGs de Tabler Icons inline (mismo set que el explorador). El hover usa `var(--accent-dim)` + borde izquierdo naranja (mismo patrón que los ítems del explorador). Se añadió una etiqueta de grupo "CREAR" antes de los ítems de creación para mejorar la jerarquía visual. Animación `scale(0.96) translateY(-4px)` → `scale(1) translateY(0)` al aparecer.
+
+### Bug crítico: `window.confirm()` en WKWebView
+
+Al implementar la confirmación de borrado, el archivo se eliminaba sin mostrar diálogo. **Causa:** `window.confirm()` en Tauri/WKWebView no implementa el delegate de UI nativo; retorna `true` inmediatamente. Solución: `ocoteConfirm(message)` — modal HTML propio con `Promise<boolean>`. Usa las variables CSS de Ocote (fondo charcoal, borde amber, backdrop blur), foco inicial en Cancelar, Esc/Enter como atajos. La función es genérica y reutilizable para cualquier confirmación futura.
+
+### Borrado recursivo de carpetas (decisión con el usuario)
+
+Opciones discutidas: (a) solo vacías + mensaje amigable, (b) recursivo + confirmación clara, (c) mover a Papelera del OS. **Decisión: opción (b).** Razonamiento: es lo que espera un usuario moderno (Finder, VSCode), la opción (c) requería el crate `trash` (nueva dependencia), y la (a) era frustrante para el caso común.
+
+Implementación Rust:
+- `count_dir_entries(path)` → `usize` (primer nivel, incluye ocultos). Para el mensaje de confirmación.
+- `delete_item_recursive(path)` → `remove_dir_all` para carpetas, `remove_file` para archivos. Marcado explícitamente como PERMANENTE en los comentarios.
+
+El frontend muestra mensajes diferenciados: *"¿Eliminar la carpeta 'X'?"* (vacía) vs *"La carpeta 'X' contiene N elementos. ⚠️ Todo se eliminará permanentemente."* (con contenido).
+
+### Preview de archivos (`preview.js`)
+
+Se eligió highlight.js bundleado (sin CDN) sobre alternativas como Prism.js o CodeMirror. Highlight.js tiene autodetección de lenguaje (`highlightAuto`), pesa ~400KB con 40+ lenguajes, y no necesita configuración por extensión. Las imágenes se sirven via `read_file_base64` → data URL porque el explorador accede a rutas arbitrarias del filesystem que el webview no puede cargar directamente como `file://`. El panel se abre con doble-click o desde el menú contextual, y es redimensionable como los demás.
+
+### Redimensionamiento de paneles (`resizer.js`)
+
+El insight clave: `transition: none` durante el drag es obligatorio. Sin desactivarla, cada pixel de movimiento del ratón anima la transición, creando un efecto de lag/resaca. Se desactiva en `mousedown` y se restaura en `mouseup`. `MutationObserver` sobre las clases del panel maneja automáticamente la visibilidad del handle cuando el explorador se colapsa o el preview se oculta — sin necesidad de modificar `explorer.js` ni `preview.js`.
+
+### 5 temas de íconos
+
+La motivación fue que Outline y Badge tenían estilos muy diferentes y no había opciones intermedias. Brand (colores oficiales sólidos) y Ember (outline reactivo al tema) dan esa gama intermedia. Symbols es para usuarios que prefieren minimalismo extremo.
+
+**Corrección al handoff:** el documento especificaba variables CSS como `--color-teal`, `--color-accent`, etc. que no existen en Ocote. Las variables reales son `--syntax-teal`, `--syntax-blue`, `--syntax-green`, `--syntax-red`, `--syntax-yellow`, `--accent`, `--text-secondary`. El EMBER_COLOR_MAP se adaptó a los nombres reales antes de implementar.
+
+### Preview de íconos en Settings
+
+Motivación: el ciclo "cambia tema en Settings → cierra Settings → mira el explorador → vuelve a Settings" era tedioso. La solución es una cuadrícula de 12 ítems representativos (8 archivos + 4 carpetas) que actualiza en tiempo real. Se necesitó una API unificada (`getIconHtmlForTheme` / `getFolderHtmlForTheme`) que manejara los 5 temas desde un solo punto, ya que settings.js no tiene acceso a la lógica de badge de explorer.js.
+
+### Decisiones tomadas
+
+- **`ocoteConfirm` en lugar de native confirm** — WKWebView no soporta `confirm()` de forma fiable.
+- **Borrado recursivo** con confirmación clara — no mover a Papelera (depende de crate externo).
+- **highlight.js bundleado** — sin CDN, consistente con el principio offline-first.
+- **`remove_dir_all`** para borrado recursivo — la confirmación es responsabilidad del frontend, no del backend.
+
+### Pendientes
+
+- Ícono real de Ocote (el About sigue mostrando ícono de macOS por caché).
+- Landing page / sitio web.
+- Firma de código macOS (Apple Developer ID).
+- Auto-updater.
+
+---
+
 ## 2026-06-01 — Sesión 14: temas oficiales de Ocote + README de lanzamiento
 
 **Estado al inicio:** Ocote tenía 10 temas (Ocote Dark/Light + 8 ajenos como Dracula/Nord). Se creó un repo aparte de marca, [ocote-themes](https://github.com/Teshre/ocote-themes), con 8 paletas originales "alma de lumbre". Objetivo de la sesión: adoptar los temas oficiales, preparar el README de lanzamiento.
