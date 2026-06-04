@@ -12,6 +12,14 @@
   let activeShellId = null;
   let nextTabNum = 1;
 
+  // Foco real de la ventana a nivel macOS/OS — más fiable que document.hasFocus()
+  // en WKWebView, donde el DOM siempre reporta "enfocado" aunque el usuario
+  // esté en otra app. Tauri emite 'tauri://focus' y 'tauri://blur' cuando
+  // la ventana nativa gana/pierde foco (alt+tab, AeroSpace, click en otra app).
+  let windowFocused = true; // asumimos foco al arrancar
+  listen('tauri://focus', () => { windowFocused = true;  });
+  listen('tauri://blur',  () => { windowFocused = false; });
+
   // ── Referencias DOM ─────────────────────────────────────────────────────
   const tabBar      = document.getElementById('tab-bar');
   const tabContents = document.getElementById('terminal-container');
@@ -245,7 +253,7 @@
     const enabled   = localStorage.getItem('ocote_system_notifications') !== 'false';
     const threshold = parseInt(localStorage.getItem('ocote_notif_threshold') || '5', 10);
 
-    if (enabled && !document.hasFocus() && durationSecs >= threshold) {
+    if (enabled && !windowFocused && durationSecs >= threshold) {
       const tabName = tab.name || 'Terminal';
       const title   = exitCode === 0
         ? `✅ Ocote — ${tabName}`
