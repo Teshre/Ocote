@@ -12,11 +12,25 @@
   let activeShellId = null;
   let nextTabNum = 1;
 
-  // Foco real de la ventana a nivel macOS/OS — más fiable que document.hasFocus()
-  // en WKWebView, donde el DOM siempre reporta "enfocado" aunque el usuario
-  // esté en otra app. Tauri emite 'tauri://focus' y 'tauri://blur' cuando
-  // la ventana nativa gana/pierde foco (alt+tab, AeroSpace, click en otra app).
-  let windowFocused = true; // asumimos foco al arrancar
+  // Foco real de la ventana a nivel macOS/OS.
+  //
+  // Estrategia de tres capas (la primera que dispare gana):
+  //
+  //   1. window blur/focus (DOM nativo) — WKWebView los dispara cuando la
+  //      ventana de macOS cambia de app. Son los más fiables en la práctica.
+  //
+  //   2. tauri://focus / tauri://blur — eventos del framework Tauri.
+  //      Pueden no disparar en dev mode, pero no hacen daño.
+  //
+  //   3. document.hasFocus() al momento de decidir — chequeado inline en
+  //      onCommandFinished como salvavidas final.
+  //
+  // Se inicializa desde document.hasFocus() para reflejar el estado real
+  // al cargar (Ocote puede abrirse ya sin foco si otra app estaba en frente).
+  let windowFocused = document.hasFocus();
+
+  window.addEventListener('focus', () => { windowFocused = true;  });
+  window.addEventListener('blur',  () => { windowFocused = false; });
   listen('tauri://focus', () => { windowFocused = true;  });
   listen('tauri://blur',  () => { windowFocused = false; });
 
@@ -253,7 +267,10 @@
     const enabled   = localStorage.getItem('ocote_system_notifications') !== 'false';
     const threshold = parseInt(localStorage.getItem('ocote_notif_threshold') || '5', 10);
 
-    if (enabled && !windowFocused && durationSecs >= threshold) {
+    // Considerar "sin foco" si CUALQUIERA de las señales dice que no está enfocado
+    const appIsBackground = !windowFocused || !document.hasFocus();
+
+    if (enabled && appIsBackground && durationSecs >= threshold) {
       const tabName = tab.name || 'Terminal';
       const title   = exitCode === 0
         ? `✅ Ocote — ${tabName}`
