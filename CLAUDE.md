@@ -96,6 +96,9 @@ ckb/
 - **Notificaciones del sistema operativo**: osascript en dev, API Tauri en producción (ícono real de Ocote) ✅
 - **Fix AeroSpace/tiling WMs**: `window focus` + polling 300ms recuperan el teclado y detectan foco correctamente ✅
 - **Cmd+Option+I**: abre Web Inspector en dev mode (el menú contextual reemplazó el Inspect nativo) ✅
+- **Buscador de archivos (Ctrl+P)** (`searcher.js`): fuzzy search recursivo en el CWD; botón lupa en la barra del explorador ✅
+- **Buscador de texto en terminal (Ctrl+F)** (`terminal-search.js`): SearchAddon de xterm.js; botón lupa junto al `+` ✅
+- **Split panes recursivos** (`tab-manager.js`): árbol binario tipo iTerm; Cmd+D / Cmd+Shift+D, redimensionables, foco con acento ✅
 
 ---
 
@@ -222,12 +225,23 @@ Los renders NO hardcodean colores. Todos usan `OCOTE_THEMES.getCurrentTokens()` 
 - `refresh()` — re-renderiza headers con nuevo tema; descarta bodies (se recrean solos)
 - `previewHtml(presetId, meta, tokens)` — devuelve HTML para el picker de settings
 
-### Arquitectura de tabs
-- **`window.ocoteTerminal` está OBSOLETO.** Cada terminal vive en `window.TAB_MANAGER.getAllTabs()`.
-- `window.ocoteActiveShellId` → shell ID del tab actualmente visible.
-- Para aplicar algo a todos los tabs: `window.TAB_MANAGER.getAllTabs().forEach(([, tab]) => { ... })`.
+### Arquitectura de tabs + split panes (IMPORTANTE — leer antes de tocar)
+- **`tab-manager.js` maneja DOS estructuras** (reescrito en sesión 17 para split panes):
+  - `panes: Map<shellId, paneData>` — registro **PLANO** de TODOS los terminales. `paneData = {shellId, term, fitAddon, searchAddon, el, tabId, name}`.
+  - `tabs: Map<tabId, tabData>` — cada tab tiene un **árbol de layout**. `tabData = {tabId, element, container, root, activePaneShellId, name}`.
+- **Árbol de layout** (split binario recursivo, estilo iTerm/tmux):
+  - hoja: `{ kind:'leaf', shellId }`
+  - split: `{ kind:'split', dir:'row'|'col', a:nodo, b:nodo, ratio:0..1 }`
+- **Compatibilidad preservada** (CRÍTICO — muchos archivos dependen de esto):
+  - `getTab(shellId)` → devuelve `paneData` (tiene `term`, `fitAddon`, `searchAddon`, `name`). NO devuelve datos del tab.
+  - `getAllTabs()` → devuelve TODOS los panes `[[shellId, paneData], ...]`. Usado por settings/themes/prompt para aplicar a cada terminal.
+  - `window.ocoteActiveShellId` → shellId del **pane enfocado** (el que recibe el teclado).
+- **Render**: `renderNode(tree)` construye DOM con flex anidado. Los `pane.el` se **MUEVEN** (appendChild, no clonan) al re-renderizar → el canvas de xterm sobrevive. NUNCA usar `innerHTML` para reconstruir el árbol (destruiría los xterm).
+- **`.terminal-pane` y `.pane-split` tienen `flex: 1 1 0` por defecto en CSS** — necesario para que un pane recién creado (antes de `renderTab`) se mida correcto en `createTerminalInstance`.
+- **Operaciones**: `splitActivePane(dir)`, `closePane(shellId)` (colapsa árbol; si es el último, cierra tab), `cyclePane(dir)`, `respawnActive()` (respawnea el pane activo in-place).
 - `create_shell` en Rust recibe: `rows`, `cols`, `prompt` (preset), `accent` (hex sin #).
-- tab-manager.js lee `localStorage('ocote_theme')` para extraer el accent antes de llamar `create_shell`.
+- **Atajos**: split usa SOLO `Cmd` (metaKey), nunca `Ctrl` (Ctrl+D = EOF en el shell). Cmd+D (row), Cmd+Shift+D (col), Cmd+Alt+flechas (ciclar), Ctrl/Cmd+W (cerrar pane). Linux/Win usan los botones de la barra de tabs.
+- **Bordes de panes** (theme.css): `.pane-split .terminal-pane` → `--border-strong` (caja visible siempre); `.pane-active` → `--accent` 1.5px. Solo aplican dentro de un split (un tab de 1 pane no tiene borde).
 
 ### Sistema de temas
 - **8 temas oficiales de Ocote** (ids: `ocote`, `brasa`, `bosque`, `noche`, `papel`, `tinta`, `mezcal`, `cacao`). Default = `ocote`. Solo los nuestros — los temas ajenos (Dracula/Nord/etc.) se eliminaron por identidad de marca.
@@ -277,6 +291,11 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 - **Plataformas**: macOS dev → `osascript` (sin registro), macOS prod → `tauri::api::notification` (ícono real), Linux → `notify-send`, Windows → `tauri::api::notification`. La detección de dev/prod usa `#[cfg(dev)]` de Tauri.
 - **Settings**: `ocote_system_notifications` (bool) + `ocote_notif_threshold` (int, segundos). Toggle HTML propio (no `<input type="checkbox">` nativo estilizado).
 - **`Cmd+Option+I`**: abre Web Inspector en dev. Necesario porque el menú contextual personalizado del explorador reemplazó el "Inspect" nativo del browser.
+
+### Buscadores (dos, NO confundir)
+- **Buscar archivos (Ctrl+P)** (`searcher.js`): comando Rust `search_files(base, query)` → búsqueda recursiva (máx 6 niveles, 50 resultados), salta `node_modules/.git/target/dist/etc`. Orden: exacto → empieza-con → contiene. UI: modal con `window.ocoteCwd` como base. Enter abre preview (archivo) o `cd` (carpeta); Cmd+Enter pega la ruta. Botón lupa en la barra del explorador (junto al `..`).
+- **Buscar texto en terminal (Ctrl+F)** (`terminal-search.js`): usa `SearchAddon` de xterm.js (`frontend/lib/addon-search.js`, bundleado igual que addon-fit). Se carga por instancia en `createTerminalInstance` → expuesto en `{term, fitAddon, searchAddon}`. Barra flotante arriba-derecha. Enter/Shift+Enter navega. Botón lupa junto al `+`.
+- Ambos atajos se capturan en `capture:true` para interceptar antes que xterm.js. Ambos tienen botón visible (UX principiantes) + tooltip con el atajo (enseña al experto).
 
 ---
 
@@ -378,12 +397,30 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 ✅ **Fix lógica de notificación**: antes el check `shellId === activeShellId` bloqueaba la notificación si el comando corría en el tab activo (el caso más común). Ahora notifica siempre que la app esté en background, sin importar qué tab.
 ✅ **Cmd+Option+I**: abre Web Inspector en dev mode (el menú contextual del explorador reemplazó el Inspect nativo del browser).
 
+**Fase 4 — Avance al 2026-06-04 (sesión 17):**
+✅ **Buscador de archivos (Ctrl+P)** (`searcher.js` + `search_files` en Rust):
+  - Fuzzy search recursivo en el CWD (máx 6 niveles, 50 resultados); salta node_modules/.git/target/etc.
+  - Orden por relevancia: exacto → empieza-con → contiene. Highlight del match en accent.
+  - Enter → preview (archivo) o cd (carpeta); Cmd+Enter → pega la ruta. Botón lupa en la barra del explorador.
+✅ **Buscador de texto en terminal (Ctrl+F)** (`terminal-search.js`):
+  - `@xterm/addon-search` v0.16 bundleado (`lib/addon-search.js`); cargado por instancia.
+  - Barra flotante arriba-derecha; Enter/Shift+Enter navega; botón lupa junto al `+`.
+✅ **Botones visuales para ambos buscadores** (UX principiantes + tooltip con atajo para expertos).
+✅ **Split panes recursivos** (`tab-manager.js` reescrito):
+  - Árbol binario tipo iTerm/tmux: cualquier pane se divide otra vez en cualquier dirección.
+  - `panes: Map<shellId>` plano (compat) + `tabs: Map<tabId>` con árbol de layout.
+  - renderNode() mueve los pane.el (preserva xterm); resizers arrastrables; cerrar colapsa el árbol.
+  - Cmd+D (lado a lado), Cmd+Shift+D (apilado), Cmd+Alt+flechas (ciclar), Ctrl/Cmd+W (cerrar pane).
+  - Botones en la barra de tabs; badge contador de panes; foco con borde accent.
+✅ **Bordes de panes estilo caja** (theme.css): cada pane con `--border-strong` visible siempre; activo con `--accent`.
+
 **Próximo paso — Fase 4:**
-1. Buscador de archivos (Ctrl+P) — fuzzy search en el directorio actual
-2. Ícono real de Ocote (diseño propio) — About sigue mostrando el ícono de macOS por caché
-3. Landing page / sitio web
-4. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
-5. Auto-updater
+1. Estadísticas del historial (análisis offline de ~/.zsh_history) — diferenciador on-brand
+2. Editor de aliases visual (sin editar .zshrc a mano)
+3. Ícono real de Ocote (diseño propio) — About sigue mostrando el ícono de macOS por caché
+4. Landing page / sitio web
+5. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
+6. Auto-updater
 
 ## Cómo ayudar al desarrollador
 - Es developer en aprendizaje, usa IA como asistente principal

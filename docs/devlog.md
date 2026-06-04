@@ -5,6 +5,42 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-06-04 — Sesión 17: buscadores (Ctrl+P / Ctrl+F) + split panes
+
+**Estado al inicio:** explorador completo, notificaciones funcionando. Sin búsqueda y sin paneles divididos.
+
+### Buscador de archivos (Ctrl+P)
+
+Comando Rust `search_files(base, query)` recursivo con límites de seguridad (6 niveles, 50 resultados) y una lista de directorios a saltar (node_modules, .git, target, dist, __pycache__, etc.) — sin esto, buscar en un proyecto Node tardaría segundos recorriendo miles de archivos. Orden por relevancia (exacto → empieza-con → contiene) para que el resultado obvio salga primero. El frontend (`searcher.js`) usa `window.ocoteCwd` como base, hace debounce de 220ms, y resalta el match en color accent.
+
+### Buscador de texto en terminal (Ctrl+F)
+
+Aquí la decisión fue usar el `SearchAddon` oficial de xterm.js en lugar de implementar búsqueda sobre el buffer a mano. Pesa poco, resalta directamente en el canvas con decorations, y es el mismo addon que usa VSCode Terminal. Se bundlea como `lib/addon-search.js` (igual que addon-fit) y se carga por instancia de terminal.
+
+### Botones visuales para ambos (filosofía Ocote)
+
+El usuario señaló — correctamente — que Ctrl+P y Ctrl+F son invisibles para principiantes. Agregamos botones de lupa visibles, con tooltip que muestra el atajo entre paréntesis. Así el principiante descubre por el ícono y el experto aprende el atajo. Luego movimos el botón de buscar-archivo de la barra global al explorador (donde pertenece conceptualmente), separándolo del botón ".." de subir.
+
+### Split panes recursivos (la pieza grande)
+
+**Decisión de diseño (con el usuario):** recursivo tipo iTerm/tmux, no "máximo 2 paneles". Internamente es un árbol binario, así que la recursión maneja todos los casos de forma uniforme.
+
+**El reto arquitectónico:** la relación era 1 tab = 1 terminal, con `tabs` keyed por shellId. Split panes rompe eso (1 tab = N terminales). En vez de reescribir todos los consumidores (explorer, search, settings, notificaciones — todos asumen shellId como llave), mantuve un **registro plano `panes: Map<shellId>`** para los datos por-terminal, y aparte `tabs: Map<tabId>` con el árbol de layout. Así `getTab(shellId)` y `getAllTabs()` siguen funcionando idénticos y nada externo se rompió.
+
+**Lecciones técnicas:**
+- Al re-renderizar el árbol, los `pane.el` se MUEVEN con appendChild (no se clonan ni se hace innerHTML), porque eso preserva el canvas de xterm. Reconstruir con innerHTML los destruiría.
+- `.terminal-pane` y `.pane-split` necesitan `flex: 1 1 0` por defecto en CSS: un pane recién creado, antes de renderTab, debe tener tamaño para que `createTerminalInstance` lo mida bien (un hijo flex sin grow colapsa a 0).
+- Atajos: split usa SOLO Cmd, nunca Ctrl. Ctrl+D es EOF en el shell — hijackearlo rompería el cierre de sesión. En Linux/Windows los botones cubren todo.
+
+**Bordes de panes (iteración con el usuario):** primero puse el borde solo en hover → invisible. Luego `--border` (blanco 0.06) → casi invisible sobre el charcoal. Finalmente `--border-strong` (0.12) para la caja de cada pane + `--accent` 1.5px para el enfocado. Cada pane es ahora una caja con límite visible, como en Terax, y todo theme-aware.
+
+### Pendientes
+- Estadísticas del historial (siguiente — el diferenciador más único de Ocote).
+- Editor de aliases visual.
+- Ícono real, landing, firma de código, auto-updater.
+
+---
+
 ## 2026-06-04 — Sesión 16: sistema de notificaciones (tab dots + OS)
 
 **Estado al inicio:** el explorador estaba completo. Sin notificaciones de ningún tipo.

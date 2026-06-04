@@ -8,9 +8,27 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### Fase 4 — En progreso
-Próximo paso: buscador de archivos (Ctrl+P), ícono real de Ocote, landing page, firma de código macOS, auto-updater.
+Próximo paso: estadísticas del historial, editor de aliases, ícono real de Ocote, landing page, firma de código macOS, auto-updater.
 
-### Agregado — 2026-06-04
+### Agregado — 2026-06-04 (sesión 17)
+
+- **Buscador de archivos (Ctrl+P)** — búsqueda fuzzy recursiva de archivos y carpetas en el directorio actual, estilo VSCode:
+  - Comando Rust `search_files` recursivo (máx 6 niveles, 50 resultados); omite node_modules, .git, target, dist, __pycache__, etc.
+  - Orden por relevancia (exacto → empieza-con → contiene); resalta el match en color accent.
+  - Enter abre el archivo en preview o hace `cd` a la carpeta; Cmd+Enter pega la ruta en el terminal.
+  - Botón de lupa visible en la barra del explorador (junto al `..`).
+- **Buscador de texto en terminal (Ctrl+F)** — busca dentro del output del terminal con el SearchAddon oficial de xterm.js:
+  - `@xterm/addon-search` v0.16 bundleado; resalta coincidencias en el canvas.
+  - Barra flotante arriba-derecha; Enter/Shift+Enter navega siguiente/anterior.
+  - Botón de lupa visible junto al `+` de la barra de tabs.
+- **Split panes recursivos** — cada tab puede dividirse en varios terminales (árbol binario tipo iTerm/tmux):
+  - Cualquier pane se divide otra vez, en cualquier dirección, sin límite.
+  - Botones en la barra de tabs (lado a lado / apilado) + atajos Cmd+D, Cmd+Shift+D.
+  - Cmd+Alt+flechas cicla el foco; Ctrl/Cmd+W cierra el pane (si es el último, cierra el tab).
+  - Divisores arrastrables para redimensionar; badge contador de panes en el tab.
+  - Cada pane es una caja con borde visible (theme-aware); el pane enfocado se resalta con el acento del tema.
+
+### Agregado — 2026-06-04 (sesión 16)
 
 - **Notificaciones de tab** — dot de 6px en tabs de fondo cuando termina un comando:
   - 🟢 Verde (éxito): animación pop, desaparece en 4 segundos.
