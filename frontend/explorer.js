@@ -249,20 +249,31 @@ function renderEntries(entries, path) {
     if (!panel) return;
     
     let html = '';
-    
-    // Botón subir ("..")
-    if (path !== '/') {
-        const parent = getParentPath(path);
-        html += `
-            <div class="explorer-item explorer-up"
-                 data-path="${escapeHtml(parent)}"
-                 data-name=".."
-                 data-is-dir="true">
-                <span class="explorer-icon up-icon">↩</span>
-                <span class="explorer-name">..</span>
-            </div>
-        `;
-    }
+
+    // ── Barra de herramientas: subir (..) a la izquierda + buscar a la derecha ──
+    // El ".." y el botón de búsqueda son acciones separadas en la misma fila.
+    const parent = getParentPath(path);
+    const upPart = path !== '/'
+        ? `<div class="explorer-item explorer-up"
+                data-path="${escapeHtml(parent)}"
+                data-name=".."
+                data-is-dir="true">
+               <span class="explorer-icon up-icon">↩</span>
+               <span class="explorer-name">..</span>
+           </div>`
+        : `<div class="explorer-up-spacer"></div>`;
+
+    html += `
+        <div class="explorer-toolbar">
+            ${upPart}
+            <button class="explorer-search-btn" title="Buscar archivo (Ctrl+P)" aria-label="Buscar archivo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+            </button>
+        </div>
+    `;
 
     // Entradas del directorio
     for (const entry of entries) {
@@ -295,6 +306,13 @@ function renderEntries(entries, path) {
         item.addEventListener('click', handleClick);
         item.addEventListener('dblclick', handleDoubleClick);
         item.addEventListener('contextmenu', handleContextMenu);
+    });
+
+    // Botón de búsqueda de archivos en la barra de herramientas del explorador.
+    // Se re-crea en cada render, por eso el listener se ata aquí.
+    panel.querySelector('.explorer-search-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.openFileSearcher?.();
     });
 
     // Aplicar badges de git status (si ya tenemos datos para este dir).

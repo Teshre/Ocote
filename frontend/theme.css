@@ -202,8 +202,7 @@ button:focus-visible {
   color: var(--text-dim);
 }
 
-#settings-btn,
-#file-search-btn {
+#settings-btn {
   background: transparent;
   border: none;
   color: var(--text-dim);
@@ -213,13 +212,9 @@ button:focus-visible {
   border-radius: var(--radius-sm);
   line-height: 1;
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
-#settings-btn:hover,
-#file-search-btn:hover {
+#settings-btn:hover {
   background: var(--hover-bg);
   color: var(--accent);
 }
@@ -366,12 +361,46 @@ button:focus-visible {
   background: var(--accent-muted);
 }
 
+/* Barra de herramientas del explorador: subir (..) + buscar archivo */
+.explorer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+}
+
 .explorer-up {
   color: var(--text-secondary);
   font-style: italic;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 4px;
-  padding-bottom: 6px;
+  flex: 1;             /* ocupa el espacio a la izquierda del botón de búsqueda */
+  min-width: 0;
+}
+
+/* Placeholder cuando estamos en la raíz (no hay "..") */
+.explorer-up-spacer {
+  flex: 1;
+}
+
+/* Botón de búsqueda de archivos en la barra de herramientas */
+.explorer-search-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 5px 8px;
+  margin-right: 6px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.explorer-search-btn:hover {
+  background: var(--hover-bg);
+  color: var(--accent);
 }
 
 .explorer-folder {

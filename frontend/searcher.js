@@ -292,8 +292,8 @@
     );
   }
 
-  // ── Botón visual en la barra superior ────────────────────────────────────
-  document.getElementById('file-search-btn')?.addEventListener('click', open);
+  // Nota: el botón visual de búsqueda vive en la barra del explorador
+  // (explorer.js lo renderiza y llama a window.openFileSearcher).
 
   // ── Atajo de teclado global: Ctrl+P ───────────────────────────────────────
   // capture: true para interceptar ANTES que xterm.js reciba la tecla.
