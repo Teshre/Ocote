@@ -56,6 +56,11 @@ function createTerminalInstance(container) {
   const fitAddon = new FitAddon.FitAddon();
   term.loadAddon(fitAddon);
 
+  // SearchAddon — búsqueda de texto dentro del scrollback del terminal (Ctrl+F).
+  // findNext/findPrevious resaltan coincidencias directamente en el canvas de xterm.js.
+  const searchAddon = new SearchAddon.SearchAddon();
+  term.loadAddon(searchAddon);
+
   term.open(container);
   fitWithRetries(fitAddon);
 
@@ -63,7 +68,7 @@ function createTerminalInstance(container) {
   // con bindTerminalShell() una vez que tab-manager.js creó el PTY al tamaño
   // ya medido — así el PTY nace con el tamaño correcto y zsh/p10k no redibujan
   // (evita el "fantasma" del prompt por el resize inicial).
-  return { term, fitAddon };
+  return { term, fitAddon, searchAddon };
 }
 
 /**

@@ -63,8 +63,8 @@
     // Clave anti-fantasma: abrimos el PTY ya al tamaño medido, así zsh/p10k
     // dibujan el prompt una sola vez (sin redibujado por resize inicial).
     const termData = window.createTerminalInstance(container);
-    const cols = termData.term.cols || 80;
-    const rows = termData.term.rows || 24;
+    const cols        = termData.term.cols || 80;
+    const rows        = termData.term.rows || 24;
 
     // ── Crear el shell (PTY) al tamaño correcto + preset de prompt ─────
     // El preset elegido en Settings. Default 'pill' = firma visual de Ocote.
@@ -102,11 +102,12 @@
 
     // ── Guardar datos del tab ─────────────────────────────────────────
     tabs.set(shellId, {
-      element:   tabEl,
-      container: container,
-      term:      termData.term,
-      fitAddon:  termData.fitAddon,
-      name:      displayName,
+      element:     tabEl,
+      container:   container,
+      term:        termData.term,
+      fitAddon:    termData.fitAddon,
+      searchAddon: termData.searchAddon, // para terminal-search.js (Ctrl+F)
+      name:        displayName,
     });
 
     // ── Event listeners del tab ─────────────────────────────────────

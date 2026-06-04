@@ -74,6 +74,38 @@
         </div>
       </div>
 
+      <!-- Barra de búsqueda de texto en el terminal (Ctrl+F) -->
+      <div id="terminal-search-bar" class="hidden">
+        <span id="tsb-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </span>
+        <input id="tsb-input" type="text" placeholder="Buscar en terminal..." autocomplete="off" spellcheck="false">
+        <span id="tsb-count"></span>
+        <div id="tsb-actions">
+          <button id="tsb-prev" title="Anterior (Shift+Enter)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m18 15-6-6-6 6"/>
+            </svg>
+          </button>
+          <button id="tsb-next" title="Siguiente (Enter)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </button>
+          <button id="tsb-close" title="Cerrar (Esc)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
       <!-- Autocompletado (aparece flotando sobre el input) -->
       <div id="autocomplete-popup" class="hidden"></div>
 
@@ -101,6 +133,7 @@
   <!-- xterm.js -->
   <script src="lib/xterm.js"></script>
   <script src="lib/addon-fit.js"></script>
+  <script src="lib/addon-search.js"></script>
 
   <!-- Onboarding: overlay de primer uso.
        onboarding.js decide si mostrarlo según localStorage. -->
@@ -352,6 +385,7 @@
   <script src="preview.js"></script>
   <script src="resizer.js"></script>
   <script src="searcher.js"></script>
+  <script src="terminal-search.js"></script>
 
 </body>
 </html>
