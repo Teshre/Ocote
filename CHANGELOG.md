@@ -8,7 +8,31 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### Fase 4 — En progreso
-Próximo paso: ícono real de Ocote, landing page, firma de código macOS, auto-updater.
+Próximo paso: buscador de archivos (Ctrl+P), ícono real de Ocote, landing page, firma de código macOS, auto-updater.
+
+### Agregado — 2026-06-04
+
+- **Notificaciones de tab** — dot de 6px en tabs de fondo cuando termina un comando:
+  - 🟢 Verde (éxito): animación pop, desaparece en 4 segundos.
+  - 🔴 Rojo (error): persiste hasta que el usuario abre el tab.
+  - Se limpia automáticamente al activar el tab.
+- **Notificaciones del sistema operativo**:
+  - macOS dev: `osascript` — funciona sin registro ni permisos del sistema.
+  - macOS producción: API de Tauri (`UNUserNotificationCenter`) — muestra ícono real de Ocote; pide permiso una sola vez al usuario.
+  - Linux: `notify-send`. Windows: API de Tauri.
+  - Configurable en Settings → General: toggle on/off + umbral de duración (3s / 5s / 10s / 30s, default 5s).
+- **Toggle switch HTML** en Settings para notificaciones (estilo visual consistente con la UI de Ocote).
+
+### Corregido — 2026-06-04
+
+- **AeroSpace / tiling WMs**: el terminal "se trababa" al volver de otro workspace. Fix: `window.addEventListener('focus')` relanza `term.focus()` en el tab activo. Resize de ventana con debounce 150ms llama `fitAddon.fit()` en todos los tabs.
+- **Detección de foco para notificaciones**: 3 capas para máxima cobertura:
+  1. `window blur/focus` (DOM nativo)
+  2. `tauri://focus/blur` (eventos del framework)
+  3. `setInterval 300ms` con `document.hasFocus()` — necesario para AeroSpace, que no dispara `blur` DOM entre ventanas del mismo espacio
+- **Notificación no disparaba en tab activo**: el check `shellId === activeShellId → return` bloqueaba las notificaciones cuando el usuario corría un comando en el tab activo y se iba a otra app. Ahora notifica siempre que la app esté en background.
+- **requestAnimationFrame pausado en background**: `onCommandFinished` estaba dentro de rAF, que se pausa en WKWebView cuando la ventana no tiene foco. Movido fuera del rAF para ejecutarse síncronamente.
+- **Web Inspector**: `Cmd+Option+I` abre DevTools en dev mode (el menú contextual del explorador reemplazó el "Inspect" nativo del browser).
 
 ### Agregado — 2026-06-03
 

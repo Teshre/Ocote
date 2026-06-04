@@ -5,6 +5,53 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-06-04 — Sesión 16: sistema de notificaciones (tab dots + OS)
+
+**Estado al inicio:** el explorador estaba completo. Sin notificaciones de ningún tipo.
+
+### Dot de notificación en tabs
+
+El tab bar ya tenía `display: flex; align-items: center` pero sin indicador de estado. Se añadió un `.tab-status` span de 6px en cada tab. El desafío fue la animación: se usó `cubic-bezier(0.34, 1.56, 0.64, 1)` para el pop (rebote leve), que hace que el dot "salte" al aparecer en lugar de simplemente aparecer.
+
+El verde desaparece en 4 segundos (éxito visto = limpio). El rojo persiste porque el error requiere atención del usuario. `switchTab` llama `clearTabStatus` para limpiar al activar.
+
+### Bug crítico: requestAnimationFrame en background
+
+La primera versión ponía `onCommandFinished` dentro del `requestAnimationFrame` del handler de OSC 133 D. El rAF se pausa cuando la ventana no está en primer plano en WKWebView (comportamiento estándar de los navegadores para ahorrar CPU). Resultado: el callback nunca corría mientras el usuario estaba en otra app — exactamente cuando más necesitábamos la notificación.
+
+Fix: `onCommandFinished` se llama síncronamente justo después de calcular `exitCode` y `durationSecs`. `extendCommandBlock` sigue en rAF porque modifica overlays de xterm.js y necesita estar fuera del ciclo de parse.
+
+### `window.confirm()` no funciona en WKWebView — patrón general
+
+Este bug se descubrió primero con el borrado de archivos (sesión 15). Ahora lo confirmamos con las notificaciones: `document.hasFocus()` en WKWebView también puede no reflejar el foco real del OS. Regla: nunca asumir que las APIs web estándar de "visibilidad" funcionan correctamente en WKWebView/Tauri. Siempre usar eventos nativos de Tauri o polling como backup.
+
+### Detección de foco — problema de AeroSpace
+
+AeroSpace mantiene múltiples ventanas "activas" simultáneamente en el mismo espacio. Cuando el usuario cambia de Ocote a Terax (ambos en el mismo espacio AeroSpace), el evento `window.blur` del DOM **no dispara**. `document.hasFocus()` también retorna `true` en ese momento.
+
+Solución: polling `setInterval 300ms` que lee `document.hasFocus()` continuamente. Cuando el comando termina 8 segundos después de que el usuario cambió a Terax, el polling ya habrá actualizado `windowFocused = false`, y la notificación dispara.
+
+Esto es un anti-patrón (polling en lugar de eventos), pero es la única solución fiable para el comportamiento no estándar de AeroSpace con WKWebView.
+
+### osascript vs API de Tauri
+
+La API de Tauri (`notification-all`) requiere que la app esté registrada como `.app` en macOS. En dev mode (binario suelto en `target/debug/`) el sistema no la conoce, no muestra el diálogo de permisos, y Ocote nunca aparece en Sistema → Notificaciones.
+
+`osascript display notification` no necesita registro — funciona desde cualquier proceso. El ícono muestra "Script Editor" en dev, pero el contenido (título/body) es correcto. En producción (`.app` firmado), se usa la API de Tauri que muestra el ícono real de Ocote y pide permiso la primera vez.
+
+### Lógica de notificación — bug de diseño
+
+La primera versión tenía `if (shellId === activeShellId) return` al inicio. Esto bloqueaba la notificación cuando el usuario corría un comando en el tab activo y luego se iba a otra app (el caso más común en la práctica). El usuario no va a cambiar de tab manualmente antes de ir a Chrome — eso es artificioso.
+
+Fix: la condición correcta es `if (isActiveTab && !appIsBackground) return` — solo omitir si el usuario ESTÁ en Ocote Y mirando ESE tab. Si está en otra app, siempre notificar.
+
+### Pendientes
+- Buscador de archivos (Ctrl+P) — fuzzy search en el directorio actual.
+- Ícono real de Ocote.
+- Landing page, firma de código, auto-updater.
+
+---
+
 ## 2026-06-03 — Sesión 15: explorador completo — operaciones, preview, resize, temas de íconos
 
 **Estado al inicio:** el explorador tenía navegación y git badges. Sin operaciones de archivo, sin preview, sin resize entre paneles, 2 temas de íconos (Outline y Badge).

@@ -59,7 +59,7 @@ ckb/
 - **Fase 3 (Meses 8-12):** Tooltip educativo, sugerencias contextuales, onboarding, distribución
 - **Fase 4 (Meses 12-18):** Comunidad, devlog, lanzamiento, credibilidad técnica
 
-## Estado actual — 2026-06-03
+## Estado actual — 2026-06-04
 **Fases 2 y 3 COMPLETADAS. Fase 4 en progreso avanzado.**
 
 - zsh/bash conectado al PTY (`pty.rs` con `portable-pty`) ✅
@@ -92,6 +92,10 @@ ckb/
 - **Panel colapsable** (Ctrl+B) y **redimensionamiento de los 3 paneles** (`resizer.js`) ✅
 - **5 temas de íconos** en el explorador: Outline, Badge, Ember, Brand, Symbols ✅
 - **Preview de íconos en Settings**: cuadrícula en vivo al cambiar tema, sin salir del modal ✅
+- **Notificaciones de tab**: dot de color en tabs de fondo (verde éxito / rojo error, auto-limpia al activar) ✅
+- **Notificaciones del sistema operativo**: osascript en dev, API Tauri en producción (ícono real de Ocote) ✅
+- **Fix AeroSpace/tiling WMs**: `window focus` + polling 300ms recuperan el teclado y detectan foco correctamente ✅
+- **Cmd+Option+I**: abre Web Inspector en dev mode (el menú contextual reemplazó el Inspect nativo) ✅
 
 ---
 
@@ -266,6 +270,14 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 - **Redimensionamiento**: `resizer.js` escucha `mousedown/move/up` en los handles. Desactiva `transition: none` durante el drag para evitar lag. MutationObserver reactiva/oculta el handle según el estado del panel.
 - **Preview** (`preview.js`): `read_text_file()` para código/texto; `read_file_base64()` para imágenes. Highlight.js corre en el frontend, no en Rust.
 
+### Sistema de notificaciones
+- **Dot de tab** (`tab-manager.js → setTabStatus`): aparece en tabs de fondo cuando termina un comando. Verde (éxito) 4s; rojo (error) persiste. Se limpia en `switchTab`. El span `.tab-status` está en cada tab del DOM.
+- **Notificación del sistema**: se dispara en `onCommandFinished` de forma **síncrona** (FUERA de rAF — rAF se pausa en background WKWebView). Condición: `!isActiveTab || appIsBackground` Y `durationSecs >= threshold`.
+- **Detección de foco** (`windowFocused`): 3 capas — `window blur/focus` (DOM), `tauri://blur/focus` (Tauri), `setInterval 300ms document.hasFocus()`. El polling es necesario para AeroSpace que no dispara `blur` cuando cambia el foco entre ventanas del mismo espacio.
+- **Plataformas**: macOS dev → `osascript` (sin registro), macOS prod → `tauri::api::notification` (ícono real), Linux → `notify-send`, Windows → `tauri::api::notification`. La detección de dev/prod usa `#[cfg(dev)]` de Tauri.
+- **Settings**: `ocote_system_notifications` (bool) + `ocote_notif_threshold` (int, segundos). Toggle HTML propio (no `<input type="checkbox">` nativo estilizado).
+- **`Cmd+Option+I`**: abre Web Inspector en dev. Necesario porque el menú contextual personalizado del explorador reemplazó el "Inspect" nativo del browser.
+
 ---
 
 ## Historial de avances
@@ -351,11 +363,27 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
   - `Symbols` ✨: glifo Unicode desnudo (`λ` JS, `π` Python, `⚙` Rust, `☕` Java…).
 ✅ **Preview de íconos en Settings** (`settings.js`): cuadrícula de 12 elementos (8 archivos + 4 carpetas) se actualiza en tiempo real al cambiar tema, sin salir del modal.
 
+**Fase 4 — Avance al 2026-06-04 (sesión 16):**
+✅ **Notificaciones de tab**: dot de 6px en tabs de fondo — verde (éxito, 4s) / rojo (error, persiste).
+  - Se limpia automáticamente al activar el tab (`switchTab → clearTabStatus`).
+  - CSS: `animation: tab-dot-pop` con `cubic-bezier(0.34, 1.56, 0.64, 1)`.
+✅ **Notificaciones del sistema operativo**:
+  - Dev (macOS): `osascript` — sin registro ni permisos, funciona siempre.
+  - Producción (macOS): API de Tauri (`UNUserNotificationCenter`) — muestra ícono real de Ocote.
+  - Linux: `notify-send`. Windows: API de Tauri.
+  - Configurable en Settings → General: toggle on/off + umbral (3s/5s/10s/30s, default 5s).
+✅ **Fix AeroSpace/tiling WMs**: ventana "se trababa" al volver — `window.addEventListener('focus')` relanza `term.focus()`. Resize de ventana con debounce 150ms llama `fitAddon.fit()` en todos los tabs.
+✅ **Fix detección de foco** (3 capas): `window blur/focus` (DOM nativo) + `tauri://focus/blur` (backup) + `setInterval 300ms document.hasFocus()` (necesario para AeroSpace que no dispara blur DOM en el mismo espacio).
+✅ **Fix rAF en background**: `onCommandFinished` movido fuera de `requestAnimationFrame` — rAF se pausa en ventanas sin foco, bloqueando las notificaciones.
+✅ **Fix lógica de notificación**: antes el check `shellId === activeShellId` bloqueaba la notificación si el comando corría en el tab activo (el caso más común). Ahora notifica siempre que la app esté en background, sin importar qué tab.
+✅ **Cmd+Option+I**: abre Web Inspector en dev mode (el menú contextual del explorador reemplazó el Inspect nativo del browser).
+
 **Próximo paso — Fase 4:**
-1. Ícono real de Ocote (diseño propio) — About sigue mostrando el ícono de macOS por caché
-2. Landing page / sitio web
-3. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
-4. Auto-updater
+1. Buscador de archivos (Ctrl+P) — fuzzy search en el directorio actual
+2. Ícono real de Ocote (diseño propio) — About sigue mostrando el ícono de macOS por caché
+3. Landing page / sitio web
+4. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
+5. Auto-updater
 
 ## Cómo ayudar al desarrollador
 - Es developer en aprendizaje, usa IA como asistente principal
