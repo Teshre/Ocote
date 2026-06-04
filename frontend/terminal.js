@@ -114,16 +114,26 @@ function bindTerminalShell(term, shellId) {
   // A: al final del PROMPT (después de ❯).
   //    Leemos cursor con rAF para que el write() haya terminado y ❯ esté en pantalla.
   //    Guardamos lastChevronRow para que 133 D lo use más adelante.
+  //    También marcamos el inicio del "ciclo de comando" para medir la duración.
   //
   // D;exitcode: precmd ha terminado (justo antes del siguiente prompt).
   //    Leemos endAbsRow SÍNCRONAMENTE aquí — el cursor está al final del output
   //    del comando, antes de que el siguiente prompt se haya pintado.
   //    Si esperásemos al rAF, el write() habría terminado y el cursor estaría
   //    en la fila del nuevo ❯ — demasiado tarde (race condition).
+
+  // Timestamp del último OSC 133 A — para calcular la duración del comando.
+  // Incluye el tiempo de tipeo, pero para comandos largos (builds, deploys)
+  // es despreciable (ej. 3s de tipeo en un build de 2 minutos → 2m 3s).
+  let commandStartTime = null;
+
   term.parser.registerOscHandler(133, (data) => {
     if (data === 'A' && lastPromptMeta) {
       const meta = lastPromptMeta;
       lastPromptMeta = null;
+
+      // Marcar inicio del ciclo de comando (A = prompt listo, usuario va a escribir)
+      commandStartTime = Date.now();
 
       requestAnimationFrame(() => {
         const buf = term.buffer.active;
@@ -141,11 +151,20 @@ function bindTerminalShell(term, shellId) {
       const exitCode = data.includes(';') ? (parseInt(data.slice(2)) || 0) : 0;
       const saved = lastChevronRow;
 
+      // Duración del comando en segundos (redondeada)
+      const durationSecs = commandStartTime
+        ? Math.round((Date.now() - commandStartTime) / 1000)
+        : 0;
+      commandStartTime = null;
+
       // DOM update diferido al siguiente frame (fuera del ciclo parse de xterm.js)
       requestAnimationFrame(() => {
         window.OCOTE_PROMPT?.extendCommandBlock(
           term, saved.infoAbsRow, saved.chevronAbsRow, endAbsRow, exitCode
         );
+        // Notificar al TAB_MANAGER para que actualice el indicador del tab
+        // y dispare (si procede) la notificación del sistema operativo.
+        window.TAB_MANAGER?.onCommandFinished(shellId, exitCode, durationSecs);
       });
     }
     return true;

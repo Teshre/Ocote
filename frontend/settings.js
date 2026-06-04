@@ -7,15 +7,17 @@
 
   // ── Defaults ────────────────────────────────────────────────────────────
   const DEFAULTS = {
-    theme:       'ocote',
-    font:        "'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
-    iconTheme:   'seti',
-    lang:        'es',
-    prompt:      'pill',
-    appIcon:     'dark',
-    fontSize:    14,
-    cursorStyle: 'block',
-    scrollback:  10000,
+    theme:               'ocote',
+    font:                "'JetBrainsMono Nerd Font Mono', 'JetBrainsMonoNL Nerd Font Mono', 'MesloLGS NF', 'FiraCode Nerd Font Propo', 'Hack Nerd Font', 'SF Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace",
+    iconTheme:           'seti',
+    lang:                'es',
+    prompt:              'pill',
+    appIcon:             'dark',
+    fontSize:            14,
+    cursorStyle:         'block',
+    scrollback:          10000,
+    systemNotifications: true,   // notificaciones del SO activadas por defecto
+    notifThreshold:      5,      // avisar solo si el comando tardó ≥ 5 segundos
   };
 
   // Migración: los IDs viejos ('dark'/'light' + temas ajenos) ya no existen.
@@ -29,15 +31,18 @@
 
   // ── Estado actual (lee localStorage) ────────────────────────────────────
   const state = {
-    theme:       migrateThemeId(localStorage.getItem('ocote_theme')),
-    font:        localStorage.getItem('ocote_font')         || DEFAULTS.font,
-    iconTheme:   localStorage.getItem('ocote_icon_theme')   || DEFAULTS.iconTheme,
-    lang:        localStorage.getItem('ocote_lang')         || DEFAULTS.lang,
-    prompt:      localStorage.getItem('ocote_prompt')       || DEFAULTS.prompt,
-    appIcon:     localStorage.getItem('ocote_app_icon')     || DEFAULTS.appIcon,
-    fontSize:    parseInt(localStorage.getItem('ocote_font_size') || DEFAULTS.fontSize),
-    cursorStyle: localStorage.getItem('ocote_cursor_style') || DEFAULTS.cursorStyle,
-    scrollback:  parseInt(localStorage.getItem('ocote_scrollback') || DEFAULTS.scrollback),
+    theme:               migrateThemeId(localStorage.getItem('ocote_theme')),
+    font:                localStorage.getItem('ocote_font')         || DEFAULTS.font,
+    iconTheme:           localStorage.getItem('ocote_icon_theme')   || DEFAULTS.iconTheme,
+    lang:                localStorage.getItem('ocote_lang')         || DEFAULTS.lang,
+    prompt:              localStorage.getItem('ocote_prompt')       || DEFAULTS.prompt,
+    appIcon:             localStorage.getItem('ocote_app_icon')     || DEFAULTS.appIcon,
+    fontSize:            parseInt(localStorage.getItem('ocote_font_size') || DEFAULTS.fontSize),
+    cursorStyle:         localStorage.getItem('ocote_cursor_style') || DEFAULTS.cursorStyle,
+    scrollback:          parseInt(localStorage.getItem('ocote_scrollback') || DEFAULTS.scrollback),
+    // Notificaciones: 'false' explícito = desactivado; cualquier otra cosa = activado
+    systemNotifications: localStorage.getItem('ocote_system_notifications') !== 'false',
+    notifThreshold:      parseInt(localStorage.getItem('ocote_notif_threshold') || DEFAULTS.notifThreshold),
   };
 
   // ── Helpers de aplicación ───────────────────────────────────────────────
@@ -183,20 +188,37 @@
     document.querySelectorAll('[data-setting="scrollback"]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.value === String(state.scrollback));
     });
+
+    // Notificaciones
+    const notifToggle = document.getElementById('toggle-system-notif');
+    if (notifToggle) notifToggle.checked = state.systemNotifications;
+    syncNotifThresholdVisibility();
+
+    document.querySelectorAll('[data-setting="notifThreshold"]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.value === String(state.notifThreshold));
+    });
+  }
+
+  // Ocultar la fila de umbral cuando las notificaciones están desactivadas
+  function syncNotifThresholdVisibility() {
+    const row = document.getElementById('notif-threshold-row');
+    if (row) row.style.opacity = state.systemNotifications ? '1' : '0.35';
   }
 
   // ── Persistir estado ────────────────────────────────────────────────────
 
   function persist() {
-    localStorage.setItem('ocote_theme',        state.theme);
-    localStorage.setItem('ocote_font',         state.font);
-    localStorage.setItem('ocote_icon_theme',   state.iconTheme);
-    localStorage.setItem('ocote_lang',         state.lang);
-    localStorage.setItem('ocote_prompt',       state.prompt);
-    localStorage.setItem('ocote_app_icon',     state.appIcon);
-    localStorage.setItem('ocote_font_size',    state.fontSize);
-    localStorage.setItem('ocote_cursor_style', state.cursorStyle);
-    localStorage.setItem('ocote_scrollback',   state.scrollback);
+    localStorage.setItem('ocote_theme',                state.theme);
+    localStorage.setItem('ocote_font',                 state.font);
+    localStorage.setItem('ocote_icon_theme',           state.iconTheme);
+    localStorage.setItem('ocote_lang',                 state.lang);
+    localStorage.setItem('ocote_prompt',               state.prompt);
+    localStorage.setItem('ocote_app_icon',             state.appIcon);
+    localStorage.setItem('ocote_font_size',            state.fontSize);
+    localStorage.setItem('ocote_cursor_style',         state.cursorStyle);
+    localStorage.setItem('ocote_scrollback',           state.scrollback);
+    localStorage.setItem('ocote_system_notifications', state.systemNotifications ? 'true' : 'false');
+    localStorage.setItem('ocote_notif_threshold',      state.notifThreshold);
   }
 
   // ── Tabs del modal ────────────────────────────────────────────────────────
@@ -459,6 +481,13 @@
     overlay.classList.add('hidden');
   }
 
+  // Toggle de notificaciones del sistema
+  document.getElementById('toggle-system-notif')?.addEventListener('change', (e) => {
+    state.systemNotifications = e.target.checked;
+    persist();
+    syncNotifThresholdVisibility();
+  });
+
   document.getElementById('settings-btn').addEventListener('click', openModal);
   document.getElementById('settings-close').addEventListener('click', closeModal);
   document.getElementById('settings-backdrop').addEventListener('click', closeModal);
@@ -490,10 +519,11 @@
     const group = overlay.querySelectorAll(`.settings-seg-btn[data-setting="${setting}"]`);
     group.forEach(b => b.classList.toggle('active', b === btn));
 
-    if (setting === 'iconTheme') { applyIconTheme(value); renderIconPreview(value); }
-    if (setting === 'lang')        applyLang(value);
-    if (setting === 'cursorStyle') applyCursorStyle(value);
-    if (setting === 'scrollback')  applyScrollback(parseInt(value));
+    if (setting === 'iconTheme')      { applyIconTheme(value); renderIconPreview(value); }
+    if (setting === 'lang')             applyLang(value);
+    if (setting === 'cursorStyle')      applyCursorStyle(value);
+    if (setting === 'scrollback')       applyScrollback(parseInt(value));
+    if (setting === 'notifThreshold')   state.notifThreshold = parseInt(value);
   });
 
   // ── Ícono de la app ───────────────────────────────────────────────────

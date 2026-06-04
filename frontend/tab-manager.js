@@ -64,6 +64,7 @@
     tabEl.className = 'terminal-tab';
     tabEl.dataset.shellId = shellId;
     tabEl.innerHTML = `
+      <span class="tab-status" aria-hidden="true"></span>
       <span class="tab-name">${escapeHtml(displayName)}</span>
       <button class="tab-close" title="Cerrar">×</button>
     `;
@@ -178,6 +179,9 @@
     activeShellId = shellId;
     window.ocoteActiveShellId = shellId;
 
+    // Limpiar indicador de notificación al activar el tab
+    clearTabStatus(shellId);
+
     // Focus y resize
     tab.term.focus();
     setTimeout(() => tab.fitAddon.fit(), 30);
@@ -185,6 +189,73 @@
     // Actualizar el explorador para sincronizar con este shell
     if (window._syncExplorerToActiveShell) {
       window._syncExplorerToActiveShell();
+    }
+  }
+
+  // ── Indicadores de estado en tabs ─────────────────────────────────────────
+
+  // Aplica un estado visual al dot del tab (sin afectar al tab activo).
+  function setTabStatus(shellId, status) {
+    const tab = tabs.get(shellId);
+    if (!tab) return;
+    const dot = tab.element.querySelector('.tab-status');
+    if (!dot) return;
+    dot.dataset.status = status;
+
+    // Éxito: el dot verde desaparece solo tras 4 segundos
+    if (status === 'success') {
+      clearTimeout(tab._statusTimer);
+      tab._statusTimer = setTimeout(() => clearTabStatus(shellId), 4000);
+    }
+  }
+
+  // Quita el indicador visual del tab (sin importar el estado actual).
+  function clearTabStatus(shellId) {
+    const tab = tabs.get(shellId);
+    if (!tab) return;
+    clearTimeout(tab._statusTimer);
+    const dot = tab.element.querySelector('.tab-status');
+    if (dot) dot.dataset.status = '';
+  }
+
+  // ── Callback desde terminal.js cuando un comando termina ──────────────────
+  //
+  // Recibe:
+  //   shellId     — el shell que terminó el comando
+  //   exitCode    — 0 = éxito, ≠ 0 = error
+  //   durationSecs — segundos desde OSC 133 A (incluye tiempo de tipeo)
+  //
+  // Lógica:
+  //   1. Si es el tab activo → no hacer nada (el usuario lo vio en vivo)
+  //   2. Si es tab de fondo → mostrar dot de estado
+  //   3. Si la ventana no tiene foco Y el comando duró lo suficiente
+  //      Y las notificaciones están habilitadas → notificación del SO
+
+  function onCommandFinished(shellId, exitCode, durationSecs) {
+    // Tab activo: el usuario ya vio el resultado
+    if (shellId === activeShellId) return;
+
+    const tab = tabs.get(shellId);
+    if (!tab) return;
+
+    // 1. Indicador visual en el tab
+    setTabStatus(shellId, exitCode === 0 ? 'success' : 'error');
+
+    // 2. Notificación del sistema operativo
+    const enabled   = localStorage.getItem('ocote_system_notifications') !== 'false';
+    const threshold = parseInt(localStorage.getItem('ocote_notif_threshold') || '5', 10);
+
+    if (enabled && !document.hasFocus() && durationSecs >= threshold) {
+      const tabName = tab.name || 'Terminal';
+      const title   = exitCode === 0
+        ? `✅ Ocote — ${tabName}`
+        : `❌ Ocote — ${tabName}`;
+      const body    = exitCode === 0
+        ? `El comando terminó correctamente (${durationSecs}s)`
+        : `El comando falló con código ${exitCode} (${durationSecs}s)`;
+
+      // Silencioso si el usuario denegó permisos en macOS/Windows/Linux
+      invoke('send_notification', { title, body }).catch(() => {});
     }
   }
 
@@ -245,6 +316,7 @@
     respawnActive,
     switchTab,
     updateTabName,
+    onCommandFinished,
     getActiveShellId: () => activeShellId,
     getTab: (shellId) => tabs.get(shellId),
     getAllTabs: () => Array.from(tabs.entries()),

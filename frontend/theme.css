@@ -604,7 +604,7 @@ button:focus-visible {
 .terminal-tab {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   padding: 5px 12px;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   cursor: pointer;
@@ -625,6 +625,42 @@ button:focus-visible {
 .terminal-tab.active {
   background: var(--bg-terminal);
   color: var(--text-primary);
+}
+
+/* ── Dot de estado de notificación en tabs ───────────────────────────────── */
+/* Aparece en tabs de fondo cuando un comando termina.
+   Se oculta al activar el tab (switchTab → clearTabStatus). */
+
+.tab-status {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: transparent;
+  /* Sin transition en el background — los cambios deben ser instantáneos */
+}
+
+/* Éxito: verde, desaparece tras 4s */
+.tab-status[data-status="success"] {
+  background: var(--syntax-green, #7DC97A);
+  animation: tab-dot-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Error: rojo, persiste hasta que el usuario abre el tab */
+.tab-status[data-status="error"] {
+  background: var(--syntax-red, #E8635A);
+  animation: tab-dot-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Sin estado: sin dot (transparente) */
+.tab-status:not([data-status]),
+.tab-status[data-status=""] {
+  background: transparent;
+}
+
+@keyframes tab-dot-pop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
 }
 
 /* Línea indicadora inferior del tab activo */
@@ -1970,6 +2006,54 @@ button:focus-visible {
   height: 1px;
   background: var(--border);
   margin: 4px 0;
+}
+
+/* ── Toggle switch (Settings → Notificaciones) ───────────────────────────── */
+
+.settings-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.settings-toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.settings-toggle-track {
+  width: 38px;
+  height: 22px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: 11px;
+  position: relative;
+  transition: background var(--transition-normal), border-color var(--transition-normal);
+}
+
+.settings-toggle-input:checked + .settings-toggle-track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.settings-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  background: var(--text-dim);
+  border-radius: 50%;
+  transition: transform var(--transition-normal), background var(--transition-normal);
+}
+
+.settings-toggle-input:checked + .settings-toggle-track .settings-toggle-thumb {
+  transform: translateX(16px);
+  background: #fff;
 }
 
 .hidden {

@@ -198,6 +198,30 @@
           </div>
         </div>
 
+        <!-- Notificaciones -->
+        <div class="settings-section">
+          <h3>Notificaciones</h3>
+          <div class="settings-row">
+            <div>
+              <span class="settings-label">Notificaciones del sistema</span>
+              <p class="settings-hint" style="margin-top:3px">Avisa cuando un comando en otra pestaña termina y Ocote está en segundo plano</p>
+            </div>
+            <label class="settings-toggle-label" title="Activar notificaciones del sistema">
+              <input type="checkbox" id="toggle-system-notif" class="settings-toggle-input">
+              <span class="settings-toggle-track"><span class="settings-toggle-thumb"></span></span>
+            </label>
+          </div>
+          <div class="settings-row" id="notif-threshold-row">
+            <span class="settings-label">Avisar si el comando tardó más de</span>
+            <div class="settings-segmented">
+              <button class="settings-seg-btn" data-setting="notifThreshold" data-value="3">3s</button>
+              <button class="settings-seg-btn" data-setting="notifThreshold" data-value="5">5s</button>
+              <button class="settings-seg-btn" data-setting="notifThreshold" data-value="10">10s</button>
+              <button class="settings-seg-btn" data-setting="notifThreshold" data-value="30">30s</button>
+            </div>
+          </div>
+        </div>
+
         <div class="settings-two-col">
           <div class="settings-sub">
             <h3 data-i18n="settings.terminal.title">Terminal</h3>

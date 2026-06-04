@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 # Tauri — el framework que conecta Rust con la UI web
-tauri = { version = "1", features = ["shell-open", "icon-png"] }
+tauri = { version = "1", features = ["shell-open", "icon-png", "notification-all"] }
 
 # PTY — permite spawnear bash/zsh/cmd como proceso hijo real
 portable-pty = "0.8"

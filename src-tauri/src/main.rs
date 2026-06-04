@@ -12,6 +12,26 @@ mod ckb;
 mod fs_explorer;
 mod context;
 
+/// Envía una notificación al sistema operativo.
+///
+/// Usa el canal nativo de cada plataforma:
+///   macOS → Centro de notificaciones (UNUserNotificationCenter)
+///   Windows → Toast notifications (Action Center)
+///   Linux → libnotify / D-Bus
+///
+/// Si el usuario denegó el permiso de notificaciones, show() falla
+/// silenciosamente — no produce error visible en la app.
+#[tauri::command]
+fn send_notification(app: tauri::AppHandle, title: String, body: String) {
+    // Ignoramos el error: si el usuario denegó permisos, simplemente no aparece.
+    let _ = tauri::api::notification::Notification::new(
+        &app.config().tauri.bundle.identifier
+    )
+    .title(&title)
+    .body(&body)
+    .show();
+}
+
 /// Cambia el ícono del dock/app en runtime. `variant` = "light" | "dark".
 /// Los PNG están en resources/icons/ y se bundlean con la app.
 ///
@@ -104,6 +124,7 @@ fn main() {
             context::detect_context,
             // Settings
             set_app_icon,
+            send_notification,
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar Ocote");
