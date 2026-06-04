@@ -29,10 +29,18 @@
   // al cargar (Ocote puede abrirse ya sin foco si otra app estaba en frente).
   let windowFocused = document.hasFocus();
 
+  // Capa 1: eventos DOM nativos (más fiables en cambios de espacio macOS)
   window.addEventListener('focus', () => { windowFocused = true;  });
   window.addEventListener('blur',  () => { windowFocused = false; });
+
+  // Capa 2: eventos Tauri (backup)
   listen('tauri://focus', () => { windowFocused = true;  });
   listen('tauri://blur',  () => { windowFocused = false; });
+
+  // Capa 3: polling cada 300ms — necesario para AeroSpace y otros tiling WMs
+  // que mantienen múltiples ventanas "activas" sin disparar blur/focus DOM.
+  // document.hasFocus() sí refleja correctamente el foco del OS en WKWebView.
+  setInterval(() => { windowFocused = document.hasFocus(); }, 300);
 
   // ── Referencias DOM ─────────────────────────────────────────────────────
   const tabBar      = document.getElementById('tab-bar');
@@ -254,32 +262,32 @@
   //      Y las notificaciones están habilitadas → notificación del SO
 
   function onCommandFinished(shellId, exitCode, durationSecs) {
-    // Tab activo: el usuario ya vio el resultado
-    if (shellId === activeShellId) return;
-
     const tab = tabs.get(shellId);
-    if (!tab) return;
+    if (!tab) { console.log('[Ocote:notif] skip — tab no encontrado'); return; }
 
-    // 1. Indicador visual en el tab
-    setTabStatus(shellId, exitCode === 0 ? 'success' : 'error');
+    const isActiveTab     = shellId === activeShellId;
+    const appIsBackground = !windowFocused || !document.hasFocus();
 
-    // 2. Notificación del sistema operativo
+    // Si el usuario está en Ocote mirando este mismo tab → nada (lo ve en vivo)
+    if (isActiveTab && !appIsBackground) return;
+
+    // Dot en el tab: solo cuando el usuario está en otro tab dentro de Ocote
+    if (!isActiveTab) {
+      setTabStatus(shellId, exitCode === 0 ? 'success' : 'error');
+    }
+
+    // Notificación del sistema: si la app está en segundo plano,
+    // sin importar si el comando fue en el tab activo o en uno de fondo
     const enabled   = localStorage.getItem('ocote_system_notifications') !== 'false';
     const threshold = parseInt(localStorage.getItem('ocote_notif_threshold') || '5', 10);
 
-    // Considerar "sin foco" si CUALQUIERA de las señales dice que no está enfocado
-    const appIsBackground = !windowFocused || !document.hasFocus();
-
     if (enabled && appIsBackground && durationSecs >= threshold) {
       const tabName = tab.name || 'Terminal';
-      const title   = exitCode === 0
-        ? `✅ Ocote — ${tabName}`
-        : `❌ Ocote — ${tabName}`;
+      const title   = exitCode === 0 ? `✅ Ocote — ${tabName}` : `❌ Ocote — ${tabName}`;
       const body    = exitCode === 0
         ? `El comando terminó correctamente (${durationSecs}s)`
         : `El comando falló con código ${exitCode} (${durationSecs}s)`;
 
-      // Silencioso si el usuario denegó permisos en macOS/Windows/Linux
       invoke('send_notification', { title, body }).catch(() => {});
     }
   }

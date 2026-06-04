@@ -158,12 +158,8 @@ function bindTerminalShell(term, shellId) {
       commandStartTime = null;
 
       // ── onCommandFinished: FUERA del rAF ─────────────────────────────────
-      // requestAnimationFrame se PAUSA cuando la ventana de Ocote no está
-      // en primer plano (el usuario está en Arc, Finder, etc.) — exactamente
-      // el momento en que queremos disparar la notificación del sistema.
-      // onCommandFinished solo toca el DOM del tab bar e invoke() de Tauri,
-      // no interfiere con el ciclo de parse de xterm.js → es seguro llamarlo
-      // de forma síncrona aquí, antes del rAF.
+      // No usar rAF aquí: se pausa cuando la ventana no tiene foco en WKWebView,
+      // que es exactamente cuando el usuario está en otra app y queremos notificar.
       window.TAB_MANAGER?.onCommandFinished(shellId, exitCode, durationSecs);
 
       // ── extendCommandBlock: DENTRO del rAF ───────────────────────────────
