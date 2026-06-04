@@ -330,6 +330,129 @@ pub fn delete_item(path: String) -> Result<(), String> {
     }
 }
 
+// ── Búsqueda de archivos ────────────────────────────────────────────────────
+
+/// Resultado de búsqueda — incluye ruta relativa al directorio base para mostrar
+/// al usuario dónde está el archivo dentro del proyecto.
+#[derive(Debug, Serialize)]
+pub struct SearchResult {
+    pub name:          String,
+    pub path:          String, // ruta absoluta (para abrir el archivo)
+    pub relative_path: String, // ruta relativa al base (para mostrar en UI)
+    pub is_dir:        bool,
+}
+
+/// Directorios que se saltan siempre durante la búsqueda.
+/// Contienen miles de archivos generados que no interesan al usuario.
+const SKIP_DIRS: &[&str] = &[
+    "node_modules", ".git", "target", "dist", "build", ".next",
+    "__pycache__", ".cache", ".venv", "venv", "coverage", ".turbo",
+    ".svelte-kit", "out", ".nuxt",
+];
+
+/// Comando Tauri: buscar archivos por nombre en un directorio y sus subdirectorios.
+///
+/// - `base`  — directorio raíz de la búsqueda (normalmente el CWD del shell)
+/// - `query` — texto a buscar en el nombre del archivo (case-insensitive)
+///
+/// Retorna hasta 50 resultados ordenados por relevancia:
+///   1. Coincidencia exacta del nombre
+///   2. El nombre empieza con la query
+///   3. El nombre contiene la query
+///
+/// Profundidad máxima: 6 niveles. Ignora archivos ocultos (`.nombre`).
+#[tauri::command]
+pub fn search_files(base: String, query: String) -> Result<Vec<SearchResult>, String> {
+    let query = query.trim().to_string();
+    if query.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let base_path = Path::new(&base);
+    if !base_path.is_dir() {
+        return Ok(vec![]);
+    }
+
+    let query_lower = query.to_lowercase();
+    let mut results: Vec<SearchResult> = Vec::new();
+
+    search_recursive(base_path, base_path, &query_lower, 0, &mut results);
+
+    // Ordenar por relevancia: exacto > empieza-con > contiene
+    results.sort_by_key(|r| {
+        let n = r.name.to_lowercase();
+        if n == query_lower        { 0u8 }
+        else if n.starts_with(&query_lower) { 1 }
+        else                               { 2 }
+    });
+
+    results.truncate(50);
+    Ok(results)
+}
+
+/// Función recursiva de búsqueda — no expuesta como comando Tauri.
+fn search_recursive(
+    base:    &Path,
+    current: &Path,
+    query:   &str,
+    depth:   usize,
+    results: &mut Vec<SearchResult>,
+) {
+    // Límites de seguridad: no profundizar más de 6 niveles y no pasar de 50 resultados.
+    if depth >= 6 || results.len() >= 50 {
+        return;
+    }
+
+    let read_dir = match std::fs::read_dir(current) {
+        Ok(rd) => rd,
+        Err(_) => return, // permiso denegado u otro error → silencioso
+    };
+
+    for entry_result in read_dir {
+        if results.len() >= 50 { break; }
+
+        let entry = match entry_result {
+            Ok(e)  => e,
+            Err(_) => continue,
+        };
+
+        let name = entry.file_name().to_string_lossy().to_string();
+
+        // Ignorar archivos/carpetas ocultos (empiezan con .)
+        if name.starts_with('.') { continue; }
+
+        let is_dir = match entry.file_type() {
+            Ok(ft) => ft.is_dir(),
+            Err(_) => continue,
+        };
+
+        // Saltar directorios pesados conocidos
+        if is_dir && SKIP_DIRS.contains(&name.as_str()) { continue; }
+
+        let path = entry.path();
+
+        // Comprobar si el nombre contiene la query (case-insensitive)
+        if name.to_lowercase().contains(query) {
+            let relative = path
+                .strip_prefix(base)
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|_| name.clone());
+
+            results.push(SearchResult {
+                name:          name.clone(),
+                path:          path.to_string_lossy().to_string(),
+                relative_path: relative,
+                is_dir,
+            });
+        }
+
+        // Continuar la búsqueda dentro de subdirectorios
+        if is_dir {
+            search_recursive(base, &path, query, depth + 1, results);
+        }
+    }
+}
+
 /// Comando Tauri: contar entradas directas de un directorio (primer nivel).
 ///
 /// No es recursivo — solo cuenta los hijos inmediatos, incluyendo

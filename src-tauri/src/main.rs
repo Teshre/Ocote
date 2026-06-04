@@ -171,6 +171,7 @@ fn main() {
             fs_explorer::delete_item,
             fs_explorer::count_dir_entries,
             fs_explorer::delete_item_recursive,
+            fs_explorer::search_files,
             ckb::get_suggestions,
             ckb::get_command_info,
             // Fase 3 — activos
