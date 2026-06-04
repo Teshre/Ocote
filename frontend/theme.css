@@ -870,15 +870,15 @@ button:focus-visible {
   box-shadow: 0 0 8px var(--accent-glow);
 }
 
-/* Cada pane (dentro de un split) tiene un borde sutil que marca su límite.
-   El pane enfocado usa el acento del tema — así se distingue cuál recibe el
-   teclado. Un tab con un solo pane no entra aquí (no necesita resaltado). */
+/* Cada pane (dentro de un split) es una caja con borde visible que marca su
+   límite SIEMPRE. El pane enfocado usa el acento del tema — así se distingue
+   cuál recibe el teclado. Un tab con un solo pane no entra aquí. */
 .pane-split .terminal-pane {
-  outline: 1px solid var(--border);
+  outline: 1px solid var(--border-strong);
   outline-offset: -1px;
 }
 .pane-split .terminal-pane.pane-active {
-  outline: 1px solid var(--accent);
+  outline: 1.5px solid var(--accent);
   outline-offset: -1px;
 }
 
