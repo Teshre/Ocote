@@ -208,7 +208,47 @@
     document.querySelectorAll('.settings-tab-content').forEach(content => {
       content.classList.toggle('hidden', content.dataset.tab !== tabId);
     });
-    if (tabId === 'appearance') renderPromptPicker();
+    if (tabId === 'appearance') {
+      renderPromptPicker();
+      renderIconPreview(state.iconTheme);
+    }
+  }
+
+  // ── Preview en vivo de íconos ────────────────────────────────────────────
+  // Muestra una cuadrícula de archivos y carpetas representativos con el tema
+  // de íconos seleccionado. Se actualiza sin cerrar la configuración.
+
+  const ICON_PREVIEW_FILES = [
+    'index.js', 'main.rs', 'styles.css', 'App.tsx',
+    'README.md', 'config.json', 'script.sh', 'image.png',
+  ];
+  const ICON_PREVIEW_FOLDERS = ['src', 'node_modules', 'docs', 'dist'];
+
+  function renderIconPreview(theme) {
+    const el = document.getElementById('icon-theme-preview');
+    if (!el || !window.ICON_SET?.getIconHtmlForTheme) return;
+
+    const IS = window.ICON_SET;
+
+    // Archivos
+    const fileHtml = ICON_PREVIEW_FILES.map(name =>
+      `<div class="iprev-item">
+         <span class="explorer-icon">${IS.getIconHtmlForTheme(name, theme)}</span>
+         <span class="iprev-name">${name}</span>
+       </div>`
+    ).join('');
+
+    // Separador + Carpetas
+    const folderHtml = ICON_PREVIEW_FOLDERS.map(name =>
+      `<div class="iprev-item">
+         <span class="explorer-icon">${IS.getFolderHtmlForTheme(name, theme)}</span>
+         <span class="iprev-name">${name}</span>
+       </div>`
+    ).join('');
+
+    el.innerHTML = fileHtml +
+      '<div class="iprev-separator"></div>' +
+      folderHtml;
   }
 
   // ── Prompt picker ───────────────────────────────────────────────────────
@@ -450,7 +490,7 @@
     const group = overlay.querySelectorAll(`.settings-seg-btn[data-setting="${setting}"]`);
     group.forEach(b => b.classList.toggle('active', b === btn));
 
-    if (setting === 'iconTheme')   applyIconTheme(value);
+    if (setting === 'iconTheme') { applyIconTheme(value); renderIconPreview(value); }
     if (setting === 'lang')        applyLang(value);
     if (setting === 'cursorStyle') applyCursorStyle(value);
     if (setting === 'scrollback')  applyScrollback(parseInt(value));

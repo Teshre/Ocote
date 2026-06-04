@@ -33,17 +33,22 @@ src-tauri/
 frontend/
   index.html         ← layout principal; orden de scripts crítico (ver abajo)
   themes.js          ← 8 temas oficiales generados desde OCOTE_THEME_DATA (base16)
-  prompt.js          ← Decoration API: renders HTML por preset + previewHtml()
+  prompt.js          ← overlay HTML por preset + previewHtml()
   terminal.js        ← factory xterm.js + OSC handlers (6731, 133) en bindTerminalShell()
   tab-manager.js     ← barra de tabs, múltiples terminales
-  explorer.js        ← panel lateral de archivos + breadcrumb inferior
+  explorer.js        ← panel lateral, breadcrumb, menú contextual, operaciones de archivo
   autocomplete.js    ← popup de sugerencias
   tooltip.js         ← card educativa de comandos
-  settings.js        ← modal de configuración + prompt picker con previews
+  settings.js        ← modal de configuración + prompt/icon pickers con previews en vivo
   ui-i18n.js         ← strings de UI en 5 idiomas (ES/EN/PT/FR/DE)
-  icons.js           ← SVG paths de Tabler Icons + mapeo extensión→icono
+  icons.js           ← SVG Tabler Icons + 5 temas (Outline/Badge/Ember/Brand/Symbols)
   onboarding.js      ← overlay de bienvenida al primer uso
+  preview.js         ← panel de preview de archivos (código con hljs, imágenes, binarios)
+  resizer.js         ← drag-to-resize de los 3 paneles; persiste en localStorage
   theme.css          ← CSS variables + estilos base
+  lib/
+    highlight.min.js ← highlight.js (colorear código en preview)
+    atom-one-dark.css← tema visual de highlight.js
 ckb/
   commands.json      ← fuente de datos CKB (153 comandos × 5 idiomas)
 ```
@@ -54,7 +59,7 @@ ckb/
 - **Fase 3 (Meses 8-12):** Tooltip educativo, sugerencias contextuales, onboarding, distribución
 - **Fase 4 (Meses 12-18):** Comunidad, devlog, lanzamiento, credibilidad técnica
 
-## Estado actual — 2026-05-29
+## Estado actual — 2026-06-03
 **Fases 2 y 3 COMPLETADAS. Fase 4 en progreso avanzado.**
 
 - zsh/bash conectado al PTY (`pty.rs` con `portable-pty`) ✅
@@ -81,6 +86,12 @@ ckb/
 - **Soporte 4 shells**: zsh (completo), bash (prompt+overlays+fzf), fish y PowerShell (prompt+overlays+fzf, highlighting/suggestions nativos) ✅
 - **Ícono light/dark** seleccionable en Settings (`set_app_icon`) ✅
 - **Ajustes de terminal**: tamaño de fuente, cursor, scrollback ✅
+- **Menú contextual** del explorador con íconos SVG Tabler, hover accent, grupo "Crear" ✅
+- **Operaciones de archivo**: crear, renombrar inline, eliminar con confirmación nativa HTML ✅
+- **Preview de archivos** (`preview.js`): código con highlight.js, imágenes en base64, doble-click ✅
+- **Panel colapsable** (Ctrl+B) y **redimensionamiento de los 3 paneles** (`resizer.js`) ✅
+- **5 temas de íconos** en el explorador: Outline, Badge, Ember, Brand, Symbols ✅
+- **Preview de íconos en Settings**: cuadrícula en vivo al cambiar tema, sin salir del modal ✅
 
 ---
 
@@ -241,10 +252,19 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 - `window.I18N.apply()`: re-aplica los strings de UI al idioma activo.
 
 ### Sistema de íconos del explorador
-- `frontend/icons.js`: 15 iconos SVG outline de Tabler Icons (MIT).
-- Tema `seti`: SVGs outline con `stroke="currentColor"`, color específico por tipo.
-- Tema `badge`: etiquetas de texto cortas sobre fondo de color.
+- `frontend/icons.js`: SVGs Tabler Icons (MIT) + lógica para 5 temas.
+- **5 temas**: `outline`(seti), `badge`, `ember`, `brand`, `symbols`.
+- `window.ICON_SET` expone: `getIconForFile`, `getIconForFolder` (flujo seti), `getThemedIconHtml`, `getThemedFolderHtml` (brand/ember/symbols), `getIconHtmlForTheme`, `getFolderHtmlForTheme` (unificados — usados por settings preview).
+- `getEmberColor(ext)` lee `getComputedStyle(documentElement)` en runtime → los colores Ember cambian automáticamente al cambiar el tema de color.
 - `getIconTheme()` en `explorer.js` lee `localStorage('ocote_icon_theme')`.
+- `applyIconTheme()` en `settings.js` guarda en LS y llama `_explorerRefresh()` + `renderIconPreview()`.
+- **REGLA**: variables CSS de Ember usan los nombres reales de `theme.css`: `--syntax-yellow`, `--syntax-blue`, `--syntax-teal`, `--syntax-green`, `--syntax-red`, `--accent`, `--text-secondary`. No usar `--color-*` (no existen).
+
+### Sistema de operaciones de archivo
+- **`ocoteConfirm(message)`** en `explorer.js`: reemplaza `window.confirm()` (no funciona en WKWebView). Devuelve `Promise<boolean>`. Foco en Cancelar por defecto.
+- **Borrado de carpetas**: primero `count_dir_entries()` para mostrar el número en el confirm; luego `delete_item_recursive()` con `remove_dir_all`. Flujo separado para archivos (usa `delete_item` existente).
+- **Redimensionamiento**: `resizer.js` escucha `mousedown/move/up` en los handles. Desactiva `transition: none` durante el drag para evitar lag. MutationObserver reactiva/oculta el handle según el estado del panel.
+- **Preview** (`preview.js`): `read_text_file()` para código/texto; `read_file_base64()` para imágenes. Highlight.js corre en el frontend, no en Rust.
 
 ---
 
@@ -312,12 +332,30 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 ✅ **Fix ícono del dock en macOS**: rama nativa objc `setApplicationIconImage:` (window.set_icon es no-op en dock macOS).
 ✅ **Fix encuadre de íconos macOS**: regenerados con margen 824/1024 (antes borde-a-borde se veía más grande que apps nativas).
 
+**Fase 4 — Avance al 2026-06-03 (sesión 13):**
+✅ **Menú contextual del explorador rediseñado**: íconos SVG Tabler inline (sin emojis), hover con `accent-dim` + borde izquierdo naranja, grupo "CREAR" con label, animación `scale+translateY`.
+✅ **Operaciones de archivo completas** en el explorador:
+  - Crear archivo/carpeta inline (input dentro del panel).
+  - Renombrar inline (input sobre el nombre).
+  - Eliminar con `ocoteConfirm()` — modal HTML propio que reemplaza `window.confirm()` (que no funciona en WKWebView/macOS).
+  - **Borrado recursivo de carpetas**: `count_dir_entries()` muestra cuántos elementos hay; `delete_item_recursive()` usa `remove_dir_all`. Confirmación diferenciada: vacía vs con contenido.
+✅ **`ocoteConfirm(message)`** (`explorer.js`): modal HTML con backdrop blur, animación pop-in, botón Cancelar con foco por defecto (seguridad), Esc/Enter.
+✅ **Preview de archivos** (`preview.js`): panel derecho con código coloreado (highlight.js, 40+ lenguajes), imágenes via base64 (`read_file_base64`), warning para archivos >500KB. Doble-click en explorador o "Vista previa" del menú contextual.
+✅ **Panel colapsable** (Ctrl+B, persiste estado en localStorage) — ya existía; corregido listener duplicado en `renderEntries`.
+✅ **Redimensionamiento de paneles** (`resizer.js`): handles de arrastre entre explorador↔terminal y terminal↔preview. MutationObserver para mostrar/ocultar resizer según panel visible. Persiste anchos en `localStorage('ocote_panel_explorer_w'/'ocote_panel_preview_w')`. Desactiva `transition` durante el drag para fluidez; llama `fitAddon.fit()` al soltar.
+✅ **5 temas de íconos** en el explorador (`icons.js`):
+  - `Outline` (seti): SVGs Tabler stroke, ya existía.
+  - `Badge`: etiquetas de texto con fondo, ya existía.
+  - `Ember` ✨: cuadrado outline + fill 18% en colores del tema activo (`--syntax-*`); cambia automáticamente al cambiar tema.
+  - `Brand` ✨: cuadrado sólido con color oficial de cada tecnología.
+  - `Symbols` ✨: glifo Unicode desnudo (`λ` JS, `π` Python, `⚙` Rust, `☕` Java…).
+✅ **Preview de íconos en Settings** (`settings.js`): cuadrícula de 12 elementos (8 archivos + 4 carpetas) se actualiza en tiempo real al cambiar tema, sin salir del modal.
+
 **Próximo paso — Fase 4:**
-1. PowerShell (4º shell) — solo si se prioriza Windows (paradigma muy distinto)
-2. Optimización: bundlear solo el fzf de cada plataforma (hoy el .app lleva los 5, ~19MB de peso muerto)
-3. Landing page / sitio web
-4. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
-5. Auto-updater
+1. Ícono real de Ocote (diseño propio) — About sigue mostrando el ícono de macOS por caché
+2. Landing page / sitio web
+3. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
+4. Auto-updater
 
 ## Cómo ayudar al desarrollador
 - Es developer en aprendizaje, usa IA como asistente principal

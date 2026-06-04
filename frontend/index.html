@@ -22,6 +22,7 @@
 
   <!-- Barra superior: breadcrumb con ruta actual + botón de configuración -->
   <div id="breadcrumb">
+    <button id="explorer-toggle" title="Colapsar explorador (Ctrl+B)">◀</button>
     <div id="explorer-breadcrumb"></div>
     <button id="settings-btn" data-i18n-attr="title:breadcrumb.settings.tooltip">⚙️</button>
   </div>
@@ -34,7 +35,10 @@
       </div>
     </div>
 
-    <!-- Panel derecho: terminal con tabs -->
+    <!-- Handle de redimensionamiento: explorador ↔ terminal -->
+    <div id="resizer-explorer" class="panel-resizer" aria-hidden="true"></div>
+
+    <!-- Panel central: terminal con tabs -->
     <div id="terminal-panel">
       <!-- Barra de tabs -->
       <div id="tab-bar-wrapper">
@@ -75,6 +79,20 @@
 
       <!-- Tooltip educativo (aparece a la derecha) -->
       <div id="tooltip-card" class="hidden"></div>
+    </div>
+
+    <!-- Handle de redimensionamiento: terminal ↔ preview -->
+    <div id="resizer-preview" class="panel-resizer" aria-hidden="true"></div>
+
+    <!-- Panel derecho: preview de archivos -->
+    <div id="preview-panel" class="hidden">
+      <div id="preview-header">
+        <span id="preview-filename"></span>
+        <button id="preview-close" title="Cerrar preview">✕</button>
+      </div>
+      <div id="preview-content">
+        <div id="preview-loading">Cargando...</div>
+      </div>
     </div>
   </div>
 
@@ -269,17 +287,22 @@
           <div id="theme-grid"></div>
         </div>
 
-        <div class="settings-two-col">
-          <div class="settings-sub">
+        <div class="settings-section">
+          <div class="settings-section-head">
             <h3 data-i18n="settings.icons.title">Explorador de archivos</h3>
-            <div class="settings-row">
-              <span class="settings-label" data-i18n="settings.icons.label">Estilo de íconos</span>
-              <div class="settings-segmented">
-                <button class="settings-seg-btn" data-setting="iconTheme" data-value="seti" data-i18n="settings.icons.svg">SVG Outline</button>
-                <button class="settings-seg-btn" data-setting="iconTheme" data-value="badge" data-i18n="settings.icons.badge">Badge</button>
-              </div>
+          </div>
+          <div class="settings-row" style="margin-bottom:12px">
+            <span class="settings-label" data-i18n="settings.icons.label">Estilo de íconos</span>
+            <div class="settings-segmented">
+              <button class="settings-seg-btn" data-setting="iconTheme" data-value="seti">Outline</button>
+              <button class="settings-seg-btn" data-setting="iconTheme" data-value="badge">Badge</button>
+              <button class="settings-seg-btn" data-setting="iconTheme" data-value="ember">Ember</button>
+              <button class="settings-seg-btn" data-setting="iconTheme" data-value="brand">Brand</button>
+              <button class="settings-seg-btn" data-setting="iconTheme" data-value="symbols">Symbols</button>
             </div>
           </div>
+          <!-- Vista previa del tema de íconos seleccionado -->
+          <div id="icon-theme-preview" class="icon-theme-preview"></div>
         </div>
       </div>
 
@@ -301,6 +324,9 @@
   <script src="onboarding.js"></script>
   <script src="ui-i18n.js"></script>
   <script src="settings.js"></script>
+  <script src="lib/highlight.min.js"></script>
+  <script src="preview.js"></script>
+  <script src="resizer.js"></script>
 
 </body>
 </html>

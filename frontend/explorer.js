@@ -26,9 +26,17 @@ async function initExplorer() {
         console.error('[Explorer] No se encontró #explorer-panel');
         return;
     }
-    
+
+    // Context menu en espacio vacío del panel — registrado UNA sola vez aquí
+    // (no en renderEntries, que se llama en cada navegación). Solo dispara si
+    // el click fue directo en el panel, no en un item (que tiene su propio handler).
+    panel.addEventListener('contextmenu', (e) => {
+        if (e.target.closest('.explorer-item')) return; // item ya lo maneja
+        handlePanelContextMenu(e);
+    });
+
     panel.innerHTML = '<div style="padding:12px;color:var(--text-dim);font-size:12px">Cargando...</div>';
-    
+
     try {
         currentPath = await window.__TAURI__.invoke('get_home_directory');
         homePath = currentPath;
@@ -102,6 +110,10 @@ window.onShellCwdChanged = function (cwdRaw) {
         if (window.TAB_MANAGER && window.ocoteActiveShellId) {
             window.TAB_MANAGER.updateTabName(window.ocoteActiveShellId, path);
         }
+    } else if (path && path === currentPath) {
+        // Mismo directorio pero el shell terminó un comando (OSC 6731 se emite
+        // tras cada prompt). Refrescar git status por si fue git add/commit/etc.
+        loadGitStatus(path);
     }
 };
 
@@ -109,7 +121,11 @@ window.onShellCwdChanged = function (cwdRaw) {
 
 async function loadDirectory(path, options = {}) {
     const { instant = false } = options;
-    
+
+    // Si cambiamos de directorio, descartar los badges del anterior hasta que
+    // llegue el git status del nuevo (evita mostrar estados de otro directorio).
+    if (path !== currentPath) currentGitStatus = {};
+
     currentPath = path;
     lastSyncedPath = path;
     // Exponer el CWD globalmente para que autocomplete.js pueda leer el contexto
@@ -135,6 +151,8 @@ async function loadDirectory(path, options = {}) {
         const entries = await window.__TAURI__.invoke('list_directory', { path });
         dirCache.set(path, { entries, timestamp: Date.now() });
         renderEntries(entries, path);
+        // Git status en paralelo (no bloquea el render de archivos).
+        loadGitStatus(path);
     } catch (err) {
         console.error('[Explorer] Error cargando directorio:', err);
         panel.innerHTML = `<div style="padding:12px;color:#e06c75;font-size:11px">${escapeHtml(String(err))}</div>`;
@@ -148,11 +166,61 @@ async function refreshDirectory(path) {
         // Solo re-renderizar si seguimos en este path
         if (currentPath === path) {
             renderEntries(entries, path);
+            loadGitStatus(path);
         }
     } catch (err) {
         console.error('[Explorer] Error refrescando directorio:', err);
     }
 }
+
+// ── Git status ─────────────────────────────────────────────────────────────
+// Mapa { nombre_entrada → estado } del directorio actual. Lo consulta
+// renderEntries para pintar los badges. Se actualiza async tras cada load.
+let currentGitStatus = {};
+
+async function loadGitStatus(path) {
+    try {
+        const status = await window.__TAURI__.invoke('git_status', { path });
+        // Solo aplicar si seguimos en el mismo directorio (evita race entre cd rápidos).
+        if (currentPath !== path) return;
+        currentGitStatus = status || {};
+        // Si hay cambios, re-pintar los badges sobre las entradas ya renderizadas.
+        applyGitBadges();
+    } catch (err) {
+        // git no instalado / no es repo → sin badges, silencioso.
+        currentGitStatus = {};
+    }
+}
+
+// Aplica los badges de git a los items ya renderizados (sin re-render completo).
+function applyGitBadges() {
+    if (!panel) return;
+    panel.querySelectorAll('.explorer-item[data-name]').forEach(item => {
+        const name = item.dataset.name;
+        const state = currentGitStatus[name];
+        // Limpiar estado previo
+        item.classList.remove('git-modified', 'git-added', 'git-untracked', 'git-deleted', 'git-renamed');
+        const existing = item.querySelector('.git-badge');
+        if (existing) existing.remove();
+        if (!state) return;
+        // Clase para colorear el nombre + badge con la letra
+        item.classList.add('git-' + state);
+        const letter = GIT_BADGE_LETTER[state] || '•';
+        const badge = document.createElement('span');
+        badge.className = 'git-badge git-badge-' + state;
+        badge.textContent = letter;
+        badge.title = GIT_BADGE_TITLE[state] || state;
+        item.appendChild(badge);
+    });
+}
+
+const GIT_BADGE_LETTER = {
+    modified: 'M', added: 'A', untracked: 'U', deleted: 'D', renamed: 'R',
+};
+const GIT_BADGE_TITLE = {
+    modified: 'Modificado', added: 'Agregado (staged)', untracked: 'Nuevo (sin trackear)',
+    deleted: 'Eliminado', renamed: 'Renombrado',
+};
 
 function resolveCdPath(target, basePath) {
     target = target.trim();
@@ -219,12 +287,19 @@ function renderEntries(entries, path) {
     }
     
     panel.innerHTML = html;
-    
-    // Event listeners
+
+    // Event listeners por item. (El contextmenu del panel vacío se registra
+    // UNA sola vez en initExplorer, no aquí — si no, se acumularían listeners
+    // duplicados en cada navegación de directorio.)
     panel.querySelectorAll('.explorer-item').forEach(item => {
         item.addEventListener('click', handleClick);
+        item.addEventListener('dblclick', handleDoubleClick);
+        item.addEventListener('contextmenu', handleContextMenu);
     });
-    
+
+    // Aplicar badges de git status (si ya tenemos datos para este dir).
+    applyGitBadges();
+
     // Actualizar breadcrumb inferior
     renderBreadcrumb(path);
 }
@@ -380,6 +455,443 @@ async function handleClick(e) {
     } catch (err) {
         console.error('[Explorer] Error sincronizando con PTY:', err);
     }
+}
+
+// ── Doble click handler (preview de archivos) ─────────────────────────────
+
+function handleDoubleClick(e) {
+    const item = e.currentTarget;
+    const path = item.getAttribute('data-path');
+    const name = item.getAttribute('data-name');
+    const isDir = item.getAttribute('data-is-dir') === 'true';
+    if (isDir) return;
+    if (window.openPreview) {
+        window.openPreview(path, name);
+    }
+}
+
+// ── Diálogo de confirmación propio ────────────────────────────────────────
+//
+// window.confirm() NO funciona en WKWebView (Tauri/macOS): devuelve `true`
+// inmediatamente sin mostrar ningún diálogo nativo. Usamos un modal HTML
+// que devuelve una Promise<boolean> — compatible con async/await.
+//
+// Uso:  if (await ocoteConfirm('¿Eliminar "foo"?')) { ... }
+
+function ocoteConfirm(message, { confirmLabel = 'Eliminar', danger = true } = {}) {
+    return new Promise((resolve) => {
+        // ── Backdrop — igual que settings overlay ──────────────────────────
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed; inset: 0; z-index: 9999;
+            background: var(--bg-overlay);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center;
+        `;
+
+        // ── Caja del diálogo — misma paleta que settings-card ─────────────
+        const box = document.createElement('div');
+        box.style.cssText = `
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border-strong);
+            border-radius: 12px;
+            padding: 24px 26px 20px;
+            max-width: 360px; width: 90%;
+            box-shadow: var(--shadow-lg);
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            animation: confirm-pop-in 0.18s ease;
+        `;
+
+        // ── Animación (igual que settings-pop-in) ─────────────────────────
+        if (!document.getElementById('ocote-confirm-style')) {
+            const style = document.createElement('style');
+            style.id = 'ocote-confirm-style';
+            style.textContent = `
+                @keyframes confirm-pop-in {
+                    from { opacity: 0; transform: scale(0.95) translateY(6px); }
+                    to   { opacity: 1; transform: scale(1)    translateY(0);   }
+                }
+                .ocote-confirm-cancel {
+                    padding: 6px 16px;
+                    border-radius: var(--radius-sm);
+                    border: 1px solid var(--border-strong);
+                    background: var(--bg-input);
+                    color: var(--text-secondary);
+                    font-family: var(--font-mono);
+                    font-size: 12px;
+                    cursor: pointer;
+                    transition: background 100ms ease, color 100ms ease;
+                }
+                .ocote-confirm-cancel:hover {
+                    background: var(--hover-bg);
+                    color: var(--text-primary);
+                }
+                .ocote-confirm-ok {
+                    padding: 6px 16px;
+                    border-radius: var(--radius-sm);
+                    border: none;
+                    font-family: var(--font-mono);
+                    font-size: 12px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: opacity 100ms ease;
+                }
+                .ocote-confirm-ok:hover { opacity: 0.85; }
+                .ocote-confirm-ok.danger  { background: var(--syntax-red, #E8635A); color: #fff; }
+                .ocote-confirm-ok.primary { background: var(--accent); color: #1a1816; }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // ── Mensaje ────────────────────────────────────────────────────────
+        const msg = document.createElement('p');
+        msg.style.cssText = `
+            margin: 0 0 20px;
+            font-size: 13px;
+            line-height: 1.65;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+        `;
+        msg.textContent = message;
+
+        // ── Fila de botones ────────────────────────────────────────────────
+        const btnRow = document.createElement('div');
+        btnRow.style.cssText = `
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding-top: 4px;
+            border-top: 1px solid var(--border);
+            margin-top: 4px;
+        `;
+
+        const btnCancel = document.createElement('button');
+        btnCancel.textContent = 'Cancelar';
+        btnCancel.className = 'ocote-confirm-cancel';
+
+        const btnOk = document.createElement('button');
+        btnOk.textContent = confirmLabel;
+        btnOk.className = `ocote-confirm-ok ${danger ? 'danger' : 'primary'}`;
+
+        const finish = (result) => {
+            document.removeEventListener('keydown', onKey);
+            overlay.remove();
+            resolve(result);
+        };
+
+        const onKey = (e) => {
+            if (e.key === 'Escape') { e.stopPropagation(); finish(false); }
+            if (e.key === 'Enter')  { e.stopPropagation(); finish(true);  }
+        };
+
+        btnCancel.addEventListener('click', () => finish(false));
+        btnOk.addEventListener('click',     () => finish(true));
+        document.addEventListener('keydown', onKey);
+
+        btnRow.appendChild(btnCancel);
+        btnRow.appendChild(btnOk);
+        box.appendChild(msg);
+        box.appendChild(btnRow);
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        // Foco en Cancelar — más seguro para operaciones destructivas
+        btnCancel.focus();
+    });
+}
+
+// ── Menú contextual ───────────────────────────────────────────────────────
+
+// Iconos SVG Tabler (outline, stroke-width 1.5) — consistentes con el resto de la UI
+const CTX_ICONS = {
+    preview:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0-4 0"/><path d="M21 12c-2.4 4-5.4 6-9 6c-3.6 0-6.6-2-9-6c2.4-4 5.4-6 9-6c3.6 0 6.6 2 9 6"/></svg>`,
+    copyPath:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>`,
+    rename:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5-10.5a2.828 2.828 0 1 0-4-4L4 16v4"/><path d="M13.5 6.5l4 4"/></svg>`,
+    delete:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>`,
+    newFile:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M12 11v6"/><path d="M9 14h6"/></svg>`,
+    newFolder: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4l3 3h7a2 2 0 0 1 2 2v3"/><path d="M16 19h6"/><path d="M19 16v6"/></svg>`,
+};
+
+// Helpers para construir los items del menú
+function ctxItem(action, icon, label, extraClass = '') {
+    return `<button class="ctx-item ${extraClass}" data-action="${action}">
+                <span class="ctx-icon">${icon}</span>
+                <span>${label}</span>
+            </button>`;
+}
+function ctxLabel(text) {
+    return `<div class="ctx-group-label">${text}</div>`;
+}
+
+function handleContextMenu(e) {
+    e.preventDefault();
+    e.stopPropagation();   // no burbujear al contextmenu del panel vacío
+    const item = e.currentTarget;
+    const path = item.getAttribute('data-path');
+    const name = item.getAttribute('data-name');
+    const isDir = item.getAttribute('data-is-dir') === 'true';
+    showContextMenu(e.clientX, e.clientY, { path, name, isDir, target: item });
+}
+
+function handlePanelContextMenu(e) {
+    e.preventDefault();
+    showContextMenu(e.clientX, e.clientY, { path: null, name: null, isDir: false, target: null });
+}
+
+let _contextMenuEl = null;
+let _contextTarget = null;
+
+function showContextMenu(x, y, target) {
+    closeContextMenu();
+    _contextTarget = target;
+
+    const menu = document.createElement('div');
+    menu.id = 'explorer-context-menu';
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+
+    // Ajustar si se sale de la ventana
+    requestAnimationFrame(() => {
+        const rect = menu.getBoundingClientRect();
+        if (rect.right > window.innerWidth) {
+            menu.style.left = (window.innerWidth - rect.width - 8) + 'px';
+        }
+        if (rect.bottom > window.innerHeight) {
+            menu.style.top = (window.innerHeight - rect.height - 8) + 'px';
+        }
+    });
+
+    let html = '';
+
+    if (target.path && !target.isDir) {
+        // Archivo: Vista previa + Copiar ruta
+        html += ctxItem('preview',   CTX_ICONS.preview,   'Vista previa');
+        html += ctxItem('copy-path', CTX_ICONS.copyPath,  'Copiar ruta');
+        html += '<div class="ctx-separator"></div>';
+    } else if (target.path && target.isDir) {
+        // Carpeta: solo Copiar ruta
+        html += ctxItem('copy-path', CTX_ICONS.copyPath, 'Copiar ruta');
+        html += '<div class="ctx-separator"></div>';
+    }
+
+    if (target.path) {
+        // Acciones de item: Renombrar + Eliminar
+        html += ctxItem('rename', CTX_ICONS.rename, 'Renombrar');
+        html += ctxItem('delete', CTX_ICONS.delete, 'Eliminar', 'ctx-danger');
+        html += '<div class="ctx-separator"></div>';
+        html += ctxLabel('Crear');
+    }
+
+    // Crear siempre disponible (con o sin item seleccionado)
+    html += ctxItem('new-file',   CTX_ICONS.newFile,   'Nuevo archivo');
+    html += ctxItem('new-folder', CTX_ICONS.newFolder, 'Nueva carpeta');
+
+    menu.innerHTML = html;
+    document.body.appendChild(menu);
+    _contextMenuEl = menu;
+
+    // Click en items
+    menu.querySelectorAll('.ctx-item').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const action = btn.dataset.action;
+            closeContextMenu();
+            handleContextAction(action);
+        });
+    });
+}
+
+function closeContextMenu() {
+    if (_contextMenuEl) {
+        _contextMenuEl.remove();
+        _contextMenuEl = null;
+    }
+}
+
+async function handleContextAction(action) {
+    const target = _contextTarget;
+    _contextTarget = null;
+
+    switch (action) {
+        case 'preview':
+            if (target.path && window.openPreview) {
+                window.openPreview(target.path, target.name);
+            }
+            break;
+
+        case 'copy-path':
+            try {
+                await navigator.clipboard.writeText(target.path);
+            } catch {
+                // Fallback: seleccionar texto temporal
+                const ta = document.createElement('textarea');
+                ta.value = target.path;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                ta.remove();
+            }
+            break;
+
+        case 'rename':
+            if (target.target) {
+                inlineRename(target.target, target.path, target.name);
+            }
+            break;
+
+        case 'delete':
+            if (target.isDir) {
+                // Contar hijos para mostrar una confirmación informativa.
+                // Si el conteo falla (permisos, etc.) seguimos con 0.
+                let count = 0;
+                try {
+                    count = await window.__TAURI__.invoke('count_dir_entries', { path: target.path });
+                } catch (_) { /* silencioso */ }
+
+                // Mensaje diferente según si la carpeta tiene contenido o no
+                const dirMsg = count === 0
+                    ? `¿Eliminar la carpeta "${target.name}"?`
+                    : `La carpeta "${target.name}" contiene ${count} elemento${count !== 1 ? 's' : ''}.\n\n⚠️ Todo se eliminará permanentemente. ¿Continuar?`;
+
+                if (await ocoteConfirm(dirMsg)) {
+                    try {
+                        await window.__TAURI__.invoke('delete_item_recursive', { path: target.path });
+                        refreshDirectory(currentPath);
+                    } catch (err) {
+                        console.error('[Explorer] Error al eliminar carpeta:', err);
+                        alert('Error al eliminar: ' + err);
+                    }
+                }
+            } else {
+                // Archivo: confirmación simple
+                if (await ocoteConfirm(`¿Eliminar "${target.name}"?`)) {
+                    try {
+                        await window.__TAURI__.invoke('delete_item', { path: target.path });
+                        refreshDirectory(currentPath);
+                    } catch (err) {
+                        console.error('[Explorer] Error al eliminar archivo:', err);
+                        alert('Error al eliminar: ' + err);
+                    }
+                }
+            }
+            break;
+
+        case 'new-file':
+            inlineCreate('file', currentPath);
+            break;
+
+        case 'new-folder':
+            inlineCreate('directory', currentPath);
+            break;
+    }
+}
+
+// ── Renombrar inline ─────────────────────────────────────────────────────
+
+function inlineRename(item, oldPath, oldName) {
+    const nameSpan = item.querySelector('.explorer-name');
+    if (!nameSpan) return;
+
+    const origText = nameSpan.textContent;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = oldName;
+    input.className = 'explorer-rename-input';
+    input.style.cssText = `
+        background: var(--bg-input); border: 1px solid var(--accent);
+        color: var(--text-primary); font-family: var(--font-mono);
+        font-size: 13px; padding: 1px 4px; border-radius: 4px;
+        width: 100%; outline: none;
+    `;
+
+    nameSpan.textContent = '';
+    nameSpan.appendChild(input);
+    input.focus();
+    input.select();
+
+    const finish = async (save) => {
+        const newName = input.value.trim();
+        if (save && newName && newName !== oldName) {
+            const parent = oldPath.substring(0, oldPath.lastIndexOf('/'));
+            const newPath = parent + '/' + newName;
+            try {
+                await window.__TAURI__.invoke('rename_item', { oldPath, newPath });
+                await refreshDirectory(currentPath);
+            } catch (err) {
+                console.error('[Explorer] Error al renombrar:', err);
+                nameSpan.textContent = origText;
+                return;
+            }
+        } else {
+            nameSpan.textContent = origText;
+        }
+    };
+
+    input.addEventListener('blur', () => finish(true));
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
+}
+
+// ── Crear archivo/carpeta inline ──────────────────────────────────────────
+
+let _createInput = null;
+
+function inlineCreate(type, basePath) {
+    // Quitar input existente si lo hay
+    if (_createInput) { _createInput.remove(); _createInput = null; }
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'explorer-item explorer-create-item';
+    wrapper.style.cssText = 'padding:4px 12px 4px 8px; display:flex; align-items:center; gap:8px;';
+
+    const icon = document.createElement('span');
+    icon.className = 'explorer-icon';
+    icon.textContent = type === 'file' ? '📄' : '📁';
+    wrapper.appendChild(icon);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = type === 'file' ? 'nombre.ext' : 'nombre-carpeta';
+    input.style.cssText = `
+        background: var(--bg-input); border: 1px solid var(--accent);
+        color: var(--text-primary); font-family: var(--font-mono);
+        font-size: 13px; padding: 1px 4px; border-radius: 4px;
+        flex: 1; outline: none;
+    `;
+
+    wrapper.appendChild(input);
+    panel.appendChild(wrapper);
+    _createInput = wrapper;
+    input.focus();
+
+    const finish = async (save) => {
+        _createInput = null;
+        const name = input.value.trim();
+        wrapper.remove();
+        if (save && name) {
+            const newPath = basePath + (basePath.endsWith('/') ? '' : '/') + name;
+            try {
+                if (type === 'file') {
+                    await window.__TAURI__.invoke('create_file', { path: newPath });
+                } else {
+                    await window.__TAURI__.invoke('create_directory', { path: newPath });
+                }
+                await refreshDirectory(currentPath);
+            } catch (err) {
+                console.error('[Explorer] Error al crear:', err);
+                alert('Error: ' + err);
+            }
+        }
+    };
+
+    input.addEventListener('blur', () => finish(true));
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -880,11 +1392,11 @@ function resolveFileColors(nameLower) {
  */
 function getFileIconHtml(filename) {
     const nameLower = filename.toLowerCase();
-    const theme = getIconTheme();
+    const theme     = getIconTheme();
 
+    // ── Badge ──────────────────────────────────────────────────────────────
     if (theme === 'badge') {
         const [fill] = resolveFileColors(nameLower);
-        // Buscar etiqueta: nombre especial → extensión → fallback
         const label = SPECIAL_BADGE_LABELS[nameLower]
             || (() => {
                 const parts = nameLower.split('.');
@@ -900,7 +1412,13 @@ function getFileIconHtml(filename) {
         return `<span class="file-icon" style="background:${fill};color:${fg}">${escapeHtml(label)}</span>`;
     }
 
-    // Tema seti: SVG outline de Tabler Icons
+    // ── Brand / Ember / Symbols ────────────────────────────────────────────
+    if ((theme === 'brand' || theme === 'ember' || theme === 'symbols') && window.ICON_SET?.getThemedIconHtml) {
+        const html = window.ICON_SET.getThemedIconHtml(filename, theme);
+        if (html) return `<span class="icon-wrapper themed-icon">${html}</span>`;
+    }
+
+    // ── Seti (outline) — flujo original ───────────────────────────────────
     if (window.ICON_SET) {
         const { svg, color } = window.ICON_SET.getIconForFile(filename);
         return `<span class="icon-wrapper" style="color:${color}">${svg}</span>`;
@@ -918,11 +1436,18 @@ function getFolderIconHtml(name) {
     const color = FOLDER_COLORS[name.toLowerCase()] || '#dcb67a';
     const theme = getIconTheme();
 
+    // ── Badge ──────────────────────────────────────────────────────────────
     if (theme === 'badge') {
         return `<span class="folder-icon" style="color:${color}">▶</span>`;
     }
 
-    // Tema seti: SVG outline de Tabler Icons
+    // ── Brand / Ember / Symbols ────────────────────────────────────────────
+    if ((theme === 'brand' || theme === 'ember' || theme === 'symbols') && window.ICON_SET?.getThemedFolderHtml) {
+        const html = window.ICON_SET.getThemedFolderHtml(name, theme);
+        if (html) return `<span class="icon-wrapper themed-icon">${html}</span>`;
+    }
+
+    // ── Seti (outline) — flujo original ───────────────────────────────────
     if (window.ICON_SET) {
         const { svg } = window.ICON_SET.getIconForFolder(name);
         return `<span class="icon-wrapper" style="color:${color}">${svg}</span>`;
@@ -958,6 +1483,68 @@ window._syncExplorerToActiveShell = async function () {
         console.error('[Explorer] Error al sincronizar con shell activo:', err);
     }
 };
+
+// ── Collapsible explorer ─────────────────────────────────────────────────────
+// Toggle con clic en el botón del borde o atajo Ctrl+B (estilo VS Code).
+// El estado se persiste en localStorage para que sobreviva a reinicios.
+
+const COLLAPSED_STORAGE_KEY = 'ocote_explorer_collapsed';
+
+function toggleExplorer() {
+    const panel = document.getElementById('explorer-panel');
+    const btn = document.getElementById('explorer-toggle');
+    if (!panel || !btn) return;
+
+    const isCollapsed = panel.classList.toggle('collapsed');
+    localStorage.setItem(COLLAPSED_STORAGE_KEY, isCollapsed ? '1' : '');
+    btn.textContent = isCollapsed ? '▶' : '◀';
+    btn.title = isCollapsed
+        ? 'Mostrar explorador (Ctrl+B)'
+        : 'Colapsar explorador (Ctrl+B)';
+
+    // Refit terminal cuando la transición termine (el espacio cambió)
+    setTimeout(() => {
+        const active = window.TAB_MANAGER?.getTab(window.ocoteActiveShellId);
+        if (active?.fitAddon) active.fitAddon.fit();
+    }, 250);
+}
+
+// Restaurar estado colapsado al cargar la página
+(function initCollapsedState() {
+    const panel = document.getElementById('explorer-panel');
+    const btn = document.getElementById('explorer-toggle');
+    if (localStorage.getItem(COLLAPSED_STORAGE_KEY) === '1') {
+        if (panel) panel.classList.add('collapsed');
+        if (btn) {
+            btn.textContent = '▶';
+            btn.title = 'Mostrar explorador (Ctrl+B)';
+        }
+    }
+})();
+
+// Click en el botón toggle
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('explorer-toggle');
+    if (btn) btn.addEventListener('click', toggleExplorer);
+});
+
+// Atajo de teclado: Ctrl+B (no usado por ningún otro comando)
+document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'b' && !e.shiftKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        toggleExplorer();
+    }
+});
+
+// Cerrar menú contextual al hacer clic fuera o presionar Esc
+document.addEventListener('click', (e) => {
+    if (_contextMenuEl && !_contextMenuEl.contains(e.target)) {
+        closeContextMenu();
+    }
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeContextMenu();
+});
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initExplorer);

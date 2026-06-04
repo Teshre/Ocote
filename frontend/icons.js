@@ -464,6 +464,203 @@ const ICON_FOLDER_MAP = {
   default:    '#dcb67a',
 };
 
+// ── Paletas para los temas nuevos ─────────────────────────────────────────
+//
+// Brand   → colores oficiales de cada tecnología (los mismos que ya usa ICON_FILE_MAP)
+// Ember   → usa las variables CSS del tema Ocote activo (no hardcoded)
+// Symbols → glifos Unicode sin fondo, coloreados igual que Brand
+
+const BRAND_COLORS = {
+  js: '#f7df1e', mjs: '#f7df1e', cjs: '#f7df1e',
+  ts: '#3178c6', tsx: '#3178c6', jsx: '#61dafb',
+  py: '#3776ab', pyc: '#3776ab',
+  rs: '#ce412b', go: '#00add8',
+  java: '#b07219', class: '#b07219', jar: '#b07219',
+  kt: '#a97bff', kts: '#a97bff', swift: '#f05138',
+  c: '#555555', h: '#555555', cpp: '#f34b7d', hpp: '#f34b7d', cs: '#178600',
+  dart: '#00b4ab', lua: '#000080', rb: '#701516', erb: '#701516', php: '#4f5d95',
+  hs: '#5e5086', ex: '#6e4a7e', exs: '#6e4a7e', r: '#198ce7',
+  html: '#e34c26', htm: '#e34c26',
+  css: '#264de4', scss: '#cc6699', sass: '#cc6699', less: '#1d365d', styl: '#b3d107',
+  json: '#cbcb41', jsonc: '#cbcb41', yaml: '#cb171e', yml: '#cb171e',
+  toml: '#9c4221', ini: '#9b59b6', conf: '#9b59b6', env: '#eaed00',
+  lock: '#9b59b6', xml: '#ff6600',
+  md: '#4a6fa5', mdx: '#4a6fa5', rst: '#333333', txt: '#95a5a6', log: '#95a5a6',
+  pdf: '#e74c3c',
+  sh: '#89e051', bash: '#89e051', zsh: '#89e051', fish: '#4aae47', ps1: '#012456',
+  sql: '#e97b00', db: '#3498db', sqlite: '#3498db', csv: '#217346', tsv: '#217346',
+  svg: '#ffb13b', png: '#26b99a', jpg: '#26b99a', gif: '#26b99a',
+  ico: '#26b99a', webp: '#26b99a',
+  mp3: '#f1c40f', wav: '#f1c40f', mp4: '#e74c3c', mov: '#e74c3c',
+  zip: '#f39c12', tar: '#f39c12', gz: '#f39c12', deb: '#a80030', rpm: '#465a98',
+  wasm: '#654ff0', exe: '#00a4ef', dll: '#00a4ef',
+};
+
+const ICON_LABELS = {
+  js: 'JS', mjs: 'MJS', cjs: 'CJS', ts: 'TS', tsx: 'TSX', jsx: 'JSX',
+  py: 'PY', pyc: 'PY', rs: 'RS', go: 'GO',
+  java: 'JAV', class: 'CLS', jar: 'JAR', kt: 'KT', kts: 'KTS', swift: 'SW',
+  c: 'C', h: 'H', cpp: 'C++', hpp: 'C++', cs: 'C#',
+  dart: 'DRT', lua: 'LUA', rb: 'RB', erb: 'ERB', php: 'PHP',
+  hs: 'HS', ex: 'EX', exs: 'EX', r: 'R',
+  html: 'HTML', htm: 'HTML', css: 'CSS', scss: 'SCSS', sass: 'SASS',
+  less: 'LESS', styl: 'STL',
+  json: '{}', jsonc: '{}', yaml: 'YML', yml: 'YML',
+  toml: 'CFG', ini: 'INI', conf: 'CNF', env: 'ENV', lock: 'LCK', xml: 'XML',
+  md: 'MD', mdx: 'MDX', rst: 'RST', txt: 'TXT', log: 'LOG', pdf: 'PDF',
+  sh: 'SH', bash: 'SH', zsh: 'ZSH', fish: 'FSH', ps1: 'PS',
+  sql: 'SQL', db: 'DB', sqlite: 'DB', csv: 'CSV', tsv: 'TSV',
+  svg: 'SVG', png: 'IMG', jpg: 'IMG', gif: 'IMG', ico: 'ICO', webp: 'IMG',
+  mp3: 'MP3', wav: 'WAV', mp4: 'MP4', mov: 'MOV',
+  zip: 'ZIP', tar: 'TAR', gz: 'GZ', deb: 'DEB', rpm: 'RPM',
+  wasm: 'WA', exe: 'EXE', dll: 'DLL',
+};
+
+const SYMBOL_GLYPHS = {
+  js: 'λ', mjs: 'λ', cjs: 'λ', ts: 'τ', tsx: 'τ', jsx: '⚛',
+  py: 'π', pyc: 'π', rs: '⚙', go: '◉',
+  java: '☕', kt: 'κ', swift: '◈',
+  c: 'C', h: 'H', cpp: 'C', cs: '#', dart: '◆', lua: '●', rb: '◇', php: '⌁',
+  hs: 'HS', ex: 'EX', exs: 'EX', r: 'R',
+  html: '◇', htm: '◇', css: '◈', scss: '◈', sass: '◈', less: '◈',
+  json: '{', jsonc: '{', yaml: '≡', yml: '≡', toml: '■',
+  ini: '≡', conf: '≡', env: '$', lock: '⚑', xml: '◇',
+  md: 'M', mdx: 'M', rst: 'M', txt: '¶', log: '¶', pdf: '⊞',
+  sh: '❯', bash: '❯', zsh: '❯', fish: '❯', ps1: '>',
+  sql: '⬡', db: '⬡', sqlite: '⬡', csv: '⊞', tsv: '⊞',
+  svg: '◐', png: '⊡', jpg: '⊡', gif: '⊡', ico: '⊙', webp: '⊡',
+  mp3: '♪', wav: '♪', mp4: '▶', mov: '▶',
+  zip: '⊕', tar: '⊕', gz: '⊕', deb: '⊕', rpm: '⊕',
+  wasm: 'W', exe: '▷', dll: '▷',
+};
+
+// Ember: mapea extensiones a variables CSS de Ocote.
+// Se usa getComputedStyle en runtime, así cambia automáticamente al cambiar de tema.
+// Nombres REALES de las variables en theme.css (no los del handoff):
+//   --syntax-yellow, --syntax-blue, --syntax-teal, --syntax-green, --syntax-red
+//   --accent, --text-secondary
+const EMBER_COLOR_MAP = {
+  js: '--syntax-yellow', mjs: '--syntax-yellow', cjs: '--syntax-yellow',
+  ts: '--syntax-blue',   tsx: '--syntax-blue',   jsx: '--syntax-teal',
+  py: '--syntax-green',  pyc: '--syntax-green',
+  rs: '--syntax-red',    go: '--syntax-teal',
+  java: '--syntax-yellow', kt: '--syntax-blue', swift: '--syntax-red',
+  c: '--text-secondary', h: '--text-secondary', cpp: '--syntax-red', cs: '--syntax-green',
+  dart: '--syntax-teal', lua: '--syntax-blue',
+  rb: '--syntax-red', php: '--syntax-blue', hs: '--syntax-teal',
+  html: '--accent', htm: '--accent', css: '--syntax-blue',
+  scss: '--syntax-teal', sass: '--syntax-teal', less: '--syntax-blue',
+  json: '--syntax-yellow', jsonc: '--syntax-yellow',
+  yaml: '--syntax-red', yml: '--syntax-red',
+  toml: '--accent', ini: '--text-secondary', conf: '--text-secondary',
+  env: '--syntax-yellow', lock: '--text-secondary', xml: '--accent',
+  md: '--syntax-blue', mdx: '--syntax-blue', rst: '--text-secondary',
+  txt: '--text-secondary', log: '--text-secondary', pdf: '--syntax-red',
+  sh: '--syntax-green', bash: '--syntax-green', zsh: '--syntax-green',
+  fish: '--syntax-green', ps1: '--syntax-blue',
+  sql: '--accent', db: '--syntax-blue', sqlite: '--syntax-blue',
+  csv: '--syntax-green', tsv: '--syntax-green',
+  svg: '--accent', png: '--syntax-teal', jpg: '--syntax-teal',
+  gif: '--syntax-teal', ico: '--syntax-teal', webp: '--syntax-teal',
+  mp3: '--syntax-yellow', wav: '--syntax-yellow',
+  mp4: '--syntax-red', mov: '--syntax-red',
+  zip: '--syntax-yellow', tar: '--syntax-yellow', gz: '--syntax-yellow',
+  deb: '--syntax-red', rpm: '--syntax-blue',
+  wasm: '--syntax-teal', exe: '--syntax-blue', dll: '--syntax-blue',
+};
+
+// Lee el valor resuelto de una variable CSS del tema activo.
+// .trim() es necesario — getPropertyValue puede devolver ' #E8843A' con espacio inicial.
+function _getEmberColor(ext) {
+  const varName = EMBER_COLOR_MAP[ext] || '--text-secondary';
+  return (getComputedStyle(document.documentElement).getPropertyValue(varName) || '').trim()
+    || '#9C907B'; // fallback si la variable no existe
+}
+
+// ── SVG builders para los tres temas nuevos ────────────────────────────────
+
+/**
+ * Genera HTML de ícono de archivo con color embebido, según el tema.
+ * Retorna null para temas desconocidos (el caller usa el flujo seti/badge).
+ *
+ * @param {string} filename - nombre del archivo (con extensión)
+ * @param {string} theme    - 'brand' | 'ember' | 'symbols'
+ * @returns {string|null}
+ */
+function getThemedIconHtml(filename, theme) {
+  const ext = filename.split('.').pop().toLowerCase();
+  if (theme === 'symbols') return _buildSymbolIcon(ext);
+  if (theme === 'brand')   return _buildLabelIcon(ext, BRAND_COLORS[ext] || '#78909c', false);
+  if (theme === 'ember')   return _buildLabelIcon(ext, _getEmberColor(ext), true);
+  return null;
+}
+
+/**
+ * Cuadrado con etiqueta de texto (Brand: relleno sólido; Ember: outline + tinte).
+ */
+function _buildLabelIcon(ext, col, outline) {
+  const label    = ICON_LABELS[ext] || ext.toUpperCase().slice(0, 4) || '?';
+  const fontSize = label.length > 3 ? 4.8 : label.length > 2 ? 5.8 : label.length > 1 ? 7 : 9;
+  // Texto oscuro sobre fondos claros (amarillo, blanco, etc.)
+  const lightBg  = ['#f7df1e','#cbcb41','#eaed00','#89e051','#ffb13b','#b3d107','#f1c40f','#ffe953'].includes(col);
+  const textCol  = outline ? col : (lightBg ? '#111' : '#fff');
+
+  if (outline) {
+    // Ember: borde + fill al 18%
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">` +
+      `<rect x="2" y="2" width="12" height="12" rx="2" fill="${col}" fill-opacity="0.18"/>` +
+      `<rect x="2" y="2" width="12" height="12" rx="2" fill="none" stroke="${col}" stroke-width="1.2"/>` +
+      `<text x="8" y="11.5" text-anchor="middle" font-size="${fontSize}" font-weight="700" ` +
+      `font-family="'JetBrains Mono',monospace" fill="${textCol}">${_esc(label)}</text>` +
+      `</svg>`;
+  }
+  // Brand: relleno sólido
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">` +
+    `<rect x="2" y="2" width="12" height="12" rx="2" fill="${col}"/>` +
+    `<text x="8" y="11.5" text-anchor="middle" font-size="${fontSize}" font-weight="700" ` +
+    `font-family="'JetBrains Mono',monospace" fill="${textCol}">${_esc(label)}</text>` +
+    `</svg>`;
+}
+
+/** Glifo Unicode desnudo, sin fondo (Symbols). */
+function _buildSymbolIcon(ext) {
+  const glyph    = SYMBOL_GLYPHS[ext] || '·';
+  const col      = BRAND_COLORS[ext] || '#78909c';
+  const fontSize = glyph.length > 1 ? 8 : 12;
+  const y        = fontSize > 10 ? 12.5 : 12;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">` +
+    `<text x="8" y="${y}" text-anchor="middle" font-size="${fontSize}" font-weight="700" ` +
+    `font-family="'JetBrains Mono',monospace" fill="${col}" fill-opacity="0.9">${_esc(glyph)}</text>` +
+    `</svg>`;
+}
+
+function _esc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Ícono de carpeta coloreado según el tema.
+ * Brand/Ember: carpeta SVG rellena. Symbols: chevron desnudo.
+ */
+function getThemedFolderHtml(name, theme) {
+  const lower = name.toLowerCase();
+  const col   = ICON_FOLDER_MAP[lower] || ICON_FOLDER_MAP.default;
+
+  if (theme === 'symbols') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">` +
+      `<text x="7" y="12.5" text-anchor="middle" font-size="11" font-weight="600" ` +
+      `font-family="monospace" fill="${col}">▸</text></svg>`;
+  }
+  // Brand y Ember: carpeta rellena (Ember con leve transparencia)
+  const opacity = theme === 'ember' ? '0.82' : '1';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">` +
+    `<path d="M1.5 4.5C1.5 3.67 2.17 3 3 3H6.5L8 4.5H13C13.83 4.5 14.5 5.17 14.5 6V12` +
+    `C14.5 12.83 13.83 13.5 13 13.5H3C2.17 13.5 1.5 12.83 1.5 12V4.5Z" ` +
+    `fill="${col}" fill-opacity="${opacity}"/>` +
+    `<path d="M1.5 6H14.5" stroke="${col}" stroke-opacity="0.3" stroke-width="0.6"/>` +
+    `</svg>`;
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────
 
 function getIconForFile(filename) {
@@ -484,11 +681,63 @@ function getIconForFolder(name) {
   };
 }
 
-// Exponer para explorer.js
+// ── Funciones unificadas (usadas por el preview de settings) ──────────────
+//
+// Manejan los 5 temas en un solo punto. Useful para renderizar íconos
+// fuera del explorador (ej: panel de configuración).
+
+function getIconHtmlForTheme(filename, theme) {
+  const ext = filename.split('.').pop().toLowerCase();
+
+  if (theme === 'brand' || theme === 'ember' || theme === 'symbols') {
+    const html = getThemedIconHtml(filename, theme);
+    if (html) return `<span class="icon-wrapper themed-icon">${html}</span>`;
+  }
+
+  if (theme === 'badge') {
+    const col     = BRAND_COLORS[ext] || '#78909c';
+    const label   = ICON_LABELS[ext]  || ext.toUpperCase().slice(0, 4) || '···';
+    const lightBg = ['#f7df1e','#cbcb41','#eaed00','#89e051','#b3d107','#f1c40f','#ffe953'].includes(col);
+    const fg      = lightBg ? '#111' : '#fff';
+    const fs      = label.length > 3 ? 5 : label.length > 2 ? 6 : label.length > 1 ? 7.5 : 9;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="16" viewBox="0 0 20 16">` +
+      `<rect x="1" y="2" width="18" height="12" rx="2" fill="${col}"/>` +
+      `<text x="10" y="11" text-anchor="middle" font-size="${fs}" font-weight="700" ` +
+      `font-family="'JetBrains Mono',monospace" fill="${fg}">${_esc(label)}</text></svg>`;
+  }
+
+  // seti — outline SVG (default)
+  const info = ICON_FILE_MAP[ext] || ICON_FILE_MAP.default;
+  return `<span class="icon-wrapper" style="color:${info.color}">${ICONS[info.icon] || ICONS.file}</span>`;
+}
+
+function getFolderHtmlForTheme(name, theme) {
+  const col = ICON_FOLDER_MAP[name.toLowerCase()] || ICON_FOLDER_MAP.default;
+
+  if (theme === 'brand' || theme === 'ember' || theme === 'symbols') {
+    const html = getThemedFolderHtml(name, theme);
+    if (html) return `<span class="icon-wrapper themed-icon">${html}</span>`;
+  }
+
+  if (theme === 'badge') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">` +
+      `<text x="7" y="12" text-anchor="middle" font-size="10" fill="${col}">▶</text></svg>`;
+  }
+
+  return `<span class="icon-wrapper" style="color:${col}">${ICONS.folder}</span>`;
+}
+
+// Exponer para explorer.js y settings.js
 window.ICON_SET = {
   ICONS,
-  FILE_COLORS: ICON_FILE_MAP,
-  FOLDER_COLORS: ICON_FOLDER_MAP,
+  FILE_COLORS:    ICON_FILE_MAP,
+  FOLDER_COLORS:  ICON_FOLDER_MAP,
   getIconForFile,
   getIconForFolder,
+  // Temas Brand, Ember y Symbols (para explorer.js)
+  getThemedIconHtml,
+  getThemedFolderHtml,
+  // Unificadas para todos los temas (para settings preview)
+  getIconHtmlForTheme,
+  getFolderHtmlForTheme,
 };

@@ -89,6 +89,15 @@ fn main() {
             // Fase 2 — activos
             fs_explorer::list_directory,
             fs_explorer::get_home_directory,
+            fs_explorer::git_status,
+            fs_explorer::read_text_file,
+            fs_explorer::read_file_base64,
+            fs_explorer::create_file,
+            fs_explorer::create_directory,
+            fs_explorer::rename_item,
+            fs_explorer::delete_item,
+            fs_explorer::count_dir_entries,
+            fs_explorer::delete_item_recursive,
             ckb::get_suggestions,
             ckb::get_command_info,
             // Fase 3 — activos
