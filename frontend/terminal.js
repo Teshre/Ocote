@@ -157,14 +157,23 @@ function bindTerminalShell(term, shellId) {
         : 0;
       commandStartTime = null;
 
-      // DOM update diferido al siguiente frame (fuera del ciclo parse de xterm.js)
+      // ── onCommandFinished: FUERA del rAF ─────────────────────────────────
+      // requestAnimationFrame se PAUSA cuando la ventana de Ocote no está
+      // en primer plano (el usuario está en Arc, Finder, etc.) — exactamente
+      // el momento en que queremos disparar la notificación del sistema.
+      // onCommandFinished solo toca el DOM del tab bar e invoke() de Tauri,
+      // no interfiere con el ciclo de parse de xterm.js → es seguro llamarlo
+      // de forma síncrona aquí, antes del rAF.
+      window.TAB_MANAGER?.onCommandFinished(shellId, exitCode, durationSecs);
+
+      // ── extendCommandBlock: DENTRO del rAF ───────────────────────────────
+      // Necesita rAF para correr fuera del ciclo de parse de xterm.js
+      // (modifica overlays HTML sobre el canvas). Para esto el rAF está bien:
+      // si la ventana está en fondo, el overlay se pinta cuando vuelva al foco.
       requestAnimationFrame(() => {
         window.OCOTE_PROMPT?.extendCommandBlock(
           term, saved.infoAbsRow, saved.chevronAbsRow, endAbsRow, exitCode
         );
-        // Notificar al TAB_MANAGER para que actualice el indicador del tab
-        // y dispare (si procede) la notificación del sistema operativo.
-        window.TAB_MANAGER?.onCommandFinished(shellId, exitCode, durationSecs);
       });
     }
     return true;
@@ -300,6 +309,15 @@ window.resetTerminalInput = function () {
     }
   });
 })();
+
+// ── Atajo de teclado: Cmd+Option+I → Web Inspector (solo en dev mode) ───────
+// El menú contextual personalizado del explorador reemplazó el "Inspeccionar"
+// del navegador. Este atajo lo restaura para debugging durante el desarrollo.
+document.addEventListener('keydown', (e) => {
+  if (e.metaKey && e.altKey && e.key === 'i') {
+    window.__TAURI__?.window?.appWindow?.openDevtools?.();
+  }
+});
 
 // ── Resize global (cuando la ventana del OS cambia) ─────────────────────
 
