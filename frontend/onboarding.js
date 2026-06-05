@@ -14,6 +14,12 @@ const btn     = document.getElementById('onboarding-btn');
 // ── Mostrar / ocultar ─────────────────────────────────────────────────────
 
 function showOnboarding() {
+    // Ajustar el logo a la variante de ícono elegida en Settings (light/dark).
+    const logo = document.getElementById('onboarding-logo');
+    if (logo) {
+        const variant = localStorage.getItem('ocote_app_icon') || 'dark';
+        logo.src = variant === 'light' ? 'icons/icon-light.png' : 'icons/icon-dark.png';
+    }
     overlay.classList.remove('hidden');
     // Foco en el botón para que sea accesible con teclado
     btn.focus();

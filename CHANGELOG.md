@@ -8,7 +8,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### Fase 4 — En progreso
-Próximo paso: ícono real de Ocote, landing page, firma de código macOS, auto-updater.
+Próximo paso: workspace-save estilo Warp, firma de código macOS, auto-updater.
+(Ícono real, landing page y SEO concluidos en otras conversaciones.)
+
+### Agregado — 2026-06-05 (sesión 20)
+
+- **Referencia de atajos de teclado** — modal con todos los atajos de Ocote, accesible desde el botón ⌨ de la barra superior:
+  - Agrupados por categoría (pestañas/paneles, navegación, terminal, ayuda).
+  - Plataforma-aware: muestra ⌘⌥⇧⌃ en macOS y Ctrl/Alt/Shift en Windows/Linux.
+  - Incluye los atajos de terminal bundleados (historial fzf, cd fuzzy, aceptar sugerencia).
+- **Onboarding actualizado** — refleja las capacidades nuevas:
+  - 6 features (agregadas "Pestañas y paneles" y "Búsqueda y atajos").
+  - Usa el ícono real de Ocote (variante light/dark según preferencia).
+  - Sigue el tema activo; traducido a los 5 idiomas.
 
 ### Agregado — 2026-06-04 (sesión 19)
 

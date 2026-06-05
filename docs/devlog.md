@@ -5,6 +5,28 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-06-05 — Sesión 20: referencia de atajos + onboarding actualizado
+
+**Estado al inicio:** las 5 mejoras del roadmap completas. Faltaba que el usuario pudiera descubrir/recordar los atajos (habíamos agregado muchísimos), y el onboarding estaba desactualizado.
+
+### Referencia de atajos de teclado
+
+Tras tantas sesiones agregando atajos (Ctrl+T/W/B/P/F, Cmd+D/Shift+D, Cmd+Alt+flechas, etc.), un usuario no tenía forma de descubrirlos. Construí un modal de referencia: recopilé TODOS los atajos directamente del código (grep de keydown handlers) para que la lista sea exacta, los agrupé (Pestañas/paneles, Navegación, Terminal, Ayuda) e incluí también los de shell/fzf bundleados (Ctrl+R historial, Alt+C cd fuzzy, → aceptar sugerencia). Plataforma-aware: ⌘⌥⇧⌃ en mac, Ctrl/Alt/Shift en otros. Botón ⌨ en la barra superior. 100% estático, sin Rust.
+
+Decisión: no forzar un atajo para abrir el panel (Cmd+/ y similares chocan con el shell o son inconsistentes). El botón visible es la vía discoverable; documenté que si se cambia un atajo en el código hay que reflejarlo en `GROUPS`.
+
+### Onboarding actualizado
+
+El onboarding tenía 4 features de hace varias fases. Lo actualicé a 6, agregando "Pestañas y paneles" y "Búsqueda y atajos" (con chips `<kbd>` que enseñan los atajos), traducidas a los 5 idiomas. El logo pasó del `icon.png` viejo al ícono real (`icons/icon-dark.png`/`icon-light.png`) según la variante guardada en Settings.
+
+Verificación de theme-awareness (lo que el usuario pidió confirmar): el onboarding ya era theme-aware porque usa variables CSS, y `settings.js applyAll()` aplica el tema en la carga (síncrono) antes de que el onboarding aparezca (delay 600ms). Sin cambios necesarios ahí, solo lo confirmé.
+
+### Contexto
+
+El usuario mencionó que el ícono real, la landing page y varios puntos de SEO ya se concluyeron en otras conversaciones (fuera de este repo de código). Próximo en el roadmap: workspace-save estilo Warp, firma de código macOS, auto-updater.
+
+---
+
 ## 2026-06-04 — Sesión 19: editor de aliases visual
 
 **Estado al inicio:** las 4 primeras mejoras del roadmap listas. Falta el editor de aliases — la última, y la más "anti-fricción para principiantes".

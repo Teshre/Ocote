@@ -24,6 +24,14 @@
   <div id="breadcrumb">
     <button id="explorer-toggle" title="Colapsar explorador (Ctrl+B)">◀</button>
     <div id="explorer-breadcrumb"></div>
+    <!-- Atajos de teclado -->
+    <button id="shortcuts-btn" title="Atajos de teclado" aria-label="Atajos de teclado">
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="6" width="20" height="12" rx="2"/>
+        <path d="M6 10h0M10 10h0M14 10h0M18 10h0M6 14h0M18 14h0"/><path d="M10 14h4"/>
+      </svg>
+    </button>
     <!-- Estadísticas de uso (offline) -->
     <button id="stats-btn" title="Estadísticas de uso" aria-label="Estadísticas">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
@@ -170,8 +178,9 @@
 
       <!-- Encabezado -->
       <div id="onboarding-header">
-        <!-- Ícono de la app. Reemplazar frontend/icon.png con el ícono real cuando esté listo. -->
-        <img id="onboarding-logo" src="icon.png" alt="Ocote" />
+        <!-- Ícono real de Ocote. onboarding.js ajusta la variante (light/dark)
+             según la preferencia guardada en Settings. -->
+        <img id="onboarding-logo" src="icons/icon-dark.png" alt="Ocote" />
         <div>
           <h1 id="onboarding-title" data-i18n="onboarding.title">Bienvenido a Ocote</h1>
           <p id="onboarding-subtitle" data-i18n="onboarding.subtitle">Terminal offline · sin IA · hecha para humanos</p>
@@ -206,6 +215,22 @@
         </div>
 
         <div class="onboarding-feature">
+          <span class="onboarding-feature-icon">✂️</span>
+          <div>
+            <strong data-i18n="onboarding.feature.panes.title">Pestañas y paneles</strong>
+            <p data-i18n="onboarding.feature.panes.desc">Abre varias terminales en pestañas (<kbd>Ctrl+T</kbd>) y divide cada una en paneles lado a lado o apilados (<kbd>⌘D</kbd>) para trabajar en paralelo.</p>
+          </div>
+        </div>
+
+        <div class="onboarding-feature">
+          <span class="onboarding-feature-icon">🔍</span>
+          <div>
+            <strong data-i18n="onboarding.feature.search.title">Búsqueda y atajos</strong>
+            <p data-i18n="onboarding.feature.search.desc">Encuentra archivos con <kbd>Ctrl+P</kbd> y texto en la terminal con <kbd>Ctrl+F</kbd>. Mira todos los atajos con el botón ⌨ de la barra superior.</p>
+          </div>
+        </div>
+
+        <div class="onboarding-feature">
           <span class="onboarding-feature-icon">🔒</span>
           <div>
             <strong data-i18n="onboarding.feature.offline.title">100% offline</strong>
@@ -231,6 +256,12 @@
   <div id="stats-overlay" class="hidden">
     <div id="stats-backdrop"></div>
     <div id="stats-card"></div>
+  </div>
+
+  <!-- Referencia de atajos de teclado (modal; contenido generado por shortcuts.js) -->
+  <div id="shortcuts-overlay" class="hidden">
+    <div id="shortcuts-backdrop"></div>
+    <div id="shortcuts-card"></div>
   </div>
 
   <!-- Panel de Configuración (modal centrado con tabs) -->
@@ -445,6 +476,7 @@
   <script src="settings.js"></script>
   <script src="stats.js"></script>
   <script src="aliases.js"></script>
+  <script src="shortcuts.js"></script>
   <script src="lib/highlight.min.js"></script>
   <script src="preview.js"></script>
   <script src="resizer.js"></script>

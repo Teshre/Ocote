@@ -203,7 +203,8 @@ button:focus-visible {
 }
 
 #settings-btn,
-#stats-btn {
+#stats-btn,
+#shortcuts-btn {
   background: transparent;
   border: none;
   color: var(--text-dim);
@@ -219,7 +220,8 @@ button:focus-visible {
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 #settings-btn:hover,
-#stats-btn:hover {
+#stats-btn:hover,
+#shortcuts-btn:hover {
   background: var(--hover-bg);
   color: var(--accent);
 }
@@ -1311,6 +1313,8 @@ button:focus-visible {
   padding: 32px 36px;
   width: 560px;
   max-width: 90vw;
+  max-height: 90vh;        /* 6 features pueden ser altas en pantallas chicas */
+  overflow-y: auto;
   box-shadow: var(--shadow-lg);
   animation: onboarding-slide-up 0.3s ease;
 }
@@ -2804,6 +2808,123 @@ button:focus-visible {
   font-style: italic;
   padding: 16px 4px;
   text-align: center;
+}
+
+/* ── Referencia de atajos de teclado (modal) ─────────────────────────────── */
+
+#shortcuts-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#shortcuts-overlay.hidden { display: none !important; }
+
+#shortcuts-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-overlay);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+#shortcuts-card {
+  position: relative;
+  width: 760px;
+  max-width: 94vw;
+  max-height: 90vh;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 24px 28px;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  animation: settings-pop-in 0.25s ease;
+}
+
+.sc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.sc-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+#shortcuts-close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+#shortcuts-close:hover { background: var(--hover-bg); color: var(--text-primary); }
+
+/* Dos columnas de grupos */
+.sc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 32px;
+}
+.sc-group { margin-bottom: 14px; }
+.sc-group-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+.sc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+}
+.sc-action {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.sc-keys {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  background: var(--bg-terminal);
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-primary);
+  box-shadow: 0 1px 0 var(--border-strong);
+}
+.sc-foot {
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  font-family: var(--font-mono);
 }
 
 .hidden {

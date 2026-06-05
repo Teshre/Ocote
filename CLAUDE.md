@@ -51,6 +51,7 @@ frontend/
   terminal-search.js ← buscador de texto en terminal (Ctrl+F) — SearchAddon
   stats.js           ← dashboard de estadísticas (modal, data-driven)
   aliases.js         ← editor de aliases (Settings → tab Aliases)
+  shortcuts.js       ← referencia de atajos de teclado (modal, plataforma-aware)
   theme.css          ← CSS variables + estilos base
   lib/
     highlight.min.js ← highlight.js (colorear código en preview)
@@ -108,6 +109,8 @@ ckb/
 - **Split panes recursivos** (`tab-manager.js`): árbol binario tipo iTerm; Cmd+D / Cmd+Shift+D, redimensionables, foco con acento ✅
 - **Estadísticas de uso** (`stats.rs` + `stats.js`): dashboard offline — historial del shell (top comandos) + log propio vía OSC 133 (hora pico, % errores, comando más lento) ✅
 - **Editor de aliases** (`aliases.rs` + `aliases.js`): CRUD visual en Settings; genera archivos por-shell sourceados vía `OCOTE_ALIASES`, sin tocar el `.zshrc` del usuario ✅
+- **Referencia de atajos de teclado** (`shortcuts.js`): modal con todos los atajos, plataforma-aware (⌘ mac / Ctrl otros), botón ⌨ en la barra superior ✅
+- **Onboarding actualizado**: 6 features (incluye paneles y búsqueda), ícono real con variante, theme-aware, 5 idiomas ✅
 
 ---
 
@@ -328,6 +331,10 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 - **Regeneración en startup**: `aliases::regenerate_from_disk()` en el `.setup()` de main.rs, para que los aliases existentes apliquen tras un reinicio.
 - **Validación**: nombre `^[A-Za-z_][A-Za-z0-9_-]*$` (front y back). UI: Settings → tab Aliases. `window.loadAliases()` se llama desde `switchTab`.
 
+### Referencia de atajos + Onboarding (`shortcuts.js`, `onboarding.js`)
+- **`shortcuts.js`**: modal 100% estático (sin Rust) con todos los atajos en `GROUPS`. Plataforma-aware: `isMac` → `⌘⌥⇧⌃`, otros → `Ctrl/Alt/Shift`. Botón ⌨ `#shortcuts-btn` en la barra superior → `window.openShortcuts()`. **Si agregas/cambias un atajo en el código, actualiza también `GROUPS` aquí.**
+- **Onboarding** (`onboarding.js` + HTML en index.html): 6 features (explorador, autocompletado, tooltip, paneles, búsqueda, offline). Theme-aware (usa variables CSS; `settings.js applyAll()` aplica el tema antes del show a 600ms). Logo usa `icons/icon-dark.png`/`icon-light.png` según `localStorage('ocote_app_icon')`. i18n en los 5 idiomas (claves `onboarding.feature.*`). Se ve con Ctrl+Shift+? o en primer uso.
+
 ---
 
 ## Historial de avances
@@ -464,12 +471,16 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 
 **🎯 Las 5 mejoras "out of the box" del roadmap están COMPLETAS:** notificaciones, buscadores (Ctrl+P/Ctrl+F), split panes, estadísticas, editor de aliases.
 
+**Fase 4 — Avance al 2026-06-05 (sesión 20):**
+✅ **Referencia de atajos de teclado** (`shortcuts.js`): modal con todos los atajos del código, agrupados, plataforma-aware (⌘ mac / Ctrl otros). Botón ⌨ en la barra superior.
+✅ **Onboarding actualizado**: 6 features (agregadas paneles + búsqueda/atajos con `<kbd>` chips), ícono real con variante light/dark, i18n en 5 idiomas, theme-aware confirmado, `max-height` para no desbordar.
+
+**Hecho en otras conversaciones (fuera de este repo de código):** ícono real definido, landing page concluida, varios puntos de SEO.
+
 **Próximo paso — Fase 4:**
 1. Workspace-save estilo Warp (guardar layout de tabs/paneles + cwds por proyecto) — futuro
-2. Ícono real de Ocote (diseño propio) — About sigue mostrando el ícono de macOS por caché
-3. Landing page / sitio web
-4. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
-5. Auto-updater
+2. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
+3. Auto-updater
 NOTA: el modelo de cmux (orquestar agentes de IA) se DESCARTA — contradice la identidad anti-IA de Ocote.
 
 ## Cómo ayudar al desarrollador
