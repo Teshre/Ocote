@@ -167,6 +167,20 @@ function bindTerminalShell(term, shellId) {
       // que es exactamente cuando el usuario está en otra app y queremos notificar.
       window.TAB_MANAGER?.onCommandFinished(shellId, exitCode, durationSecs);
 
+      // ── Log de estadísticas: registrar el comando que acaba de terminar ───
+      // pendingCommand guarda el texto tecleado al presionar Enter (ver
+      // updateCurrentInput). Lo emparejamos aquí con su exitCode y duración.
+      const loggedCmd = pendingCommand.get(shellId);
+      pendingCommand.delete(shellId);
+      if (loggedCmd) {
+        invoke('log_command', {
+          command:      loggedCmd,
+          exitCode:     exitCode,
+          durationSecs: durationSecs,
+          cwd:          window.ocoteCwd || null,
+        }).catch(() => {}); // silencioso: las stats nunca rompen el terminal
+      }
+
       // ── extendCommandBlock: DENTRO del rAF ───────────────────────────────
       // Necesita rAF para correr fuera del ciclo de parse de xterm.js
       // (modifica overlays HTML sobre el canvas). Para esto el rAF está bien:
@@ -215,6 +229,10 @@ window.bindTerminalShell = bindTerminalShell;
 let currentInput = '';
 let currentCommandLine = '';
 
+// Comando pendiente por shell — se guarda al presionar Enter y se consume en
+// el handler OSC 133 D para registrarlo en las estadísticas con su exit code.
+const pendingCommand = new Map(); // shellId → texto del comando
+
 function updateCurrentInput(data, shellId) {
   // Solo trackear input si este tab es el activo
   if (window.ocoteActiveShellId && shellId !== window.ocoteActiveShellId) return;
@@ -229,6 +247,9 @@ function updateCurrentInput(data, shellId) {
     const trimmed = currentCommandLine.trim();
     if (trimmed) {
       const cmdName = trimmed.split(/\s+/)[0];
+
+      // Guardar el comando para emparejarlo con su exit code en OSC 133 D
+      pendingCommand.set(shellId, trimmed);
 
       // NOTA: el sync del explorador en `cd` ya NO se hace aquí. Antes había un
       // "fast-path" que adivinaba la ruta del `cd <target>` tecleado, pero

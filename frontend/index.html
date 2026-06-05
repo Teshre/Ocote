@@ -24,6 +24,13 @@
   <div id="breadcrumb">
     <button id="explorer-toggle" title="Colapsar explorador (Ctrl+B)">◀</button>
     <div id="explorer-breadcrumb"></div>
+    <!-- Estadísticas de uso (offline) -->
+    <button id="stats-btn" title="Estadísticas de uso" aria-label="Estadísticas">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
+      </svg>
+    </button>
     <button id="settings-btn" data-i18n-attr="title:breadcrumb.settings.tooltip">⚙️</button>
   </div>
 
@@ -220,6 +227,12 @@
   <!-- Iconos SVG inline (debe cargarse antes de explorer.js) -->
   <script src="icons.js"></script>
 
+  <!-- Dashboard de Estadísticas (modal; contenido generado por stats.js) -->
+  <div id="stats-overlay" class="hidden">
+    <div id="stats-backdrop"></div>
+    <div id="stats-card"></div>
+  </div>
+
   <!-- Panel de Configuración (modal centrado con tabs) -->
   <div id="settings-overlay" class="hidden">
     <div id="settings-backdrop"></div>
@@ -402,6 +415,7 @@
   <script src="onboarding.js"></script>
   <script src="ui-i18n.js"></script>
   <script src="settings.js"></script>
+  <script src="stats.js"></script>
   <script src="lib/highlight.min.js"></script>
   <script src="preview.js"></script>
   <script src="resizer.js"></script>

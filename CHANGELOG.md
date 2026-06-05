@@ -8,7 +8,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### Fase 4 — En progreso
-Próximo paso: estadísticas del historial, editor de aliases, ícono real de Ocote, landing page, firma de código macOS, auto-updater.
+Próximo paso: editor de aliases visual, ícono real de Ocote, landing page, firma de código macOS, auto-updater.
+
+### Agregado — 2026-06-04 (sesión 18)
+
+- **Estadísticas de uso** — dashboard offline (botón de gráfico en la barra superior, junto a ⚙️):
+  - **Top programas y comandos más usados** desde tu historial del shell (zsh/bash/fish/PowerShell), disponible desde el primer uso.
+  - **Hora pico, tasa de éxito/error, comando más lento y días activos** desde un log propio que registra cada comando ejecutado en Ocote (vía OSC 133), guardado en SQLite local.
+  - Total de comandos, comandos únicos, gráfico de actividad por hora del día.
+  - 100% offline: tu historial y comandos nunca salen de tu máquina, sin IA, sin red.
+  - Soporte de los 4 shells; lectura robusta del historial (maneja bytes no-UTF8 y comandos multilínea).
 
 ### Agregado — 2026-06-04 (sesión 17)
 

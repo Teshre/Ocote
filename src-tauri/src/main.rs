@@ -1,9 +1,8 @@
 // main.rs — Punto de entrada de la aplicación Tauri
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-// Manager expone get_window() en AppHandle (usado en Win/Linux para set_icon).
-// En macOS el ícono se cambia vía objc (set_macos_dock_icon), sin get_window.
-#[cfg(not(target_os = "macos"))]
+// Manager expone manage(), path_resolver() y get_window() en App/AppHandle.
+// Necesario en todas las plataformas para el setup de stats (manage + path).
 use tauri::Manager;
 
 mod pty;
@@ -11,6 +10,7 @@ mod vt_parser;
 mod ckb;
 mod fs_explorer;
 mod context;
+mod stats;
 
 /// Envía una notificación al sistema operativo.
 ///
@@ -149,6 +149,25 @@ fn main() {
     tauri::Builder::default()
         .manage(pty::PtyState::new())
         .manage(ckb::CkbState::new().expect("error al inicializar CKB"))
+        // ── Setup: inicializar la base de datos de estadísticas ──────────────
+        // Se abre en el directorio de datos de la app (app_data_dir), p. ej.
+        // ~/Library/Application Support/mx.ocote.terminal/stats.db en macOS.
+        .setup(|app| {
+            // Directorio de datos (con fallback a temp si no se resuelve).
+            let dir = app
+                .path_resolver()
+                .app_data_dir()
+                .unwrap_or_else(|| std::env::temp_dir().join("ocote"));
+            std::fs::create_dir_all(&dir).ok();
+            let db_path = dir.join("stats.db");
+            // Si la DB falla, lo registramos pero NO tumbamos la app: las stats
+            // simplemente no estarán disponibles (el frontend maneja el error).
+            match stats::open_db(&db_path) {
+                Ok(conn) => { app.manage(stats::StatsState::new(conn)); }
+                Err(e) => { eprintln!("[stats] no se pudo abrir {:?}: {}", db_path, e); }
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             // PTY — múltiples shells
             pty::create_shell,
@@ -179,6 +198,9 @@ fn main() {
             // Settings
             set_app_icon,
             send_notification,
+            // Estadísticas
+            stats::log_command,
+            stats::get_stats,
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar Ocote");

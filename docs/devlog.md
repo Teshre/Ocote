@@ -5,6 +5,47 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-06-04 — Sesión 18: estadísticas de uso (historial + log propio)
+
+**Estado al inicio:** buscadores y split panes listos. Sin ninguna analítica.
+
+### Decisión de diseño: dos fuentes de datos
+
+Antes de codear, una revisión del historial reveló que el `~/.zsh_history` del usuario tiene 3556 líneas pero CERO timestamps (`EXTENDED_HISTORY` apagado), y el historial nunca guarda exit codes. Eso descartó "hora pico" y "% errores" desde el historial plano. La decisión (con el usuario) fue el combo:
+- **Historial del shell** → top comandos/programas all-time (inmediato, con sus 3556 comandos).
+- **Log propio vía OSC 133** → hora, exit code, duración por comando, persistido en SQLite. Da las stats temporales que el historial no tiene; empieza vacío y crece con el uso.
+
+Honestidad sobre el cold-start: las secciones temporales arrancan vacías con un mensaje claro, no con ceros confusos.
+
+### Dos bugs de parsing del historial (lección importante)
+
+1. **`read_to_string` falla con bytes no-UTF8.** El primer intento mostró 0 comandos. Causa: los `.zsh_history` contienen bytes no-UTF8 (zsh "metafica" ciertos caracteres con prefijo 0x83, además de acentos en comandos). `read_to_string` aborta entera la lectura con un solo byte inválido. Fix: `std::fs::read` (bytes) + `String::from_utf8_lossy` (reemplaza inválidos, preserva el resto; los nombres de programa son ASCII puro).
+
+2. **Comandos multilínea partidos.** Tras el fix anterior, el top comando era `\` (316 veces), con `import json\`, `def main():\`, `EOF`. Causa: zsh/bash guardan código pegado (heredocs, scripts) con continuación `\` al final de línea; mi parser trataba cada línea física como un comando. Fix: acumular en buffer hasta una línea que no termine en `\`. El total bajó de 3553 a 1111 (correcto — las continuaciones se colapsaron) y el top pasó a comandos reales (git, cd, npm).
+
+### Captura del comando para el log
+
+El reto: emparejar el texto del comando con su exit code, que llegan en momentos distintos. Solución: `pendingCommand: Map<shellId, texto>` en terminal.js, seteado al presionar Enter (en `updateCurrentInput`) y consumido en el handler OSC 133 D, donde ya tenemos exitCode y duración. El log es shell-agnóstico — funciona con los 4 shells sin importar cuál corra en Ocote.
+
+### Infra: SQLite en app_data_dir
+
+`StatsState` (Mutex<Connection>) se inicializa en el `.setup()` hook de Tauri, que resuelve `app_data_dir` (~/Library/Application Support/mx.ocote.terminal/stats.db en macOS). Esto obligó a hacer `use tauri::Manager` incondicional (antes estaba gateado solo a non-macOS para get_window). Setup defensivo: fallback a temp_dir, y si la DB falla no tumba la app (el frontend maneja el error).
+
+### Soporte multi-shell del historial
+
+zsh (default), bash (~/.bash_history, salta líneas #timestamp), fish (YAML-ish), PowerShell (PSReadLine, ruta distinta en Windows). El historial-archivo usa $SHELL (login shell) para elegir; el log propio captura el uso real de Ocote sin importar el shell.
+
+### Sobre cmux / workspaces (consulta del usuario)
+
+El usuario preguntó por integrar algo estilo cmux (workspaces). Recomendación: el modelo de cmux (orquestar agentes de IA en paralelo) se DESCARTA — contradice la identidad anti-IA de Ocote. El "workspace" estilo Warp (guardar layout de tabs/paneles + cwds por proyecto) SÍ encaja y queda como item de roadmap futuro, ahora que existen tabs + split panes.
+
+### Pendientes
+- Editor de aliases visual (siguiente).
+- Workspace-save estilo Warp (futuro).
+- Ícono real, landing, firma de código, auto-updater.
+
+---
+
 ## 2026-06-04 — Sesión 17: buscadores (Ctrl+P / Ctrl+F) + split panes
 
 **Estado al inicio:** explorador completo, notificaciones funcionando. Sin búsqueda y sin paneles divididos.

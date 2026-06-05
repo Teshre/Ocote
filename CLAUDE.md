@@ -18,8 +18,9 @@ src-tauri/src/
   main.rs            ← entry point Tauri, registra comandos
   pty.rs             ← PTY con portable-pty; create_shell(rows,cols,prompt,accent)
   ckb.rs             ← Command Knowledge Base / SQLite
-  fs_explorer.rs     ← árbol de archivos
+  fs_explorer.rs     ← árbol de archivos + operaciones + search_files
   context.rs         ← detección de contexto: git, node, rust, etc.
+  stats.rs           ← estadísticas: parse historial shell + log SQLite (StatsState)
 src-tauri/resources/
   shell/
     .zshenv          ← ZDOTDIR wrapper: sourcea .zshenv usuario, setea POWERLEVEL9K_INSTANT_PROMPT=off
@@ -45,9 +46,13 @@ frontend/
   onboarding.js      ← overlay de bienvenida al primer uso
   preview.js         ← panel de preview de archivos (código con hljs, imágenes, binarios)
   resizer.js         ← drag-to-resize de los 3 paneles; persiste en localStorage
+  searcher.js        ← buscador de archivos (Ctrl+P) — modal fuzzy
+  terminal-search.js ← buscador de texto en terminal (Ctrl+F) — SearchAddon
+  stats.js           ← dashboard de estadísticas (modal, data-driven)
   theme.css          ← CSS variables + estilos base
   lib/
     highlight.min.js ← highlight.js (colorear código en preview)
+    addon-search.js  ← SearchAddon de xterm.js (búsqueda en terminal)
     atom-one-dark.css← tema visual de highlight.js
 ckb/
   commands.json      ← fuente de datos CKB (153 comandos × 5 idiomas)
@@ -99,6 +104,7 @@ ckb/
 - **Buscador de archivos (Ctrl+P)** (`searcher.js`): fuzzy search recursivo en el CWD; botón lupa en la barra del explorador ✅
 - **Buscador de texto en terminal (Ctrl+F)** (`terminal-search.js`): SearchAddon de xterm.js; botón lupa junto al `+` ✅
 - **Split panes recursivos** (`tab-manager.js`): árbol binario tipo iTerm; Cmd+D / Cmd+Shift+D, redimensionables, foco con acento ✅
+- **Estadísticas de uso** (`stats.rs` + `stats.js`): dashboard offline — historial del shell (top comandos) + log propio vía OSC 133 (hora pico, % errores, comando más lento) ✅
 
 ---
 
@@ -297,6 +303,16 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 - **Buscar texto en terminal (Ctrl+F)** (`terminal-search.js`): usa `SearchAddon` de xterm.js (`frontend/lib/addon-search.js`, bundleado igual que addon-fit). Se carga por instancia en `createTerminalInstance` → expuesto en `{term, fitAddon, searchAddon}`. Barra flotante arriba-derecha. Enter/Shift+Enter navega. Botón lupa junto al `+`.
 - Ambos atajos se capturan en `capture:true` para interceptar antes que xterm.js. Ambos tienen botón visible (UX principiantes) + tooltip con el atajo (enseña al experto).
 
+### Sistema de estadísticas (`stats.rs` + `stats.js`)
+- **Dos fuentes, 100% offline:**
+  1. **Historial del shell** (`parse_shell_history`): lee `~/.zsh_history` / `.bash_history` / fish / PSReadLine según `$SHELL`. Da top programas, top comandos, total, únicos. Disponible desde el primer uso.
+  2. **Log propio** (SQLite en `app_data_dir/stats.db`): cada comando ejecutado en Ocote se registra vía `log_command` (llamado desde el handler OSC 133 D de terminal.js). Da hora pico, % éxito/error, comando más lento, días activos. Crece con el uso.
+- **CRÍTICO — leer historial con `from_utf8_lossy`, NO `read_to_string`**: los `.zsh_history` tienen bytes no-UTF8 (metafication 0x83, acentos); `read_to_string` falla entero con un byte inválido → 0 comandos. Leer bytes + lossy lo resuelve.
+- **CRÍTICO — unir comandos multilínea**: zsh/bash guardan código pegado (heredocs, scripts) con continuación `\` al final de línea. Sin unirlos, las stats se contaminan con `\`, `import json\`, `def main():\`. `parse_shell_history` acumula en buffer hasta una línea que no termine en `\`.
+- **Captura del comando** (`terminal.js`): `pendingCommand: Map<shellId, texto>` se setea en `updateCurrentInput` al Enter; se consume en OSC 133 D para emparejar comando + exitCode + duración. El log es shell-agnóstico (funciona con los 4 shells).
+- **`StatsState`** se inicializa en el `.setup()` hook de main.rs (necesita `app_data_dir`). Fallback a temp_dir si no se resuelve; no tumba la app si falla.
+- Botón gráfico en la barra superior (junto a ⚙️) → `window.openStats()`. Modal data-driven (HTML generado en `stats.js`).
+
 ---
 
 ## Historial de avances
@@ -414,13 +430,23 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
   - Botones en la barra de tabs; badge contador de panes; foco con borde accent.
 ✅ **Bordes de panes estilo caja** (theme.css): cada pane con `--border-strong` visible siempre; activo con `--accent`.
 
+**Fase 4 — Avance al 2026-06-04 (sesión 18):**
+✅ **Estadísticas de uso** (`stats.rs` + `stats.js`), 100% offline, dashboard modal:
+  - Historial del shell: top programas, top comandos, total, únicos (desde el primer uso).
+  - Log propio (SQLite vía OSC 133): hora pico, % éxito/error, comando más lento, días activos.
+  - Fix `from_utf8_lossy` (los .zsh_history no son UTF-8 puro → read_to_string daba 0).
+  - Fix unión de comandos multilínea (continuación `\` — eliminaba ruido `\`, `import json\`).
+  - Soporte 4 shells (zsh/bash/fish/PowerShell PSReadLine). Log shell-agnóstico.
+  - `StatsState` (SQLite) inicializado en `.setup()` con `app_data_dir`; `use tauri::Manager` ahora incondicional.
+
 **Próximo paso — Fase 4:**
-1. Estadísticas del historial (análisis offline de ~/.zsh_history) — diferenciador on-brand
-2. Editor de aliases visual (sin editar .zshrc a mano)
+1. Editor de aliases visual (sin editar .zshrc a mano) — on-brand para principiantes
+2. Workspace-save estilo Warp (guardar layout de tabs/paneles + cwds por proyecto) — futuro
 3. Ícono real de Ocote (diseño propio) — About sigue mostrando el ícono de macOS por caché
 4. Landing page / sitio web
 5. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
 6. Auto-updater
+NOTA: el modelo de cmux (orquestar agentes de IA) se DESCARTA — contradice la identidad anti-IA de Ocote.
 
 ## Cómo ayudar al desarrollador
 - Es developer en aprendizaje, usa IA como asistente principal
