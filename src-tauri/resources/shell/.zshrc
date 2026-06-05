@@ -64,6 +64,10 @@ if [[ -f "$OCOTE_ZSH_AUTOSUGGEST" ]]; then
   bindkey '^[OC' _ocote_accept_or_forward
 fi
 
-# ── 5. Restaurar ZDOTDIR del usuario para el resto de la sesión ─────────────
+# ── 5. Aliases del editor de Ocote ──────────────────────────────────────────
+# Va DESPUÉS de la config del usuario para que los aliases de Ocote ganen.
+[[ -n "$OCOTE_ALIASES" && -f "$OCOTE_ALIASES" ]] && source "$OCOTE_ALIASES"
+
+# ── 6. Restaurar ZDOTDIR del usuario para el resto de la sesión ─────────────
 # (subshells, herramientas que leen $ZDOTDIR, etc.).
 ZDOTDIR="$_ocote_user_zdotdir"

@@ -5,6 +5,37 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-06-04 — Sesión 19: editor de aliases visual
+
+**Estado al inicio:** las 4 primeras mejoras del roadmap listas. Falta el editor de aliases — la última, y la más "anti-fricción para principiantes".
+
+### Decisión de diseño: no tocar el .zshrc del usuario
+
+El valor de la feature es "crea aliases sin editar tu .zshrc a mano". La trampa sería escribir en el `.zshrc` real del usuario — invasivo y arriesgado. En su lugar: JSON como fuente de verdad en app_data_dir, del que se generan archivos por-shell que las configs bundleadas de Ocote sourcean vía la env var `OCOTE_ALIASES`. El `.zshrc` del usuario nunca se modifica; los aliases viven 100% en el dominio de Ocote.
+
+### El reto multi-shell
+
+Cada shell tiene sintaxis distinta de alias:
+- zsh/bash: `alias gs='git status'`
+- fish: `alias gs 'git status'`
+- **PowerShell: no se puede.** `Set-Alias` solo mapea un nombre a OTRO comando, sin argumentos. Para `gs = git status` (con argumento) hay que generar una FUNCIÓN: `function gs { git status @args }`. Esto fue lo no-obvio del feature.
+
+Por eso `regenerate_files` genera 3 archivos (`aliases.sh`, `aliases.fish`, `aliases.ps1`) y `pty.rs` apunta `OCOTE_ALIASES` al correcto según el shell que arranca.
+
+### Carga: env var + source en las configs
+
+Las 4 configs bundleadas (.zshrc, bash-hook.bash, prompt.fish, prompt.ps1) ahora sourcean `$OCOTE_ALIASES` DESPUÉS de la config del usuario — así los aliases de Ocote ganan en conflictos. `pty.rs` resuelve `app_data_dir` vía `window.app_handle().path_resolver()` (ya tenía `use tauri::Manager`, mi import duplicado causó un E0252 que removí).
+
+### Comportamiento: pestañas nuevas
+
+Los aliases aplican en pestañas nuevas (las configs sourcean al arrancar el shell), no en shells ya abiertos. Consideré re-inyectar en vivo a los shells abiertos, pero es fiddly (no sabemos el shell de cada pane desde el front, y escribir al PTY mid-sesión interfiere). El modelo "nuevas pestañas" es como funciona la config de shell normalmente y el hint en la UI lo aclara. Honesto y simple.
+
+### Cierre del roadmap de mejoras
+
+Con esto, las 5 mejoras "out of the box" que recomendé están completas: notificaciones, buscadores, split panes, estadísticas, aliases. Próximo: workspace-save estilo Warp (futuro), ícono real, landing, firma de código.
+
+---
+
 ## 2026-06-04 — Sesión 18: estadísticas de uso (historial + log propio)
 
 **Estado al inicio:** buscadores y split panes listos. Sin ninguna analítica.

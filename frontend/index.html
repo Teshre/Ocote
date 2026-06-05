@@ -247,6 +247,7 @@
       <div id="settings-tabs">
         <button class="settings-tab-btn active" data-tab="general" data-i18n="settings.tab.general">General</button>
         <button class="settings-tab-btn" data-tab="appearance" data-i18n="settings.tab.appearance">Apariencia</button>
+        <button class="settings-tab-btn" data-tab="aliases">Aliases</button>
       </div>
 
       <!-- Tab: General -->
@@ -397,6 +398,33 @@
         </div>
       </div>
 
+      <!-- Tab: Aliases -->
+      <div class="settings-tab-content hidden" data-tab="aliases">
+        <div class="settings-section">
+          <div class="settings-section-head">
+            <h3>Aliases</h3>
+          </div>
+          <p class="settings-hint" style="margin:0 0 14px">
+            Crea atajos para tus comandos sin editar tu <code>.zshrc</code> a mano.
+            Ej: <code>gs</code> → <code>git status</code>. Se aplican en pestañas nuevas.
+          </p>
+
+          <!-- Formulario de nuevo alias -->
+          <div class="alias-form">
+            <input id="alias-name" class="alias-input alias-input--name" type="text"
+                   placeholder="nombre (ej: gs)" autocomplete="off" spellcheck="false">
+            <span class="alias-arrow">→</span>
+            <input id="alias-cmd" class="alias-input alias-input--cmd" type="text"
+                   placeholder="comando (ej: git status)" autocomplete="off" spellcheck="false">
+            <button id="alias-add" class="alias-add-btn">Agregar</button>
+          </div>
+          <div id="alias-error" class="alias-error hidden"></div>
+
+          <!-- Lista de aliases -->
+          <div id="alias-list" class="alias-list"></div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -416,6 +444,7 @@
   <script src="ui-i18n.js"></script>
   <script src="settings.js"></script>
   <script src="stats.js"></script>
+  <script src="aliases.js"></script>
   <script src="lib/highlight.min.js"></script>
   <script src="preview.js"></script>
   <script src="resizer.js"></script>

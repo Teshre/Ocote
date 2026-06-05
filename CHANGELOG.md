@@ -8,7 +8,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### Fase 4 — En progreso
-Próximo paso: editor de aliases visual, ícono real de Ocote, landing page, firma de código macOS, auto-updater.
+Próximo paso: ícono real de Ocote, landing page, firma de código macOS, auto-updater.
+
+### Agregado — 2026-06-04 (sesión 19)
+
+- **Editor de aliases** — crea atajos de comandos sin editar tu `.zshrc` a mano (Settings → tab Aliases):
+  - CRUD visual: nombre → comando, con validación y eliminación.
+  - No toca la config real del usuario: los aliases viven en archivos propios de Ocote que las configs de shell sourcean.
+  - Soporte de los 4 shells, cada uno con su sintaxis (zsh/bash `alias`, fish `alias`, PowerShell `function` porque Set-Alias no acepta argumentos).
+  - Se aplican en pestañas nuevas; persisten entre reinicios.
 
 ### Agregado — 2026-06-04 (sesión 18)
 

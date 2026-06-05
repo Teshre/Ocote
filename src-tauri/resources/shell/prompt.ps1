@@ -139,3 +139,8 @@ if ((Get-Command fzf -ErrorAction SilentlyContinue) -and (Get-Command Set-PSRead
 if (Get-Command zoxide -ErrorAction SilentlyContinue) {
     Invoke-Expression (& { (zoxide init powershell | Out-String) })
 }
+
+# ── Aliases del editor de Ocote (después de la config del usuario) ───────────
+if ($env:OCOTE_ALIASES -and (Test-Path $env:OCOTE_ALIASES)) {
+    . $env:OCOTE_ALIASES
+}

@@ -11,6 +11,7 @@ mod ckb;
 mod fs_explorer;
 mod context;
 mod stats;
+mod aliases;
 
 /// Envía una notificación al sistema operativo.
 ///
@@ -166,6 +167,9 @@ fn main() {
                 Ok(conn) => { app.manage(stats::StatsState::new(conn)); }
                 Err(e) => { eprintln!("[stats] no se pudo abrir {:?}: {}", db_path, e); }
             }
+            // Regenerar los archivos de aliases desde el JSON para que apliquen
+            // al primer shell tras un reinicio.
+            aliases::regenerate_from_disk(&app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -201,6 +205,9 @@ fn main() {
             // Estadísticas
             stats::log_command,
             stats::get_stats,
+            // Aliases
+            aliases::get_aliases,
+            aliases::save_aliases,
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar Ocote");

@@ -21,6 +21,7 @@ src-tauri/src/
   fs_explorer.rs     ← árbol de archivos + operaciones + search_files
   context.rs         ← detección de contexto: git, node, rust, etc.
   stats.rs           ← estadísticas: parse historial shell + log SQLite (StatsState)
+  aliases.rs         ← editor de aliases: JSON + genera aliases.sh/.fish/.ps1
 src-tauri/resources/
   shell/
     .zshenv          ← ZDOTDIR wrapper: sourcea .zshenv usuario, setea POWERLEVEL9K_INSTANT_PROMPT=off
@@ -49,6 +50,7 @@ frontend/
   searcher.js        ← buscador de archivos (Ctrl+P) — modal fuzzy
   terminal-search.js ← buscador de texto en terminal (Ctrl+F) — SearchAddon
   stats.js           ← dashboard de estadísticas (modal, data-driven)
+  aliases.js         ← editor de aliases (Settings → tab Aliases)
   theme.css          ← CSS variables + estilos base
   lib/
     highlight.min.js ← highlight.js (colorear código en preview)
@@ -105,6 +107,7 @@ ckb/
 - **Buscador de texto en terminal (Ctrl+F)** (`terminal-search.js`): SearchAddon de xterm.js; botón lupa junto al `+` ✅
 - **Split panes recursivos** (`tab-manager.js`): árbol binario tipo iTerm; Cmd+D / Cmd+Shift+D, redimensionables, foco con acento ✅
 - **Estadísticas de uso** (`stats.rs` + `stats.js`): dashboard offline — historial del shell (top comandos) + log propio vía OSC 133 (hora pico, % errores, comando más lento) ✅
+- **Editor de aliases** (`aliases.rs` + `aliases.js`): CRUD visual en Settings; genera archivos por-shell sourceados vía `OCOTE_ALIASES`, sin tocar el `.zshrc` del usuario ✅
 
 ---
 
@@ -170,6 +173,7 @@ El `endAbsRow` DEBE leerse síncronamente dentro del OSC handler, NO en un reque
 - `OCOTE_ZSH_HL` — ruta absoluta a `zsh-syntax-highlighting.zsh`
 - `OCOTE_ZSH_AUTOSUGGEST` — ruta a `zsh-autosuggestions.zsh`
 - `OCOTE_FZF_BIN` — ruta al binario de fzf de la plataforma (también en Windows → PATH)
+- `OCOTE_ALIASES` — ruta al archivo de aliases generado del shell (`aliases.sh`/`.fish`/`.ps1` en app_data_dir); las configs lo sourcean
 - `_OCOTE_ZDOTDIR` — ZDOTDIR real del usuario (o `$HOME`) para que el bootstrap sourcee su config
 
 **Bootstrap ZDOTDIR (crítico):**
@@ -313,6 +317,17 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 - **`StatsState`** se inicializa en el `.setup()` hook de main.rs (necesita `app_data_dir`). Fallback a temp_dir si no se resuelve; no tumba la app si falla.
 - Botón gráfico en la barra superior (junto a ⚙️) → `window.openStats()`. Modal data-driven (HTML generado en `stats.js`).
 
+### Sistema de aliases (`aliases.rs` + `aliases.js`)
+- **Fuente de verdad**: `app_data_dir/aliases.json` (lista `{name, command}`). NUNCA toca el `.zshrc` del usuario.
+- **Generación por shell** (`regenerate_files`): de la JSON se generan 3 archivos en app_data_dir:
+  - `aliases.sh` (zsh + bash): `alias name='cmd'` — escape `'` → `'\''`.
+  - `aliases.fish`: `alias name 'cmd'` — escape fish (`\` y `'`).
+  - `aliases.ps1`: `function name { cmd @args }` — PowerShell `Set-Alias` NO acepta argumentos, por eso funciones.
+- **Carga**: `pty.rs` inyecta `OCOTE_ALIASES` apuntando al archivo del shell que arranca; las 4 configs bundleadas (`.zshrc`/`bash-hook.bash`/`prompt.fish`/`prompt.ps1`) lo sourcean DESPUÉS de la config del usuario (así los aliases de Ocote ganan en conflictos).
+- **Aplican en pestañas NUEVAS** (las configs sourcean al arrancar el shell). No hay re-inyección en shells abiertos — es el modelo natural de config de shell, y el hint en la UI lo aclara.
+- **Regeneración en startup**: `aliases::regenerate_from_disk()` en el `.setup()` de main.rs, para que los aliases existentes apliquen tras un reinicio.
+- **Validación**: nombre `^[A-Za-z_][A-Za-z0-9_-]*$` (front y back). UI: Settings → tab Aliases. `window.loadAliases()` se llama desde `switchTab`.
+
 ---
 
 ## Historial de avances
@@ -439,13 +454,22 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
   - Soporte 4 shells (zsh/bash/fish/PowerShell PSReadLine). Log shell-agnóstico.
   - `StatsState` (SQLite) inicializado en `.setup()` con `app_data_dir`; `use tauri::Manager` ahora incondicional.
 
+**Fase 4 — Avance al 2026-06-04 (sesión 19):**
+✅ **Editor de aliases** (`aliases.rs` + `aliases.js`), Settings → tab Aliases:
+  - CRUD visual (nombre → comando), validación, sin tocar el `.zshrc` del usuario.
+  - JSON como fuente de verdad → genera `aliases.sh`/`.fish`/`.ps1` por shell.
+  - `pty.rs` inyecta `OCOTE_ALIASES`; las 4 configs bundleadas lo sourcean tras la config del usuario.
+  - PowerShell usa `function name { cmd @args }` (Set-Alias no acepta argumentos).
+  - Aplican en pestañas nuevas; regenerados en `.setup()` desde el JSON.
+
+**🎯 Las 5 mejoras "out of the box" del roadmap están COMPLETAS:** notificaciones, buscadores (Ctrl+P/Ctrl+F), split panes, estadísticas, editor de aliases.
+
 **Próximo paso — Fase 4:**
-1. Editor de aliases visual (sin editar .zshrc a mano) — on-brand para principiantes
-2. Workspace-save estilo Warp (guardar layout de tabs/paneles + cwds por proyecto) — futuro
-3. Ícono real de Ocote (diseño propio) — About sigue mostrando el ícono de macOS por caché
-4. Landing page / sitio web
-5. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
-6. Auto-updater
+1. Workspace-save estilo Warp (guardar layout de tabs/paneles + cwds por proyecto) — futuro
+2. Ícono real de Ocote (diseño propio) — About sigue mostrando el ícono de macOS por caché
+3. Landing page / sitio web
+4. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
+5. Auto-updater
 NOTA: el modelo de cmux (orquestar agentes de IA) se DESCARTA — contradice la identidad anti-IA de Ocote.
 
 ## Cómo ayudar al desarrollador

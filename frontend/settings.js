@@ -234,6 +234,9 @@
       renderPromptPicker();
       renderIconPreview(state.iconTheme);
     }
+    if (tabId === 'aliases' && window.loadAliases) {
+      window.loadAliases();
+    }
   }
 
   // ── Preview en vivo de íconos ────────────────────────────────────────────

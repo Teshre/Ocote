@@ -230,6 +230,20 @@ pub fn create_shell(
         cmd.env("OCOTE_PROMPT_PRESET", &preset);
         cmd.env("OCOTE_ACCENT", &accent_val);
 
+        // Aliases del editor de Ocote: apuntar al archivo generado del shell
+        // correspondiente (ver aliases.rs). Las configs bundleadas lo sourcean.
+        if let Some(data_dir) = window.app_handle().path_resolver().app_data_dir() {
+            let alias_file = if shell_cmd.contains("fish") {
+                "aliases.fish"
+            } else if shell_cmd.contains("pwsh") || shell_cmd.contains("powershell") {
+                "aliases.ps1"
+            } else {
+                "aliases.sh" // zsh + bash
+            };
+            let p = data_dir.join(alias_file);
+            cmd.env("OCOTE_ALIASES", p.to_string_lossy().to_string());
+        }
+
         if let Some(res) = resolve_shell_resources(&window) {
             // fzf: disponible en macOS, Linux y Windows.
             // El binario se llama `fzf` dentro de un subdir por plataforma.

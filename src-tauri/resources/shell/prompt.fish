@@ -114,3 +114,8 @@ end
 if type -q zoxide
     zoxide init fish | source
 end
+
+# ── Aliases del editor de Ocote (después de la config del usuario) ───────────
+if test -n "$OCOTE_ALIASES"; and test -f "$OCOTE_ALIASES"
+    source "$OCOTE_ALIASES"
+end
