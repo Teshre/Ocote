@@ -8,8 +8,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ## [Unreleased]
 
 ### Fase 4 — En progreso
-Próximo paso: workspace-save estilo Warp, firma de código macOS, auto-updater.
+Próximo paso: firma de código macOS, auto-updater, build de producción final.
 (Ícono real, landing page y SEO concluidos en otras conversaciones.)
+
+### Agregado — 2026-06-05 (sesión 21)
+
+- **Workspaces (espacios de trabajo conmutables)** — opcional, se activa en Settings → General:
+  - Barra entre la ruta y las pestañas con tus espacios: `[◈ Default] [proyecto] [otro] [+ Workspace]`.
+  - Cada workspace es un espacio independiente con sus propias pestañas y paneles divididos.
+  - **+ Workspace** crea un espacio nuevo vacío y entras a trabajar de inmediato.
+  - **Auto-guardado**: todo lo que haces en un workspace (pestañas, paneles, carpetas) se guarda solo. Sin diálogos.
+  - Cambiar de espacio conserva el avance de cada uno (instancias vivas durante la sesión); se restauran al reabrir.
+  - **Default** es un espacio borrador que no se guarda.
+  - 100% opcional: apagado (por defecto), Ocote funciona exactamente como antes.
 
 ### Agregado — 2026-06-05 (sesión 20)
 

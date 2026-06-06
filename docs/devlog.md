@@ -5,6 +5,40 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-06-05 — Sesión 21: workspaces / espacios conmutables (opt-in)
+
+**Estado al inicio:** todas las features de la terminal listas. Última pieza pre-lanzamiento: workspaces.
+
+### Decisión de diseño: espacios conmutables, opt-in
+
+Se discutieron dos modelos: lanzador simple (abrir layout, aditivo) vs espacios conmutables tipo Warp (cada workspace = conjunto propio de tabs). El usuario eligió espacios conmutables PERO con una condición clave: un **toggle** para activarlos. Apagado por defecto → Ocote funciona como siempre (tabs normales). Encendido → aparece la barra de espacios. Esto cumple la "ley Ocote" (para todo tipo de usuarios): la potencia está para quien la necesita, sin forzarla.
+
+**De bajo riesgo por diseño:** el modelo de espacios vive siempre en el código (cada tab tiene `spaceId`, `activeSpaceId='default'`), pero mientras solo exista el espacio 'default' es un no-op — el comportamiento normal no se toca. El toggle solo muestra/oculta la barra y habilita crear/conmutar espacios.
+
+### Iteración del UX (3 vueltas con el usuario)
+
+1. Primero hice un **modal** (lista + guardar con checkboxes). El usuario: "no se ve bien el modal, y no hay forma de elegir qué guardar". → Agregué selección con checkboxes.
+2. Luego: "sigue sin sentirse como un menú de workspaces". → Lo cambié a un **popover anclado** al botón (estilo dropdown del breadcrumb).
+3. Finalmente, el insight clave del usuario: el guardado debería ser **automático**. Un botón "+ Workspace" abre un espacio nuevo vacío donde empiezas a trabajar; no tener que estar en Default para crear uno, ni perder avance al crear otro desde dentro de uno existente.
+
+El modelo final (auto-save) es el correcto y el más simple de usar: Default es borrador; "+ Workspace" crea un espacio vivo nombrado; todo lo que haces dentro se persiste solo (debounce 700ms + al conmutar + al perder foco). Se eliminó el modal/popover de guardado por completo.
+
+### Arquitectura
+
+- `tab-manager.js`: cada tab tiene `spaceId`. `switchToSpace` / `openWorkspaceSpace` (materializa desde layout guardado si el espacio no está vivo, conmuta si sí). `refreshSpaceVisibility` muestra solo las tabs del espacio activo. Dos callbacks: `onSpacesChanged` (re-render de la barra) y `onLayoutChanged` (auto-save). `exportLayout` exporta solo el espacio activo.
+- `workspaces.rs`: persiste `app_data_dir/workspaces.json` como `serde_json::Value` opaco — el frontend define el esquema (tabs + árbol con cwd por hoja).
+- Materializar: setear `activeSpaceId` ANTES de crear las tabs para etiquetarlas en el espacio correcto. El DOM de panes se mueve (no innerHTML) para preservar el xterm.
+
+### Lección
+
+El valor de iterar con el usuario sobre UX: las primeras dos versiones (modal, popover) eran técnicamente correctas pero no resolvían el modelo mental real ("crear y trabajar, que se guarde solo"). La tercera, guiada por el feedback, es la buena. A veces el mejor diseño emerge de quitar (el modal de guardado) en vez de agregar.
+
+### Cierre
+
+Con workspaces, las features pre-lanzamiento están completas. Lo que sigue es distribución: firma de código macOS, auto-updater, build final.
+
+---
+
 ## 2026-06-05 — Sesión 20: referencia de atajos + onboarding actualizado
 
 **Estado al inicio:** las 5 mejoras del roadmap completas. Faltaba que el usuario pudiera descubrir/recordar los atajos (habíamos agregado muchísimos), y el onboarding estaba desactualizado.

@@ -22,6 +22,7 @@ src-tauri/src/
   context.rs         ← detección de contexto: git, node, rust, etc.
   stats.rs           ← estadísticas: parse historial shell + log SQLite (StatsState)
   aliases.rs         ← editor de aliases: JSON + genera aliases.sh/.fish/.ps1
+  workspaces.rs      ← persistencia de workspaces (JSON opaco en app_data_dir)
 src-tauri/resources/
   shell/
     .zshenv          ← ZDOTDIR wrapper: sourcea .zshenv usuario, setea POWERLEVEL9K_INSTANT_PROMPT=off
@@ -52,6 +53,7 @@ frontend/
   stats.js           ← dashboard de estadísticas (modal, data-driven)
   aliases.js         ← editor de aliases (Settings → tab Aliases)
   shortcuts.js       ← referencia de atajos de teclado (modal, plataforma-aware)
+  workspaces.js      ← espacios conmutables + barra + auto-guardado (opt-in)
   theme.css          ← CSS variables + estilos base
   lib/
     highlight.min.js ← highlight.js (colorear código en preview)
@@ -111,6 +113,7 @@ ckb/
 - **Editor de aliases** (`aliases.rs` + `aliases.js`): CRUD visual en Settings; genera archivos por-shell sourceados vía `OCOTE_ALIASES`, sin tocar el `.zshrc` del usuario ✅
 - **Referencia de atajos de teclado** (`shortcuts.js`): modal con todos los atajos, plataforma-aware (⌘ mac / Ctrl otros), botón ⌨ en la barra superior ✅
 - **Onboarding actualizado**: 6 features (incluye paneles y búsqueda), ícono real con variante, theme-aware, 5 idiomas ✅
+- **Workspaces / espacios conmutables** (`workspaces.rs` + `workspaces.js`): opt-in (toggle en Settings); barra entre ruta y tabs; cada workspace es un espacio vivo con sus tabs/splits, auto-guardado ✅
 
 ---
 
@@ -335,6 +338,15 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 - **`shortcuts.js`**: modal 100% estático (sin Rust) con todos los atajos en `GROUPS`. Plataforma-aware: `isMac` → `⌘⌥⇧⌃`, otros → `Ctrl/Alt/Shift`. Botón ⌨ `#shortcuts-btn` en la barra superior → `window.openShortcuts()`. **Si agregas/cambias un atajo en el código, actualiza también `GROUPS` aquí.**
 - **Onboarding** (`onboarding.js` + HTML en index.html): 6 features (explorador, autocompletado, tooltip, paneles, búsqueda, offline). Theme-aware (usa variables CSS; `settings.js applyAll()` aplica el tema antes del show a 600ms). Logo usa `icons/icon-dark.png`/`icon-light.png` según `localStorage('ocote_app_icon')`. i18n en los 5 idiomas (claves `onboarding.feature.*`). Se ve con Ctrl+Shift+? o en primer uso.
 
+### Workspaces / espacios conmutables (`workspaces.rs` + `workspaces.js`)
+- **OPT-IN**: toggle `ocote_workspaces_enabled` en Settings → General. Apagado (default) → no hay barra y todo funciona como tabs normales.
+- **Modelo de espacios** (en `tab-manager.js`): cada tab tiene `spaceId`. `activeSpaceId` ('default' o 'ws:<nombre>'). Solo se ven las tabs del espacio activo (`refreshSpaceVisibility`). **Mientras solo exista 'default', es un no-op → comportamiento normal intacto.**
+- **API de espacios** (TAB_MANAGER): `switchToSpace(id)`, `openWorkspaceSpace(name, tabsLayout)` (materializa si no está vivo, conmuta si sí), `getActiveSpaceId`, `spaceIsLive`, `setOnSpacesChanged` (barra), `setOnLayoutChanged` (auto-save). `exportLayout()` exporta SOLO el espacio activo.
+- **Auto-guardado** (workspaces.js): `onLayoutChanged` (fired en createTab/closeTab/split/closePane/switchToTab) → `scheduleAutosave` (debounce 700ms) → `autosaveActive()` exporta el espacio activo y persiste bajo su nombre. También guarda al conmutar (antes de salir) y en `window blur` (captura cd's). Default NO se persiste (es borrador).
+- **Crear**: "+ Workspace" → input inline en la barra → crea espacio vacío vivo (1 tab) y entra. NO hay modal de "elegir pestañas" — todo el espacio se auto-guarda.
+- **Persistencia**: `workspaces.rs` guarda/lee `app_data_dir/workspaces.json` como `serde_json::Value` (opaco; el frontend define el esquema). Árbol: `{kind:'leaf',cwd}` | `{kind:'split',dir,ratio,a,b}`.
+- **CRÍTICO**: el DOM de panes se MUEVE al re-renderizar (nunca innerHTML) — ver nota de split panes. Al materializar un workspace se setea `activeSpaceId` ANTES de crear las tabs para que se etiqueten en el espacio correcto.
+
 ---
 
 ## Historial de avances
@@ -477,10 +489,21 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 
 **Hecho en otras conversaciones (fuera de este repo de código):** ícono real definido, landing page concluida, varios puntos de SEO.
 
-**Próximo paso — Fase 4:**
-1. Workspace-save estilo Warp (guardar layout de tabs/paneles + cwds por proyecto) — futuro
-2. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
-3. Auto-updater
+**Fase 4 — Avance al 2026-06-05 (sesión 21):**
+✅ **Workspaces / espacios conmutables** (`workspaces.rs` + `workspaces.js`), OPT-IN:
+  - Toggle en Settings → General; apagado = experiencia normal intacta.
+  - Barra entre la ruta y las tabs: [◈ Default] [ws…] [+ Workspace].
+  - Cada workspace es un espacio vivo con sus propias tabs/splits; conmutar muestra/oculta.
+  - "+ Workspace" crea un espacio nuevo vacío (input inline) y entras a trabajar.
+  - Auto-guardado (sin modal): todo lo que haces en un workspace se persiste solo.
+  - Arquitectura: `spaceId` por tab + onLayoutChanged/onSpacesChanged; mientras solo exista 'default' es no-op.
+
+**🚀 Features pre-lanzamiento COMPLETAS.** Las 5 mejoras out-of-the-box + workspaces listos.
+
+**Próximo paso — Fase 4 (distribución/lanzamiento):**
+1. Firma de código macOS (Apple Developer ID) para distribuir sin Gatekeeper
+2. Auto-updater
+3. Build de producción final + verificación cross-platform
 NOTA: el modelo de cmux (orquestar agentes de IA) se DESCARTA — contradice la identidad anti-IA de Ocote.
 
 ## Cómo ayudar al desarrollador

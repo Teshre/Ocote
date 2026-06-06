@@ -12,6 +12,7 @@ mod fs_explorer;
 mod context;
 mod stats;
 mod aliases;
+mod workspaces;
 
 /// Envía una notificación al sistema operativo.
 ///
@@ -208,6 +209,9 @@ fn main() {
             // Aliases
             aliases::get_aliases,
             aliases::save_aliases,
+            // Workspaces
+            workspaces::get_workspaces,
+            workspaces::save_workspaces,
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar Ocote");

@@ -26,6 +26,17 @@
   let activeShellId = null;
   let nextTabId     = 1;
 
+  // ── Espacios (workspaces conmutables) ──────────────────────────────────────
+  // Cada tab pertenece a un "espacio". El espacio 'default' siempre existe; los
+  // workspaces activados crean espacios 'ws:<nombre>'. Solo se muestran las tabs
+  // del espacio activo. Mientras solo exista 'default' (toggle de workspaces
+  // apagado), el comportamiento es idéntico al de tabs normales.
+  let activeSpaceId = 'default';
+  let onSpacesChanged = null;   // callback: la barra se re-renderiza (cambió espacio/lista)
+  let onLayoutChanged = null;   // callback: auto-guardado (cambió estructura/cwd del espacio)
+
+  function fireLayoutChanged() { if (onLayoutChanged) onLayoutChanged(); }
+
   // ── Foco real de la ventana (para notificaciones — ver onCommandFinished) ──
   let windowFocused = document.hasFocus();
   window.addEventListener('focus', () => { windowFocused = true;  });
@@ -199,7 +210,9 @@
 
   // ── Crear tab ───────────────────────────────────────────────────────────
 
-  async function createTab(name) {
+  // Scaffold común: crea el contenedor DOM + botón de tab + objeto tab + listeners.
+  // Lo usan createTab (un pane) y createTabFromLayout (árbol restaurado).
+  function scaffoldTab(name) {
     const tabId = nextTabId++;
 
     const container = document.createElement('div');
@@ -217,15 +230,9 @@
     `;
     tabBar.appendChild(tabEl);
 
-    const tab = { tabId, element: tabEl, container, root: null, activePaneShellId: null, name: name || '' };
+    const tab = { tabId, element: tabEl, container, root: null, activePaneShellId: null,
+                  name: name || '', spaceId: activeSpaceId };
     tabs.set(tabId, tab);
-
-    // Primer pane del tab
-    const shellId = await createPane(tabId);
-    tab.root = { kind: 'leaf', shellId };
-    tab.activePaneShellId = shellId;
-    if (!tab.name) tab.name = panes.get(shellId).name;
-    renderTabLabel(tab);
 
     tabEl.addEventListener('click', (e) => {
       if (!e.target.classList.contains('tab-close')) switchToTab(tabId);
@@ -235,9 +242,58 @@
       closeTab(tabId);
     });
 
+    return tab;
+  }
+
+  async function createTab(name) {
+    const tab = scaffoldTab(name);
+
+    const shellId = await createPane(tab.tabId);
+    tab.root = { kind: 'leaf', shellId };
+    tab.activePaneShellId = shellId;
+    if (!tab.name) tab.name = panes.get(shellId).name;
+    renderTabLabel(tab);
+
     renderTab(tab);
-    switchToTab(tabId);
+    switchToTab(tab.tabId);
+    fireLayoutChanged();
     return shellId;
+  }
+
+  // ── Restaurar un tab desde un layout guardado (workspace) ──────────────────
+
+  // Reconstruye el árbol guardado creando un pane (shell) por cada hoja y
+  // haciendo cd a su cwd. Los splits conservan dir y ratio.
+  async function materializeNode(tabId, sn) {
+    if (!sn || sn.kind === 'leaf') {
+      const shellId = await createPane(tabId);
+      const cwd = sn && sn.cwd;
+      if (cwd) {
+        try {
+          await invoke('write_to_shell', { shellId, input: `cd ${JSON.stringify(cwd)}\r` });
+        } catch (_) {}
+      }
+      return { kind: 'leaf', shellId };
+    }
+    return {
+      kind: 'split',
+      dir:  sn.dir === 'col' ? 'col' : 'row',
+      ratio: typeof sn.ratio === 'number' ? sn.ratio : 0.5,
+      a: await materializeNode(tabId, sn.a),
+      b: await materializeNode(tabId, sn.b),
+    };
+  }
+
+  async function createTabFromLayout(spec) {
+    const tab = scaffoldTab(spec && spec.name);
+    tab.root = await materializeNode(tab.tabId, spec && spec.tree);
+    const leaves = leavesOf(tab.root);
+    tab.activePaneShellId = leaves[0];
+    if (!tab.name) tab.name = panes.get(leaves[0])?.name || 'zsh';
+    renderTabLabel(tab);
+    renderTab(tab);
+    switchToTab(tab.tabId);
+    return tab.tabId;
   }
 
   // ── Dividir el pane activo ────────────────────────────────────────────────
@@ -260,6 +316,7 @@
     renderTab(tab);
     renderTabLabel(tab);
     setActivePane(newShell);
+    fireLayoutChanged();
   }
 
   // ── Cerrar pane (colapsa el árbol; si era el último, cierra el tab) ────────
@@ -284,6 +341,7 @@
     renderTab(tab);
     renderTabLabel(tab);
     if (tab.tabId === activeTabId) setActivePane(remain[0]);
+    fireLayoutChanged();
   }
 
   // ── Cerrar tab (cierra todos sus panes) ───────────────────────────────────
@@ -308,10 +366,13 @@
       activeTabId = null;
       activeShellId = null;
       window.ocoteActiveShellId = null;
-      const remaining = Array.from(tabs.keys());
-      if (remaining.length > 0) switchToTab(remaining[remaining.length - 1]);
+      // Buscar otra tab DEL MISMO espacio; si no hay, crear una nueva en él.
+      const sameSpace = Array.from(tabs.values()).filter(t => t.spaceId === activeSpaceId);
+      if (sameSpace.length > 0) switchToTab(sameSpace[sameSpace.length - 1].tabId);
       else createTab();
     }
+    if (onSpacesChanged) onSpacesChanged();
+    fireLayoutChanged();
   }
 
   // ── Respawn del pane activo (settings: cambio de preset de prompt) ─────────
@@ -367,6 +428,60 @@
     setActivePane(tab.activePaneShellId);
     clearTabStatus(tabId);
     requestAnimationFrame(() => fitTab(tab));
+    fireLayoutChanged();
+  }
+
+  // ── Espacios (workspaces conmutables) ──────────────────────────────────────
+
+  // Muestra solo las tabs del espacio activo (oculta botón + contenedor del resto).
+  function refreshSpaceVisibility() {
+    tabs.forEach(tab => {
+      const inSpace = tab.spaceId === activeSpaceId;
+      tab.element.style.display = inSpace ? '' : 'none';
+      if (!inSpace) tab.container.classList.add('hidden');
+    });
+  }
+
+  function tabsInSpace(spaceId) {
+    return Array.from(tabs.values()).filter(t => t.spaceId === spaceId);
+  }
+
+  function spaceIsLive(spaceId) {
+    return tabsInSpace(spaceId).length > 0;
+  }
+
+  // Cambia al espacio dado (debe estar vivo, o ser 'default'). Si está vacío,
+  // crea una tab nueva en él.
+  async function switchToSpace(spaceId) {
+    if (spaceId === activeSpaceId) return;
+    activeSpaceId = spaceId;
+    activeTabId = null;            // forzar re-activación de tab en el nuevo espacio
+    refreshSpaceVisibility();
+
+    const here = tabsInSpace(spaceId);
+    if (here.length === 0) {
+      await createTab();            // createTab usa activeSpaceId → tab en este espacio
+    } else {
+      switchToTab(here[0].tabId);
+    }
+    if (onSpacesChanged) onSpacesChanged();
+  }
+
+  // Activa un workspace: si su espacio ya está vivo, conmuta; si no, lo
+  // materializa creando sus tabs desde el layout guardado.
+  async function openWorkspaceSpace(name, tabsLayout) {
+    const spaceId = 'ws:' + name;
+    if (spaceIsLive(spaceId)) { await switchToSpace(spaceId); return; }
+
+    // Materializar: las tabs nuevas se etiquetan con este espacio.
+    activeSpaceId = spaceId;
+    activeTabId = null;
+    refreshSpaceVisibility();       // oculta las del espacio anterior
+    for (const t of (tabsLayout || [])) {
+      await createTabFromLayout(t);
+    }
+    if (!tabsInSpace(spaceId).length) await createTab(); // workspace vacío → 1 tab
+    if (onSpacesChanged) onSpacesChanged();
   }
 
   // ── Enfocar un pane ────────────────────────────────────────────────────────
@@ -534,6 +649,45 @@
   // ── Inicializar ─────────────────────────────────────────────────────────
   createTab();
 
+  // ── Workspaces: exportar / restaurar layout ────────────────────────────────
+
+  // Serializa un nodo del árbol reemplazando shellId por el cwd actual del pane.
+  async function serializeNode(node) {
+    if (node.kind === 'leaf') {
+      let cwd = null;
+      try { cwd = await invoke('get_shell_cwd', { shellId: node.shellId }); } catch (_) {}
+      return { kind: 'leaf', cwd: cwd || null };
+    }
+    return {
+      kind: 'split',
+      dir: node.dir,
+      ratio: node.ratio,
+      a: await serializeNode(node.a),
+      b: await serializeNode(node.b),
+    };
+  }
+
+  // Captura el layout del ESPACIO ACTIVO: { tabs: [{ name, tree }] }.
+  // (Guardar un workspace = persistir el espacio en el que estás trabajando.)
+  async function exportLayout() {
+    const out = [];
+    for (const [, tab] of tabs) {
+      if (tab.spaceId !== activeSpaceId) continue;
+      out.push({ name: tab.name, tree: await serializeNode(tab.root) });
+    }
+    return { tabs: out };
+  }
+
+  // Restaura un workspace agregando sus pestañas al espacio actual (aditivo).
+  // Nota: con espacios conmutables se usa openWorkspaceSpace; applyLayout queda
+  // para compatibilidad / modo lanzador.
+  async function applyLayout(ws) {
+    if (!ws || !Array.isArray(ws.tabs)) return;
+    for (const t of ws.tabs) {
+      await createTabFromLayout(t);
+    }
+  }
+
   // ── Exponer API (compatibilidad: getTab/getAllTabs operan sobre panes) ────
   window.TAB_MANAGER = {
     createTab,
@@ -544,6 +698,15 @@
     respawnActive,
     updateTabName,
     onCommandFinished,
+    exportLayout,
+    applyLayout,
+    // Espacios conmutables (workspaces)
+    switchToSpace,
+    openWorkspaceSpace,
+    getActiveSpaceId: () => activeSpaceId,
+    spaceIsLive,
+    setOnSpacesChanged: (cb) => { onSpacesChanged = cb; },
+    setOnLayoutChanged: (cb) => { onLayoutChanged = cb; },
     // switchTab(shellId): cambia al tab que contiene ese shell y lo enfoca
     switchTab: (shellId) => {
       const p = panes.get(shellId);

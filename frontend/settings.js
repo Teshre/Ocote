@@ -194,6 +194,10 @@
     if (notifToggle) notifToggle.checked = state.systemNotifications;
     syncNotifThresholdVisibility();
 
+    // Workspaces (estado real desde OCOTE_WORKSPACES)
+    const wsToggle = document.getElementById('toggle-workspaces');
+    if (wsToggle) wsToggle.checked = window.OCOTE_WORKSPACES?.isEnabled?.() || false;
+
     document.querySelectorAll('[data-setting="notifThreshold"]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.value === String(state.notifThreshold));
     });
@@ -489,6 +493,11 @@
     state.systemNotifications = e.target.checked;
     persist();
     syncNotifThresholdVisibility();
+  });
+
+  // Toggle de workspaces (opt-in) — delega en OCOTE_WORKSPACES
+  document.getElementById('toggle-workspaces')?.addEventListener('change', (e) => {
+    window.OCOTE_WORKSPACES?.setEnabled?.(e.target.checked);
   });
 
   document.getElementById('settings-btn').addEventListener('click', openModal);

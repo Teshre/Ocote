@@ -42,6 +42,10 @@
     <button id="settings-btn" data-i18n-attr="title:breadcrumb.settings.tooltip">⚙️</button>
   </div>
 
+  <!-- Barra de workspaces (espacios conmutables) — oculta salvo que se active
+       en Settings. workspaces.js la popula. -->
+  <div id="workspace-bar" class="hidden"></div>
+
   <div id="main-layout">
     <!-- Panel izquierdo: explorador de archivos -->
     <div id="explorer-panel">
@@ -264,6 +268,10 @@
     <div id="shortcuts-card"></div>
   </div>
 
+  <!-- Workspaces: el popover se crea dinámicamente en workspaces.js,
+       anclado al botón ⊞ de la barra superior. -->
+
+
   <!-- Panel de Configuración (modal centrado con tabs) -->
   <div id="settings-overlay" class="hidden">
     <div id="settings-backdrop"></div>
@@ -318,6 +326,21 @@
               <button class="settings-seg-btn" data-setting="notifThreshold" data-value="10">10s</button>
               <button class="settings-seg-btn" data-setting="notifThreshold" data-value="30">30s</button>
             </div>
+          </div>
+        </div>
+
+        <!-- Workspaces -->
+        <div class="settings-section">
+          <h3>Workspaces</h3>
+          <div class="settings-row">
+            <div>
+              <span class="settings-label">Espacios de trabajo</span>
+              <p class="settings-hint" style="margin-top:3px">Activa una barra para guardar y cambiar entre conjuntos de pestañas (espacios). Si la dejas apagada, Ocote funciona como siempre.</p>
+            </div>
+            <label class="settings-toggle-label" title="Activar workspaces">
+              <input type="checkbox" id="toggle-workspaces" class="settings-toggle-input">
+              <span class="settings-toggle-track"><span class="settings-toggle-thumb"></span></span>
+            </label>
           </div>
         </div>
 
@@ -477,6 +500,7 @@
   <script src="stats.js"></script>
   <script src="aliases.js"></script>
   <script src="shortcuts.js"></script>
+  <script src="workspaces.js"></script>
   <script src="lib/highlight.min.js"></script>
   <script src="preview.js"></script>
   <script src="resizer.js"></script>
