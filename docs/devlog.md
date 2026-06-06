@@ -5,6 +5,113 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-06-06 — Sesión 22: audit de seguridad + race condition fix
+
+**Estado al inicio:** features pre-lanzamiento completas. Antes de la distribución, un audit
+de seguridad para evitar que un build público se rompa el día del lanzamiento.
+
+### Hallazgos del audit
+
+El audit cubrió el backend Rust (fs_explorer, pty, ckb, main) y el frontend
+(preview, explorer, prompt, terminal, tab-manager, aliases, searcher).
+Encontré **7 vulnerabilidades reales** (XSS + path traversal + DoS + escape
+insuficiente) y un bug funcional crítico (race condition) que el usuario
+descubrió probando:
+
+1. **XSS en `prompt.js`** (severidad alta): `m.cwd`, `m.branch`, `m.time` del
+   JSON de OSC 6731 se inyectaban con `innerHTML` sin escapar. Una rama git
+   con `<img src=x onerror=…>` ejecutaba JS arbitrario en el WebView.
+2. **Path traversal en `fs_explorer.rs`** (severidad alta): las 10 funciones
+   de archivo aceptaban cualquier path. Combinado con #1, daba lectura de
+   `~/.ssh/id_rsa` o `/etc/passwd`.
+3. **Inyección en `osascript`** (severidad media): title/body de notificaciones
+   del sistema (macOS dev) se interpolaban sin escapar; un `"` rompía el script.
+4. **DoS por archivos grandes**: `read_text_file`/`read_file_base64` leían
+   cualquier tamaño — un preview de 4GB congelaba el WebView.
+5. **CSP permisivo** (`tauri.conf.json`): `default-src 'self' 'unsafe-inline' 'unsafe-eval'`.
+6. **`search_files` validaba contra HOME, no contra el shell**: bypass de la
+   validación de path traversal.
+7. **Errores I/O del PTY silenciados**: el thread lector fallaba sin notificar.
+8. **Race condition `cd ..`** (bug funcional): el handler OSC 6731 disparaba
+   `set_shell_cwd` y `onShellCwdChanged` en paralelo. El explorador llamaba
+   `list_directory` antes de que el backend actualizara el CWD → rechazo
+   `"Operación fuera del directorio permitido"`.
+
+### Decisiones de diseño
+
+**Path validation: solo CWD del shell activo, no HOME.** Consideré tres modelos:
+- A) Validar contra HOME (permisivo, simple)
+- B) Validar contra el CWD del shell (estricto, defense-in-depth)
+- C) Sin validación, sandbox del OS
+
+Elegí B por dos razones: (1) defense-in-depth — un XSS combinado con path
+traversal NO puede escapar del CWD del shell; (2) coherencia con el modelo
+de "el shell es la fuente de verdad" que ya teníamos vía OSC 6731. C es
+impráctico en macOS (sandbox bloquea casi todo); A es demasiado permisivo.
+
+**Race condition fix: `set_shell_cwd` antes de `onShellCwdChanged`.** El bug
+era que dos invokes paralelos a Tauri no garantizan orden. La fix natural
+era encadenarlos con `.finally()`. La alternativa era hacer el handler
+OSC async (lo cual xterm.js permite pero complica el flujo). Encadenar
+añade ~1ms de latencia (IPC local), imperceptible.
+
+**Removidos `loadDirectory(path)` optimistas** del breadcrumb y del click
+en carpeta del explorador. Antes eran UX tricks: el explorador se actualizaba
+ANTES de que el shell cambiara de directorio, dando feedback instantáneo.
+Con la validación estricta del backend esto ya no es posible. El OSC 6731
+cubre la actualización, así que el truco se eliminó sin perder UX.
+
+**`~` se expande en `set_shell_crd`, no en el frontend.** El shell emite
+`~` literal (convención POSIX) pero el backend necesita una ruta absoluta
+para `canonicalize`. Puse la expansión en `pty.rs` (Rust) y no en
+`explorer.js` para mantener una sola fuente de verdad.
+
+**Backend acepta `shell_id: Option<String>`.** Caso edge: el explorador
+necesita cargar el directorio al inicio, antes de que el shell haya emitido
+su primer OSC 6731. El backend hace fallback a `home_dir()` en ese caso.
+Es seguro porque el frontend solo puede pasar `shell_id` válido (lo lee
+de `window.ocoteActiveShellId`); el fallback a HOME es solo para el primer
+arranque.
+
+### Proceso
+
+- **Reporté al usuario antes de tocar código.** Con 9 fixes
+  de golpe, era importante que viera el diff completo y entendiera el
+  impacto antes de aceptar.
+- **Una ronda de testing con el usuario** después de los 8 primeros fixes:
+  descubrió el bug #9 (race condition). Lo arreglé + 3 lugares más donde
+  el patrón se repetía (breadcrumb, click en carpeta, dropdown del breadcrumb).
+- **Build de producción verificado** después de cada fix mayor (`pnpm tauri build`):
+  mismo .app de 34MB / .dmg de 15MB; los 8 warnings pre-existentes de `objc`
+  macros `class`/`sel_impl` (no críticos, no introducidos por los fixes).
+
+### Limpieza del repo
+
+Encontré artefactos no relacionados con Ocote en el repo:
+- `.agents/` y `.claude/` — skills de opencode y Claude Code (locales al entorno)
+- `skills-lock.json` — lockfile de opencode
+- `demo/` — proyecto HyperFrames usado para generar previews del README;
+  los assets finales viven en `docs/assets/`
+
+Todos al `.gitignore`. El usuario conserva `demo/` en disco (no se borra) por
+si quiere generar más previews; si lo necesita trackeado, lo saca del
+gitignore.
+
+### Lección
+
+Un audit antes de distribución es barato comparado con un CVE post-lanzamiento.
+Los 7 fixes tocaron ~200 líneas de código en total. El XSS en `prompt.js`
+era el más serio: una rama git renombrada a `<img src=x onerror=…>` y un
+usuario hacía `git status` o `cd` en ella → ejecución de código. El CWD del
+shell validándose contra sí mismo elimina esta clase de ataque por completo.
+
+### Cierre
+
+Build limpio, race condition resuelta, repo ordenado. Siguiente paso: **distribución**
+(firma de código macOS, auto-updater, build de producción final).
+
+---
+
 ## 2026-06-05 — Sesión 21: workspaces / espacios conmutables (opt-in)
 
 **Estado al inicio:** todas las features de la terminal listas. Última pieza pre-lanzamiento: workspaces.

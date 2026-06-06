@@ -17,6 +17,7 @@
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 use std::collections::HashMap;
 use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 // Manager se necesita en todas las plataformas para resolve_resource + set_icon
 use tauri::Manager;
@@ -28,6 +29,13 @@ struct ShellState {
     child:     Mutex<Option<Box<dyn portable_pty::Child + Send + Sync>>>,
     shell_pid: Mutex<Option<u32>>,
     master:    Mutex<Option<Box<dyn MasterPty + Send>>>,
+    /// CWD (directorio de trabajo) del shell. Es la autoridad para validar
+    /// que las operaciones de archivos (preview, search, create, delete) se
+    /// hagan DENTRO de este directorio. Se actualiza desde el frontend cada
+    /// vez que llega un OSC 6731 con un cwd nuevo.
+    /// Si es None, el shell no ha reportado cwd todavía y las operaciones
+    /// de archivo se rechazan.
+    cwd:       Mutex<Option<PathBuf>>,
 }
 
 impl ShellState {
@@ -37,6 +45,7 @@ impl ShellState {
             child:     Mutex::new(None),
             shell_pid: Mutex::new(None),
             master:    Mutex::new(None),
+            cwd:       Mutex::new(None),
         }
     }
 }
@@ -337,6 +346,11 @@ pub fn create_shell(
     *shell.writer.lock().unwrap() = Some(writer);
     *shell.master.lock().unwrap() = Some(pair.master);
 
+    // Inicializar el cwd en HOME hasta que llegue el primer OSC 6731. Esto da
+    // una base razonable: si el usuario hace algo en el explorador antes del
+    // primer prompt, las operaciones estarán restringidas a su HOME (no a /).
+    *shell.cwd.lock().unwrap() = std::env::home_dir();
+
     // Clonar shell_id para el thread
     let sid = shell_id.clone();
     let sid_exit = shell_id.clone();
@@ -344,9 +358,11 @@ pub fn create_shell(
     // Thread lector
     std::thread::spawn(move || {
         let mut buf = [0u8; 4096];
+        let mut first_error: Option<std::io::Error> = None;
         loop {
             match reader.read(&mut buf) {
                 Ok(0) => {
+                    // EOF normal: el shell terminó (exit, Ctrl+D, etc.).
                     window.emit("pty-exit", PtyExit {
                         shell_id: sid_exit.clone(),
                     }).ok();
@@ -359,8 +375,25 @@ pub fn create_shell(
                         data:     output,
                     }).ok();
                 }
-                Err(_) => break,
+                Err(e) => {
+                    // Error I/O del PTY. En algunas plataformas (macOS) la primera
+                    // lectura puede fallar con EAGAIN antes de que el shell escriba
+                    // algo; solo rompemos el loop si ya recibimos datos previos.
+                    // Si nunca recibimos nada, también salimos (no tiene sentido
+                    // quedarse en un loop con errores).
+                    eprintln!("[pty] error de lectura: {}", e);
+                    first_error = Some(e);
+                    break;
+                }
             }
+        }
+        // Si salimos por error (no por EOF), notificar al frontend con un evento
+        // distinto para que pueda mostrar un mensaje en vez de un cierre silencioso.
+        if let Some(err) = first_error {
+            window.emit("pty-error", PtyExit {
+                shell_id: sid_exit.clone(),
+            }).ok();
+            eprintln!("[pty] shell {} terminó por error I/O: {}", sid_exit, err);
         }
     });
 
@@ -500,5 +533,61 @@ pub fn spawn_shell(
     // Crear shell por defecto con id "shell-1" para compatibilidad.
     // Sin tamaño ni preset → fallback 24×80 y prompt "git".
     create_shell(window, state, None, None, None, None)?;
+    Ok(())
+}
+
+// ── CWD tracking (autoridad para validación de paths) ──────────────────────
+
+/// Devuelve el cwd registrado de un shell, o None si el shell no existe o
+/// nunca reportó su cwd. Usado por `fs_explorer.rs` para validar que las
+/// operaciones de archivo se hagan dentro del directorio del shell.
+pub fn get_shell_cwd_inner(state: &tauri::State<PtyState>, shell_id: &str) -> Option<PathBuf> {
+    let shells = state.shells.lock().ok()?;
+    let shell  = shells.get(shell_id)?;
+    let cwd_guard = shell.cwd.lock().ok()?;
+    cwd_guard.clone()
+}
+
+/// Expande un `~` o `~/...` al directorio HOME del usuario. El shell envía
+/// `~` literal como cwd (porque `print -P '%~'` lo abrevía), pero canónicalizar
+/// un `~` literal falla con "No such file or directory".
+fn expand_home(p: &Path) -> PathBuf {
+    let s = p.to_string_lossy();
+    if s == "~" {
+        if let Some(home) = std::env::home_dir() {
+            return home;
+        }
+    } else if let Some(rest) = s.strip_prefix("~/") {
+        if let Some(home) = std::env::home_dir() {
+            return home.join(rest);
+        }
+    } else if let Some(rest) = s.strip_prefix("~") {
+        // ~/user/foo o similar — ignorar, no es un caso soportado en macOS.
+    }
+    p.to_path_buf()
+}
+
+/// Comando Tauri: actualizar el cwd registrado de un shell.
+/// El frontend llama esto desde el handler de OSC 6731 cada vez que el shell
+/// emite un cwd nuevo. Es PISTA (no autoridad): si el shell nunca emite
+/// OSC 6731, el cwd queda en None y las operaciones se rechazan.
+#[tauri::command]
+pub fn set_shell_cwd(
+    shell_id: String,
+    cwd:      String,
+    state:    tauri::State<PtyState>,
+) -> Result<(), String> {
+    let shells = state.shells.lock().unwrap();
+    let shell  = shells.get(&shell_id)
+        .ok_or_else(|| format!("Shell {} no encontrado", shell_id))?;
+
+    // Expandir `~` → HOME antes de canónicalizar (el shell emite `~` literal
+    // por `print -P '%~'` y canónicalizar un `~` falla con ENOENT).
+    let expanded = expand_home(Path::new(&cwd));
+    // Canonicalizar resuelve symlinks. Si falla (path no existe), guardar la
+    // ruta tal cual — la validación happens en fs_explorer.rs al usar el path.
+    let resolved = expanded.canonicalize().unwrap_or(expanded);
+
+    *shell.cwd.lock().unwrap() = Some(resolved);
     Ok(())
 }

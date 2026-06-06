@@ -11,6 +11,86 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 Próximo paso: firma de código macOS, auto-updater, build de producción final.
 (Ícono real, landing page y SEO concluidos en otras conversaciones.)
 
+### Seguridad — 2026-06-06 (sesión 22)
+
+Audit de seguridad + corrección de race condition. Build de producción verificado
+(`.app` + `.dmg` generados en `target/release/bundle/`).
+
+#### Corregido (9 fixes)
+
+- **XSS en prompt.js** (`prompt.js`): `m.cwd`, `m.branch` y `m.time` del JSON
+  emitido por el shell vía OSC 6731 se inyectaban con `innerHTML` sin escapar
+  en los 8 renderers (2 funciones `renders` × 4 presets). Una rama git con
+  `<img src=x onerror=…>` o un path con `<script>` ejecutaba código en el
+  contexto del WebView. Fix: función `esc()` local (mismo patrón que
+  `escapeHtml` en `explorer.js` y `esc`/`escHtml` en `aliases.js`/`searcher.js`).
+- **Path traversal en `fs_explorer.rs`**: las 10 funciones (`list_directory`,
+  `read_text_file`, `read_file_base64`, `create_file`, `create_directory`,
+  `delete_item`, `delete_item_recursive`, `count_dir_entries`, `rename_item`,
+  `search_files`) aceptaban cualquier path sin validación. Un payload XSS
+  combinado podía apuntar a `~/.ssh/id_rsa` o `/etc/passwd`. Fix: el shell
+  reporta su CWD vía OSC 6731 → el backend lo guarda en `ShellState.cwd: Mutex<Option<PathBuf>>`
+  por `shellId`; cada operación de archivo valida que su `path` sea hijo
+  del `cwd` del shell activo (canonicalize + `starts_with`).
+- **Inyección en `osascript` (macOS dev notifications)**: el `title` y `body`
+  de notificaciones del sistema se interpolaban en una cadena `-e` de
+  AppleScript sin escapar; un comando con `"` o `\` rompía el script y
+  permitía ejecutar AppleScript arbitrario. Fix: nueva función
+  `osascript_escape()` que escapa `\n`/`\r`/`\t` y descarta controles ASCII.
+- **Lectura ilimitada de archivos** (`read_text_file`/`read_file_base64`):
+  un preview de un archivo de 4GB congelaba el WebView. Fix: constante
+  `MAX_PREVIEW_SIZE = 10 * 1024 * 1024` (10MB) aplicada en ambas funciones;
+  el frontend muestra un warning si el archivo excede el límite.
+- **CSP permisivo** (`tauri.conf.json`): el `default-src 'self' 'unsafe-inline' 'unsafe-eval'`
+  permitía inyectar CSS/JS arbitrario si se comprometía un asset. Fix: CSP
+  estricto — `default-src 'self'; img-src 'self' data: asset: https://asset.localhost;
+  style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:`.
+  `'unsafe-inline'` se mantiene en styles porque el JS genera estilos dinámicos
+  para el preview/highlight.js.
+- **`search_files` validaba contra HOME, no contra el shell**: el buscador
+  de archivos (Ctrl+P) usaba el CWD del usuario (HOME) en vez del CWD del
+  shell activo, saltándose la validación de path traversal. Fix: ahora
+  `search_files` también recibe `shell_id` y usa `check_path_for_shell`.
+- **Errores I/O del PTY silenciados**: si el thread lector del PTY fallaba
+  (broken pipe, EOF inesperado), el error se logueaba pero el usuario no
+  recibía feedback. Fix: el thread ahora también emite un evento `pty-error`
+  vía Tauri y loguea el error con contexto del shell.
+- **Race condition `cd` ↔ explorador** (la fix más visible para el usuario):
+  cuando el usuario hacía `cd ..` desde una subcarpeta, el backend rechazaba
+  la siguiente `list_directory` con `"Operación fuera del directorio permitido"`
+  porque el `set_shell_cwd` (async) llegaba al backend DESPUÉS que el
+  `list_directory` del explorador. El handler OSC 6731 los disparaba en
+  paralelo. Fix: en `terminal.js` el handler ahora hace
+  `invoke('set_shell_cwd').finally(() => onShellCwdChanged)` — el explorador
+  SIEMPRE se sincroniza después de que el backend tiene el nuevo CWD.
+  También removidos los `loadDirectory(path)` optimistas del breadcrumb y
+  del click en carpeta del explorador (eran UX tricks que rompían con la
+  validación estricta; el OSC 6731 los cubre).
+- **`~` no se expandía en `set_shell_cwd`** (`pty.rs`): el shell emite
+  `~` literal en el cwd de OSC 6731 (es la convención POSIX), pero el
+  backend intentaba `canonicalize("~")` que falla. Fix: `expand_home()`
+  convierte `~` → `$HOME` (y `~/x` → `$HOME/x`) antes de canonicalizar.
+  También `check_path_for_shell` ahora acepta `shell_id: Option<String>`;
+  si el shell no tiene CWD aún o no existe, usa `home_dir()` como fallback
+  (para que el explorador funcione al inicio antes del primer OSC 6731).
+
+#### Cambiado
+
+- **Path validation: solo CWD del shell activo** (estricto, no HOME):
+  por seguridad, las operaciones de archivo validan contra el CWD que el
+  shell reporta vía OSC 6731, no contra el HOME del usuario. Defense-in-depth
+  contra XSS combinado con path traversal.
+- **Shell-id opcional en backend**: las funciones de `fs_explorer.rs`
+  reciben `shell_id: Option<String>`. Si el frontend aún no pasó el id
+  (caso edge al inicio), el backend hace fallback a HOME.
+
+#### Chore
+
+- **`.gitignore` ampliado**: `.agents/`, `.claude/`, `skills-lock.json`
+  (artefactos de opencode/Claude Code, locales al entorno de desarrollo) y
+  `demo/` (proyecto HyperFrames local usado para generar previews del README;
+  los assets finales viven en `docs/assets/`).
+
 ### Agregado — 2026-06-05 (sesión 21)
 
 - **Workspaces (espacios de trabajo conmutables)** — opcional, se activa en Settings → General:

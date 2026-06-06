@@ -31,3 +31,13 @@ pnpm-debug.log*
 .env
 .env.local
 .env.*.local
+
+# AI agent state (opencode, Claude Code, etc.) — local al entorno de desarrollo
+.agents/
+.claude/
+skills-lock.json
+
+# demo/ — proyecto HyperFrames local usado para generar previews del README
+# (los assets finales viven en docs/assets/). Ignorado para no contaminar
+# el repo; si volvés a necesitarlo, sacalo de aquí.
+demo/

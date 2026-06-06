@@ -14,6 +14,30 @@ mod stats;
 mod aliases;
 mod workspaces;
 
+/// Escapa un string para usarlo DENTRO de un literal AppleScript entre comillas.
+/// Escapa `\` y `"` (mínimo histórico) Y todos los caracteres de control ASCII
+/// (`\n`, `\r`, `\t`, y cualquier control < 0x20). Sin esto, un body con `\n`
+/// podría romper el script e inyectar AppleScript arbitrario que se ejecuta
+/// con los permisos del usuario.
+#[allow(dead_code)] // solo se usa en builds dev (#[cfg(dev)])
+fn osascript_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '\\' => out.push_str("\\\\"),
+            '"'  => out.push_str("\\\""),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            // Otros controles ASCII: descartar (no son válidos en notificaciones).
+            // `let _ = c;` consume el binding para que el compilador no proteste.
+            c if (c as u32) < 0x20 => { let _ = c; }
+            c => out.push(c),
+        }
+    }
+    out
+}
+
 /// Envía una notificación al sistema operativo.
 ///
 /// macOS dev mode:
@@ -37,8 +61,8 @@ fn send_notification(app: tauri::AppHandle, title: String, body: String) {
         // ── Dev mode: osascript (no requiere registro de .app) ──────────────
         #[cfg(dev)]
         {
-            let safe_title = title.replace('\\', "\\\\").replace('"', "\\\"");
-            let safe_body  = body.replace('\\',  "\\\\").replace('"', "\\\"");
+            let safe_title = osascript_escape(&title);
+            let safe_body  = osascript_escape(&body);
             let script = format!(
                 r#"display notification "{}" with title "{}""#,
                 safe_body, safe_title
@@ -179,6 +203,7 @@ fn main() {
             pty::write_to_shell,
             pty::resize_pty,
             pty::get_shell_cwd,
+            pty::set_shell_cwd,
             pty::close_shell,
             pty::list_shells,
             // Backward compat

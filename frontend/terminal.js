@@ -102,13 +102,23 @@ function bindTerminalShell(term, shellId) {
     if (sep === -1 || data.slice(0, sep) !== 'prompt') return false;
     try {
       lastPromptMeta = JSON.parse(data.slice(sep + 1));
-      // Sync autoritativo del explorador: el shell reporta su PWD REAL aquí
-      // (con ~ abreviado). Reemplaza al fast-path que adivinaba la ruta del
-      // `cd` tecleado — ese fallaba con tab-completion e historial porque solo
-      // veía las teclas crudas, no el texto que el shell completaba.
-      // Solo sincronizamos si este shell es el tab activo.
-      if (lastPromptMeta?.cwd && shellId === window.ocoteActiveShellId) {
-        window.onShellCwdChanged?.(lastPromptMeta.cwd);
+      // CRÍTICO: actualizar el cwd del backend ANTES de notificar al explorador.
+      // Si el explorador llama list_directory antes de que set_shell_cwd
+      // termine, el backend valida contra el cwd anterior y rechaza con
+      // "Operación fuera del directorio permitido". Ordenar así elimina la
+      // race condition en cada `cd`.
+      if (lastPromptMeta?.cwd) {
+        window.__TAURI__.invoke('set_shell_cwd', {
+          shellId,
+          cwd: lastPromptMeta.cwd,
+        })
+        .catch((e) => console.warn('[ocote] no se pudo actualizar shell cwd:', e))
+        .finally(() => {
+          // Solo sincronizamos el explorador si este shell es el tab activo.
+          if (lastPromptMeta?.cwd && shellId === window.ocoteActiveShellId) {
+            window.onShellCwdChanged?.(lastPromptMeta.cwd);
+          }
+        });
       }
     } catch (_) {}
     return true;

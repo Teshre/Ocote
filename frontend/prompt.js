@@ -31,6 +31,16 @@ window.OCOTE_PROMPT = (() => {
       || '#14100C';
   }
 
+  // ── Escape HTML ────────────────────────────────────────────────────────────
+  // Los campos del meta (cwd, branch, time) vienen del shell vía OSC 6731 y se
+  // inyectan con innerHTML. Un nombre de rama git puede contener `<`, `>`, `"`
+  // (git no los prohíbe), así que hay que escapar para evitar XSS.
+  function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
   function a(hex, alpha) {
     const n = parseInt(hex.replace('#', ''), 16);
     return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
@@ -75,12 +85,12 @@ window.OCOTE_PROMPT = (() => {
         `background:${a(t.accent, .18)};color:${t.accent};` +
         `padding:2px 10px;border-radius:999px;border:1px solid ${a(t.accent, .32)};` +
         `font-weight:600">` +
-        `${SVG.folder(t.accent)}${m.cwd}</span>`;
+        `${SVG.folder(t.accent)}${esc(m.cwd)}</span>`;
 
       const git = m.branch
         ? `<span style="display:inline-flex;align-items:center;gap:5px;color:${t.green};` +
           `padding:2px 10px;border-radius:999px;border:1px solid ${a(t.green, .32)}">` +
-          `${SVG.branch(t.green)}${m.branch}` +
+          `${SVG.branch(t.green)}${esc(m.branch)}` +
           (m.dirty > 0 ? `<span style="color:${t.warning};font-weight:600">+${m.dirty}</span>` : '') +
           `</span>`
         : '';
@@ -88,7 +98,7 @@ window.OCOTE_PROMPT = (() => {
       const time =
         `<span style="display:inline-flex;align-items:center;gap:4px;` +
         `color:${t.comment};font-size:.92em">` +
-        `${SVG.clock(t.comment)}${m.time}</span>`;
+        `${SVG.clock(t.comment)}${esc(m.time)}</span>`;
 
       return `<div style="display:flex;align-items:center;gap:6px">${path}${git}${time}</div>`;
     },
@@ -97,7 +107,7 @@ window.OCOTE_PROMPT = (() => {
       const git = m.branch
         ? `<span style="color:${a(t.comment, .6)}">·</span>` +
           `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.green}">` +
-          `${SVG.branch(t.green, 10)}${m.branch}` +
+          `${SVG.branch(t.green, 10)}${esc(m.branch)}` +
           (m.dirty > 0 ? `<span style="color:${t.warning};font-weight:600">+${m.dirty}</span>` : '') +
           `</span>`
         : '';
@@ -106,11 +116,11 @@ window.OCOTE_PROMPT = (() => {
         `<div style="display:flex;align-items:center;gap:9px;` +
         `color:${t.comment};font-size:.86em">` +
         `<span style="display:inline-flex;align-items:center;gap:5px;color:${t.accent};font-weight:600">` +
-        `${SVG.folder(t.accent, 10)}${m.cwd}</span>` +
+        `${SVG.folder(t.accent, 10)}${esc(m.cwd)}</span>` +
         git +
         `<span style="flex:1"></span>` +
         `<span style="display:inline-flex;align-items:center;gap:4px">` +
-        `${SVG.clock(t.comment, 10)}${m.time}</span>` +
+        `${SVG.clock(t.comment, 10)}${esc(m.time)}</span>` +
         `</div>`
       );
     },
@@ -120,7 +130,7 @@ window.OCOTE_PROMPT = (() => {
     ribbon(m, t) {
       const git = m.branch
         ? `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.green}">` +
-          `${SVG.branch(t.green, 10)}${m.branch}` +
+          `${SVG.branch(t.green, 10)}${esc(m.branch)}` +
           (m.dirty > 0 ? `<span style="color:${t.warning};font-weight:600;margin-left:1px">+${m.dirty}</span>` : '') +
           `</span>`
         : '';
@@ -133,11 +143,11 @@ window.OCOTE_PROMPT = (() => {
         `background:linear-gradient(90deg,${t.accent} 0%,transparent 100%)"></span>` +
         `<span style="display:inline-flex;align-items:center;gap:5px;` +
         `color:${t.accent};font-weight:600">` +
-        `${SVG.folder(t.accent)}${m.cwd}</span>` +
+        `${SVG.folder(t.accent)}${esc(m.cwd)}</span>` +
         git +
         `<span style="display:inline-flex;align-items:center;gap:4px;` +
         `color:${t.comment};font-size:.9em">` +
-        `${SVG.clock(t.comment, 10)}${m.time}</span>` +
+        `${SVG.clock(t.comment, 10)}${esc(m.time)}</span>` +
         `</div>`
       );
     },
@@ -146,7 +156,7 @@ window.OCOTE_PROMPT = (() => {
       const git = m.branch
         ? `<span style="color:${a(t.comment, .6)}">·</span>` +
           `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.green}">` +
-          `${SVG.branch(t.green, 10)}${m.branch}` +
+          `${SVG.branch(t.green, 10)}${esc(m.branch)}` +
           (m.dirty > 0 ? `<span style="color:${t.warning};margin-left:2px">+${m.dirty}</span>` : '') +
           `</span>`
         : '';
@@ -158,10 +168,10 @@ window.OCOTE_PROMPT = (() => {
         `</div>` +
         `<div style="display:inline-flex;align-items:center;gap:8px;color:${t.fg}">` +
         `<span style="color:${t.accent};font-weight:600;display:inline-flex;align-items:center;gap:5px">` +
-        `${SVG.folder(t.accent)}${m.cwd}</span>` +
+        `${SVG.folder(t.accent)}${esc(m.cwd)}</span>` +
         git +
         `<span style="color:${a(t.comment, .6)}">·</span>` +
-        `<span style="color:${t.comment};font-size:.9em">${m.time}</span>` +
+        `<span style="color:${t.comment};font-size:.9em">${esc(m.time)}</span>` +
         `</div></div>`
       );
     },
@@ -181,13 +191,13 @@ window.OCOTE_PROMPT = (() => {
         `background:${a(t.accent, .20)};color:${t.accent};` +
         `height:17px;padding:0 10px;border-radius:999px;border:1px solid ${a(t.accent, .40)};` +
         `font-size:13px;font-weight:600;box-sizing:border-box">` +
-        `${SVG.folder(t.accent, 11)}${m.cwd}</span>`;
+        `${SVG.folder(t.accent, 11)}${esc(m.cwd)}</span>`;
 
       const git = m.branch
         ? `<span style="display:inline-flex;align-items:center;gap:5px;color:${t.green};` +
           `height:17px;padding:0 10px;border-radius:999px;border:1px solid ${a(t.green, .35)};` +
           `font-size:13px;box-sizing:border-box">` +
-          `${SVG.branch(t.green, 11)}${m.branch}` +
+          `${SVG.branch(t.green, 11)}${esc(m.branch)}` +
           (m.dirty > 0 ? `<span style="color:${t.warning};font-weight:600;margin-left:2px">+${m.dirty}</span>` : '') +
           `</span>`
         : '';
@@ -195,7 +205,7 @@ window.OCOTE_PROMPT = (() => {
       const time =
         `<span style="display:inline-flex;align-items:center;gap:4px;` +
         `color:${t.comment};font-size:12px">` +
-        `${SVG.clock(t.comment, 11)}${m.time}</span>`;
+        `${SVG.clock(t.comment, 11)}${esc(m.time)}</span>`;
 
       return `<div style="display:flex;align-items:center;gap:6px;padding:0 8px">${path}${git}${time}</div>`;
     },
@@ -204,7 +214,7 @@ window.OCOTE_PROMPT = (() => {
       const git = m.branch
         ? `<span style="color:${a(t.comment, .4)}">·</span>` +
           `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.green};font-size:12px">` +
-          `${SVG.branch(t.green, 11)}${m.branch}` +
+          `${SVG.branch(t.green, 11)}${esc(m.branch)}` +
           (m.dirty > 0 ? `<span style="color:${t.warning};font-weight:600;margin-left:1px">+${m.dirty}</span>` : '') +
           `</span>`
         : '';
@@ -215,11 +225,11 @@ window.OCOTE_PROMPT = (() => {
         `border-bottom:1px solid ${a(t.accent, .20)};` +
         `background:${a(t.accent, .06)}">` +
         `<span style="display:inline-flex;align-items:center;gap:5px;color:${t.accent};font-weight:600">` +
-        `${SVG.folder(t.accent, 11)}${m.cwd}</span>` +
+        `${SVG.folder(t.accent, 11)}${esc(m.cwd)}</span>` +
         git +
         `<span style="flex:1"></span>` +
         `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.comment};font-size:12px">` +
-        `${SVG.clock(t.comment, 11)}${m.time}</span>` +
+        `${SVG.clock(t.comment, 11)}${esc(m.time)}</span>` +
         `</div>`
       );
     },
@@ -227,7 +237,7 @@ window.OCOTE_PROMPT = (() => {
     ribbon(m, t) {
       const git = m.branch
         ? `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.green};font-size:13px">` +
-          `${SVG.branch(t.green, 11)}${m.branch}` +
+          `${SVG.branch(t.green, 11)}${esc(m.branch)}` +
           (m.dirty > 0 ? `<span style="color:${t.warning};font-weight:600;margin-left:1px">+${m.dirty}</span>` : '') +
           `</span>`
         : '';
@@ -238,10 +248,10 @@ window.OCOTE_PROMPT = (() => {
         `<span style="position:absolute;left:0;right:0;bottom:-1.5px;height:1.5px;` +
         `background:linear-gradient(90deg,${t.accent},transparent)"></span>` +
         `<span style="display:inline-flex;align-items:center;gap:5px;color:${t.accent};font-weight:600;font-size:13px">` +
-        `${SVG.folder(t.accent, 11)}${m.cwd}</span>` +
+        `${SVG.folder(t.accent, 11)}${esc(m.cwd)}</span>` +
         git +
         `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.comment};font-size:12px">` +
-        `${SVG.clock(t.comment, 11)}${m.time}</span>` +
+        `${SVG.clock(t.comment, 11)}${esc(m.time)}</span>` +
         `</div>`
       );
     },
@@ -250,7 +260,7 @@ window.OCOTE_PROMPT = (() => {
       const git = m.branch
         ? `<span style="color:${a(t.comment, .5)}">·</span>` +
           `<span style="display:inline-flex;align-items:center;gap:4px;color:${t.green};font-size:13px">` +
-          `${SVG.branch(t.green, 11)}${m.branch}` +
+          `${SVG.branch(t.green, 11)}${esc(m.branch)}` +
           (m.dirty > 0 ? `<span style="color:${t.warning};margin-left:1px">+${m.dirty}</span>` : '') +
           `</span>`
         : '';
@@ -260,11 +270,11 @@ window.OCOTE_PROMPT = (() => {
         `background:linear-gradient(180deg,${t.accent} 0%,${a(t.accent, .30)} 100%)"></div>` +
         `<div style="display:inline-flex;align-items:center;gap:8px;font-size:13px">` +
         `<span style="color:${t.accent};font-weight:600;display:inline-flex;align-items:center;gap:5px">` +
-        `${SVG.folder(t.accent, 11)}${m.cwd}</span>` +
+        `${SVG.folder(t.accent, 11)}${esc(m.cwd)}</span>` +
         git +
         `<span style="color:${a(t.comment, .6)}">·</span>` +
         `<span style="color:${t.comment};font-size:12px;display:inline-flex;align-items:center;gap:3px">` +
-        `${SVG.clock(t.comment, 11)}${m.time}</span>` +
+        `${SVG.clock(t.comment, 11)}${esc(m.time)}</span>` +
         `</div></div>`
       );
     },

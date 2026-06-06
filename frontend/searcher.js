@@ -120,7 +120,11 @@
     if (!base) { renderEmpty(); return; }
 
     try {
-      const data = await invoke('search_files', { base, query });
+      const data = await invoke('search_files', {
+        base,
+        query,
+        shellId: window.ocoteActiveShellId,
+      });
       results    = data;
       selectedIdx = 0;
       renderResults();

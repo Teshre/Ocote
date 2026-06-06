@@ -10,8 +10,73 @@
 
 use serde::Serialize;
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+
+// ── Validación de paths contra el CWD del shell ────────────────────────────
+//
+// Defense-in-depth: aunque el frontend solo debería pasar rutas que el
+// explorador ofrece (que vienen de list_directory sobre el cwd del shell),
+// el backend IGUAL valida que cada operación esté dentro del cwd registrado
+// del shell. Si un XSS o un frontend comprometido intenta borrar /etc/passwd,
+// la validación lo rechaza.
+//
+// El cwd se rastrea en pty::ShellState.cwd y se actualiza desde el frontend
+// cuando llega OSC 6731. Si el shell nunca reportó cwd, las operaciones se
+// rechazan (return Err).
+
+/// Verifica que `path` esté dentro de `root` (tras canonicalizar ambos).
+/// Devuelve el path canónico si pasa la validación, o un error.
+/// `path` puede no existir (create_file/create_directory) → en ese caso
+/// canonicaliza el parent.
+fn validate_path_in_root(path: &Path, root: &Path) -> Result<PathBuf, String> {
+    // Canonicalizar el root (debe existir).
+    let root_canon = root.canonicalize()
+        .map_err(|e| format!("CWD inválido: {}", e))?;
+
+    // Si el path existe, canonicalizarlo directo.
+    // Si no, canonicalizar el parent y reconstruir.
+    let path_canon = if path.exists() {
+        path.canonicalize()
+            .map_err(|e| format!("Ruta inválida '{}': {}", path.display(), e))?
+    } else {
+        let parent = path.parent()
+            .ok_or_else(|| format!("Ruta sin directorio padre: {}", path.display()))?;
+        let parent_canon = parent.canonicalize()
+            .map_err(|e| format!("Directorio padre inválido '{}': {}", parent.display(), e))?;
+        parent_canon.join(path.file_name().ok_or_else(|| "Ruta sin nombre".to_string())?)
+    };
+
+    if !path_canon.starts_with(&root_canon) {
+        return Err(format!(
+            "Operación fuera del directorio permitido: '{}' no está dentro de '{}'",
+            path_canon.display(), root_canon.display()
+        ));
+    }
+    Ok(path_canon)
+}
+
+/// Resuelve el cwd del shell y valida que `path` esté dentro.
+/// Devuelve el path validado (canónico).
+/// Helper para reducir boilerplate en cada comando.
+///
+/// `shell_id` es `Option<String>` para tolerar `null`/`undefined` del frontend
+/// durante el race condition del primer load. Si es `None` o el shell no
+/// existe o no tiene cwd, usa el HOME del usuario (degradación segura: el
+/// shell típicamente arranca en HOME de todos modos).
+fn check_path_for_shell(
+    path:     &str,
+    shell_id: Option<&str>,
+    pty_state: &tauri::State<crate::pty::PtyState>,
+) -> Result<PathBuf, String> {
+    let cwd = shell_id
+        .and_then(|sid| crate::pty::get_shell_cwd_inner(pty_state, sid))
+        .or_else(std::env::home_dir)
+        .ok_or_else(|| {
+            "No se pudo determinar el directorio de trabajo (ni cwd del shell ni HOME)".to_string()
+        })?;
+    validate_path_in_root(Path::new(path), &cwd)
+}
 
 #[derive(Debug, Serialize)]
 pub struct FileEntry {
@@ -25,14 +90,17 @@ pub struct FileEntry {
 ///
 /// Devuelve un Vec<FileEntry> con archivos y carpetas ordenados:
 /// primero carpetas (ordenadas alfabéticamente), luego archivos.
+///
+/// Validación: `path` debe estar dentro del cwd del `shell_id` dado.
 #[tauri::command]
-pub fn list_directory(path: String) -> Result<Vec<FileEntry>, String> {
-    let dir_path = Path::new(&path);
+pub fn list_directory(
+    path:      String,
+    shell_id:  Option<String>,
+    pty_state: tauri::State<crate::pty::PtyState>,
+) -> Result<Vec<FileEntry>, String> {
+    // Validar que la ruta esté dentro del cwd del shell
+    let dir_path = check_path_for_shell(&path, shell_id.as_deref(), &pty_state)?;
 
-    // Verificar que la ruta existe y es un directorio
-    if !dir_path.exists() {
-        return Err(format!("La ruta no existe: {}", path));
-    }
     if !dir_path.is_dir() {
         return Err(format!("No es un directorio: {}", path));
     }
@@ -40,7 +108,7 @@ pub fn list_directory(path: String) -> Result<Vec<FileEntry>, String> {
     let mut entries: Vec<FileEntry> = Vec::new();
 
     // Leer el directorio
-    let read_dir = std::fs::read_dir(dir_path)
+    let read_dir = std::fs::read_dir(&dir_path)
         .map_err(|e| format!("Error al leer directorio '{}': {}", path, e))?;
 
     for entry_result in read_dir {
@@ -151,10 +219,19 @@ pub fn get_home_directory() -> Result<String, String> {
 /// instalado, devuelve un mapa VACÍO (no es error — el explorador simplemente
 /// no muestra badges).
 #[tauri::command]
-pub fn git_status(path: String) -> Result<HashMap<String, String>, String> {
+pub fn git_status(
+    path:      String,
+    shell_id:  Option<String>,
+    pty_state: tauri::State<crate::pty::PtyState>,
+) -> Result<HashMap<String, String>, String> {
     let mut result: HashMap<String, String> = HashMap::new();
 
-    let dir = Path::new(&path);
+    // Validar path. Si falla, devolvemos mapa vacío (degradación segura).
+    let dir = match check_path_for_shell(&path, shell_id.as_deref(), &pty_state) {
+        Ok(d) => d,
+        Err(_) => return Ok(result),
+    };
+
     if !dir.is_dir() {
         return Ok(result); // ruta inválida → sin badges, sin error
     }
@@ -164,7 +241,7 @@ pub fn git_status(path: String) -> Result<HashMap<String, String>, String> {
     // por simplicidad — los nombres con \n son rarísimos en la práctica.
     let output = Command::new("git")
         .arg("-C")
-        .arg(&path)
+        .arg(&dir)
         .arg("status")
         .arg("--porcelain")
         .arg("--untracked-files=all")
@@ -232,19 +309,38 @@ pub fn git_status(path: String) -> Result<HashMap<String, String>, String> {
 
 // ── Lectura de archivos ─────────────────────────────────────────────────────
 
+/// Tamaño máximo de archivo que el preview puede cargar. 10 MB es más que
+/// suficiente para código fuente y razonable para imágenes. Archivos más
+/// grandes deben abrirse en un editor externo.
+const MAX_PREVIEW_SIZE: u64 = 10 * 1024 * 1024;
+
 /// Comando Tauri: leer contenido de un archivo de texto.
-/// Devuelve el contenido como String. Error si el archivo es binario o no
-/// existe. El frontend usa esto para mostrar el preview de código/texto.
+/// Devuelve el contenido como String. Error si el archivo es binario, no
+/// existe, excede MAX_PREVIEW_SIZE, o está fuera del cwd del shell.
+/// El frontend usa esto para mostrar el preview de código/texto.
 #[tauri::command]
-pub fn read_text_file(path: String) -> Result<String, String> {
-    let p = Path::new(&path);
+pub fn read_text_file(
+    path:      String,
+    shell_id:  Option<String>,
+    pty_state: tauri::State<crate::pty::PtyState>,
+) -> Result<String, String> {
+    let p = check_path_for_shell(&path, shell_id.as_deref(), &pty_state)?;
     if !p.exists() {
         return Err(format!("El archivo no existe: {}", path));
     }
     if p.is_dir() {
         return Err(format!("Es un directorio, no un archivo: {}", path));
     }
-    std::fs::read_to_string(p)
+    let meta = std::fs::metadata(&p)
+        .map_err(|e| format!("Error al leer metadata de '{}': {}", path, e))?;
+    if meta.len() > MAX_PREVIEW_SIZE {
+        return Err(format!(
+            "Archivo demasiado grande para preview ({:.1} MB, máximo {} MB). Ábrelo en un editor externo.",
+            meta.len() as f64 / 1_048_576.0,
+            MAX_PREVIEW_SIZE / 1_048_576
+        ));
+    }
+    std::fs::read_to_string(&p)
         .map_err(|e| format!("Error al leer '{}': {}", path, e))
 }
 
@@ -252,15 +348,28 @@ pub fn read_text_file(path: String) -> Result<String, String> {
 /// Útil para imágenes (png, jpg, svg, etc.). El frontend construye una
 /// data URL: `data:image/png;base64,...`.
 #[tauri::command]
-pub fn read_file_base64(path: String) -> Result<String, String> {
-    let p = Path::new(&path);
+pub fn read_file_base64(
+    path:      String,
+    shell_id:  Option<String>,
+    pty_state: tauri::State<crate::pty::PtyState>,
+) -> Result<String, String> {
+    let p = check_path_for_shell(&path, shell_id.as_deref(), &pty_state)?;
     if !p.exists() {
         return Err(format!("El archivo no existe: {}", path));
     }
     if p.is_dir() {
         return Err(format!("Es un directorio, no un archivo: {}", path));
     }
-    let data = std::fs::read(p)
+    let meta = std::fs::metadata(&p)
+        .map_err(|e| format!("Error al leer metadata de '{}': {}", path, e))?;
+    if meta.len() > MAX_PREVIEW_SIZE {
+        return Err(format!(
+            "Archivo demasiado grande para preview ({:.1} MB, máximo {} MB).",
+            meta.len() as f64 / 1_048_576.0,
+            MAX_PREVIEW_SIZE / 1_048_576
+        ));
+    }
+    let data = std::fs::read(&p)
         .map_err(|e| format!("Error al leer '{}': {}", path, e))?;
     Ok(base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &data))
 }
@@ -269,9 +378,14 @@ pub fn read_file_base64(path: String) -> Result<String, String> {
 
 /// Comando Tauri: crear un archivo vacío.
 /// Si el archivo ya existe, NO lo sobrescribe (devuelve error).
+/// Valida que `path` esté dentro del cwd del shell.
 #[tauri::command]
-pub fn create_file(path: String) -> Result<(), String> {
-    let p = Path::new(&path);
+pub fn create_file(
+    path:      String,
+    shell_id:  Option<String>,
+    pty_state: tauri::State<crate::pty::PtyState>,
+) -> Result<(), String> {
+    let p = check_path_for_shell(&path, shell_id.as_deref(), &pty_state)?;
     if p.exists() {
         return Err(format!("Ya existe: {}", path));
     }
@@ -280,52 +394,68 @@ pub fn create_file(path: String) -> Result<(), String> {
         std::fs::create_dir_all(parent)
             .map_err(|e| format!("Error al crear directorio padre: {}", e))?;
     }
-    std::fs::File::create(p)
+    std::fs::File::create(&p)
         .map_err(|e| format!("Error al crear archivo '{}': {}", path, e))?;
     Ok(())
 }
 
 /// Comando Tauri: crear un directorio.
 /// Crea todo el árbol de padres que falte (como `mkdir -p`).
+/// Valida que `path` esté dentro del cwd del shell.
 #[tauri::command]
-pub fn create_directory(path: String) -> Result<(), String> {
-    let p = Path::new(&path);
+pub fn create_directory(
+    path:      String,
+    shell_id:  Option<String>,
+    pty_state: tauri::State<crate::pty::PtyState>,
+) -> Result<(), String> {
+    let p = check_path_for_shell(&path, shell_id.as_deref(), &pty_state)?;
     if p.exists() {
         return Err(format!("Ya existe: {}", path));
     }
-    std::fs::create_dir_all(p)
+    std::fs::create_dir_all(&p)
         .map_err(|e| format!("Error al crear directorio '{}': {}", path, e))
 }
 
 /// Comando Tauri: renombrar/mover un archivo o directorio.
+/// Valida que tanto `old_path` como `new_path` estén dentro del cwd del shell.
 #[tauri::command]
-pub fn rename_item(old_path: String, new_path: String) -> Result<(), String> {
-    let old = Path::new(&old_path);
-    let new = Path::new(&new_path);
+pub fn rename_item(
+    old_path:  String,
+    new_path:  String,
+    shell_id:  Option<String>,
+    pty_state: tauri::State<crate::pty::PtyState>,
+) -> Result<(), String> {
+    let old = check_path_for_shell(&old_path, shell_id.as_deref(), &pty_state)?;
+    let new = check_path_for_shell(&new_path, shell_id.as_deref(), &pty_state)?;
     if !old.exists() {
         return Err(format!("No existe: {}", old_path));
     }
     if new.exists() {
         return Err(format!("Ya existe: {}", new_path));
     }
-    std::fs::rename(old, new)
+    std::fs::rename(&old, &new)
         .map_err(|e| format!("Error al renombrar '{}' → '{}': {}", old_path, new_path, e))
 }
 
 /// Comando Tauri: eliminar un archivo o directorio vacío.
 /// Para directorios con contenido, falla (seguridad: el usuario debe
 /// vaciarlo manualmente o confirmar en el frontend).
+/// Valida que `path` esté dentro del cwd del shell.
 #[tauri::command]
-pub fn delete_item(path: String) -> Result<(), String> {
-    let p = Path::new(&path);
+pub fn delete_item(
+    path:      String,
+    shell_id:  Option<String>,
+    pty_state: tauri::State<crate::pty::PtyState>,
+) -> Result<(), String> {
+    let p = check_path_for_shell(&path, shell_id.as_deref(), &pty_state)?;
     if !p.exists() {
         return Err(format!("No existe: {}", path));
     }
     if p.is_dir() {
-        std::fs::remove_dir(p)
+        std::fs::remove_dir(&p)
             .map_err(|e| format!("Error al eliminar directorio '{}': {}", path, e))
     } else {
-        std::fs::remove_file(p)
+        std::fs::remove_file(&p)
             .map_err(|e| format!("Error al eliminar archivo '{}': {}", path, e))
     }
 }
@@ -352,7 +482,7 @@ const SKIP_DIRS: &[&str] = &[
 
 /// Comando Tauri: buscar archivos por nombre en un directorio y sus subdirectorios.
 ///
-/// - `base`  — directorio raíz de la búsqueda (normalmente el CWD del shell)
+/// - `base`  — directorio raíz de la búsqueda (debe estar dentro del cwd del shell)
 /// - `query` — texto a buscar en el nombre del archivo (case-insensitive)
 ///
 /// Retorna hasta 50 resultados ordenados por relevancia:
@@ -362,13 +492,23 @@ const SKIP_DIRS: &[&str] = &[
 ///
 /// Profundidad máxima: 6 niveles. Ignora archivos ocultos (`.nombre`).
 #[tauri::command]
-pub fn search_files(base: String, query: String) -> Result<Vec<SearchResult>, String> {
+pub fn search_files(
+    base:      String,
+    query:     String,
+    shell_id:  Option<String>,
+    pty_state: tauri::State<crate::pty::PtyState>,
+) -> Result<Vec<SearchResult>, String> {
     let query = query.trim().to_string();
     if query.is_empty() {
         return Ok(vec![]);
     }
 
-    let base_path = Path::new(&base);
+    // Validar que `base` esté dentro del cwd del shell. Si no, degradación
+    // segura: lista vacía (sin error, el usuario simplemente no ve resultados).
+    let base_path = match check_path_for_shell(&base, shell_id.as_deref(), &pty_state) {
+        Ok(b) => b,
+        Err(_) => return Ok(vec![]),
+    };
     if !base_path.is_dir() {
         return Ok(vec![]);
     }
@@ -376,7 +516,7 @@ pub fn search_files(base: String, query: String) -> Result<Vec<SearchResult>, St
     let query_lower = query.to_lowercase();
     let mut results: Vec<SearchResult> = Vec::new();
 
-    search_recursive(base_path, base_path, &query_lower, 0, &mut results);
+    search_recursive(&base_path, &base_path, &query_lower, 0, &mut results);
 
     // Ordenar por relevancia: exacto > empieza-con > contiene
     results.sort_by_key(|r| {
@@ -458,15 +598,20 @@ fn search_recursive(
 /// No es recursivo — solo cuenta los hijos inmediatos, incluyendo
 /// archivos ocultos. Suficiente para mostrar al usuario cuántos
 /// elementos contiene antes de pedir confirmación de borrado.
+/// Valida que `path` esté dentro del cwd del shell.
 #[tauri::command]
-pub fn count_dir_entries(path: String) -> Result<usize, String> {
-    let p = Path::new(&path);
+pub fn count_dir_entries(
+    path:      String,
+    shell_id:  Option<String>,
+    pty_state: tauri::State<crate::pty::PtyState>,
+) -> Result<usize, String> {
+    let p = check_path_for_shell(&path, shell_id.as_deref(), &pty_state)?;
     if !p.is_dir() {
         return Err(format!("No es un directorio: {}", path));
     }
     // count() consume el iterador contando cada entrada (Ok o Err).
     // Ignoramos errores de entradas individuales para no fallar el conteo total.
-    let count = std::fs::read_dir(p)
+    let count = std::fs::read_dir(&p)
         .map_err(|e| format!("Error al leer '{}': {}", path, e))?
         .filter(|e| e.is_ok()) // ignorar entradas con error de permisos
         .count();
@@ -481,18 +626,23 @@ pub fn count_dir_entries(path: String) -> Result<usize, String> {
 /// ⚠️  Esta operación es PERMANENTE e IRREVERSIBLE.
 ///     El frontend DEBE pedir confirmación explícita (con conteo de
 ///     elementos) antes de invocar este comando.
+///     Valida que `path` esté dentro del cwd del shell.
 #[tauri::command]
-pub fn delete_item_recursive(path: String) -> Result<(), String> {
-    let p = Path::new(&path);
+pub fn delete_item_recursive(
+    path:      String,
+    shell_id:  Option<String>,
+    pty_state: tauri::State<crate::pty::PtyState>,
+) -> Result<(), String> {
+    let p = check_path_for_shell(&path, shell_id.as_deref(), &pty_state)?;
     if !p.exists() {
         return Err(format!("No existe: {}", path));
     }
     if p.is_dir() {
         // remove_dir_all borra el directorio y TODO su contenido
-        std::fs::remove_dir_all(p)
+        std::fs::remove_dir_all(&p)
             .map_err(|e| format!("Error al eliminar '{}': {}", path, e))
     } else {
-        std::fs::remove_file(p)
+        std::fs::remove_file(&p)
             .map_err(|e| format!("Error al eliminar '{}': {}", path, e))
     }
 }

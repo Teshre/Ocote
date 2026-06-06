@@ -69,10 +69,10 @@ ckb/
 - **Fase 3 (Meses 8-12):** Tooltip educativo, sugerencias contextuales, onboarding, distribución
 - **Fase 4 (Meses 12-18):** Comunidad, devlog, lanzamiento, credibilidad técnica
 
-## Estado actual — 2026-06-04
-**Fases 2 y 3 COMPLETADAS. Fase 4 en progreso avanzado.**
+## Estado actual — 2026-06-06
+**Fases 2, 3 y 4 en progreso. Features pre-lanzamiento completas; audit de seguridad aplicado.**
 
-- zsh/bash conectado al PTY (`pty.rs` con `portable-pty`) ✅
+- zsh/bash/fish/PowerShell conectado al PTY (`pty.rs` con `portable-pty`) ✅
 - xterm.js renderizado (migrado desde parser VT custom) ✅
 - Input carácter a carácter directo al PTY (`terminal.js`) ✅
 - Tab-completion, historial, inline editing, Ctrl+C/D/L vía ZLE ✅
@@ -114,6 +114,7 @@ ckb/
 - **Referencia de atajos de teclado** (`shortcuts.js`): modal con todos los atajos, plataforma-aware (⌘ mac / Ctrl otros), botón ⌨ en la barra superior ✅
 - **Onboarding actualizado**: 6 features (incluye paneles y búsqueda), ícono real con variante, theme-aware, 5 idiomas ✅
 - **Workspaces / espacios conmutables** (`workspaces.rs` + `workspaces.js`): opt-in (toggle en Settings); barra entre ruta y tabs; cada workspace es un espacio vivo con sus tabs/splits, auto-guardado ✅
+- **Audit de seguridad** (sesión 22): 7 fixes de vulnerabilidades (XSS en `prompt.js`, path traversal en `fs_explorer.rs`, inyección en `osascript`, DoS por archivos grandes, CSP permisivo, `search_files` con validación incorrecta, errores I/O del PTY silenciados) + fix de race condition OSC 6731 ↔ explorador ✅
 
 ---
 
@@ -229,6 +230,19 @@ El binario se llama `fzf-darwin-arm64` (etc.), NO `fzf`. Una función shell `fzf
 El explorador sincroniza desde `window.onShellCwdChanged(cwd)`, llamado por el handler OSC 6731 con el cwd REAL del shell (expande `~`). NO adivinar la ruta del `cd` tecleado — `currentCommandLine` solo captura teclas crudas y falla con tab-completion/historial.
 
 **Dev: resources se sirven desde `target/debug/resources/`**, no desde la fuente. Tras editar `resources/shell/*`, hay que copiar a `target/debug/resources/shell/` o recompilar para que el cambio tome efecto en `pnpm tauri dev`.
+
+### Modelo de seguridad (CRÍTICO — leer antes de tocar)
+
+**Defense-in-depth contra XSS + path traversal.** Cualquier string que viene del shell (vía OSC 6731: `cwd`, `branch`, `time`) o del filesystem (nombres de archivo) se trata como no-confiable.
+
+- **Escapado en frontend**: `prompt.js` usa `esc()` para renderizar metadata del prompt. `explorer.js` usa `escapeHtml()`, `aliases.js` usa `esc()`, `searcher.js` usa `escHtml()`. Cualquier nuevo renderer que pinte strings del shell DEBE escapar.
+- **Validación de path en backend**: las funciones de `fs_explorer.rs` (`list_directory`, `read_text_file`, `read_file_base64`, `create_file`, `create_directory`, `delete_item`, `delete_item_recursive`, `count_dir_entries`, `rename_item`, `search_files`) validan que el `path` recibido sea hijo del `cwd` del shell activo (`ShellState.cwd: Mutex<Option<PathBuf>>` por `shellId` en `pty.rs`). El cwd del shell es la ÚNICA fuente de verdad — el frontend nunca lo setea directamente, solo el shell vía OSC 6731.
+- **Backend acepta `shell_id: Option<String>`**: si el frontend aún no pasó el id (caso edge al inicio, antes del primer OSC 6731), el backend hace fallback a `home_dir()`. Es seguro porque el frontend solo lee `window.ocoteActiveShellId`.
+- **Race condition evitada**: el handler OSC 6731 en `terminal.js` encadena `invoke('set_shell_cwd').finally(() => onShellCwdChanged)` — el explorador SIEMPRE se sincroniza después de que el backend tiene el nuevo CWD. Si se cambia este orden, vuelve el bug `"Operación fuera del directorio permitido"` al hacer `cd ..`.
+- **CSP estricto** (`tauri.conf.json`): `default-src 'self'; img-src 'self' data: asset: https://asset.localhost; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:`. `'unsafe-inline'` se mantiene en styles porque el JS genera estilos dinámicos (preview, highlight.js).
+- **Límite 10MB** en `read_text_file`/`read_file_base64` (`MAX_PREVIEW_SIZE`): previene DoS por preview de archivos grandes.
+- **Escapado `osascript`**: notificaciones del sistema en macOS dev usan `osascript_escape()` que escapa `\n`/`\r`/`\t` y descarta controles ASCII; sin esto, un title con `"` o `\` ejecuta AppleScript arbitrario.
+- **`expand_home()`** en `pty.rs::set_shell_cwd`: el shell emite `~` literal (convención POSIX); convertir a `$HOME` antes de `canonicalize` para no romper la validación.
 
 **Colores del prompt:**
 Los renders NO hardcodean colores. Todos usan `OCOTE_THEMES.getCurrentTokens()` que devuelve `{accent, green, blue, comment, warning, fg}` del tema activo. La FORMA identifica a Ocote; el COLOR hereda del tema.
@@ -350,6 +364,20 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 ---
 
 ## Historial de avances
+
+**Fase 4 — Avance al 2026-06-06 (sesión 22):**
+✅ **Audit de seguridad + race condition fix** — 9 fixes aplicados + build de producción verificado:
+  - **XSS en `prompt.js`** (severidad alta): `m.cwd`/`m.branch`/`m.time` del JSON de OSC 6731 se inyectaban sin escapar en los 8 renderers. Una rama git con `<img src=x onerror=…>` ejecutaba código. Fix: `esc()` local aplicada consistentemente.
+  - **Path traversal en `fs_explorer.rs`**: 10 funciones aceptaban cualquier path. Combinado con el XSS, daba lectura de `~/.ssh/id_rsa` o `/etc/passwd`. Fix: `cwd: Mutex<Option<PathBuf>>` por `shellId` en `ShellState`; `check_path_for_shell` aplicado a las 10 funciones.
+  - **Inyección en `osascript`** (severidad media): title/body de notificaciones se interpolaban sin escapar. Fix: `osascript_escape()`.
+  - **DoS por archivos grandes**: `read_text_file`/`read_file_base64` sin límite. Fix: `MAX_PREVIEW_SIZE = 10MB`.
+  - **CSP permisivo**: `default-src 'self' 'unsafe-inline' 'unsafe-eval'`. Fix: CSP estricto.
+  - **`search_files` con validación incorrecta**: usaba HOME en vez del CWD del shell. Fix: ahora también pasa `shell_id`.
+  - **Errores I/O del PTY silenciados**: el thread lector fallaba sin notificar. Fix: emite `pty-error` y loguea.
+  - **Race condition `cd ..`**: el handler OSC 6731 disparaba `set_shell_cwd` y `onShellCwdChanged` en paralelo; el explorador llamaba `list_directory` antes de que el backend actualizara el CWD → `"Operación fuera del directorio permitido"`. Fix: `set_shell_cwd.finally(() => onShellCwdChanged)`. También removidos `loadDirectory(path)` optimistas del breadcrumb y click en carpeta del explorador.
+  - **`~` no se expandía en `set_shell_cwd`**: el shell emite `~` literal. Fix: `expand_home()` convierte `~` → `$HOME` antes de canonicalizar.
+  - **Limpieza de repo**: `.gitignore` ampliado con `.agents/`, `.claude/`, `skills-lock.json` (artefactos de opencode/Claude Code) y `demo/` (proyecto HyperFrames local; assets finales en `docs/assets/`).
+✅ Build de producción final verificado: `.app` + `.dmg` en `target/release/bundle/`. Mismos 8 warnings pre-existentes de `objc` macros.
 
 **Fase 3 COMPLETADA — 2026-05-23:**
 ✅ Detección de contexto (`context.rs`): Git, Node, Rust, Python, Docker, Go, Make.

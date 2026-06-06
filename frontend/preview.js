@@ -53,7 +53,10 @@ function closePreview() {
 
 async function loadTextPreview(filePath, contentEl) {
     try {
-        const text = await window.__TAURI__.invoke('read_text_file', { path: filePath });
+        const text = await window.__TAURI__.invoke('read_text_file', {
+            path: filePath,
+            shellId: window.ocoteActiveShellId,
+        });
 
         // Si es muy grande, mostrar advertencia
         if (text.length > LARGE_FILE_WARN) {
@@ -94,7 +97,10 @@ async function loadTextPreview(filePath, contentEl) {
 
 async function loadImagePreview(filePath, contentEl) {
     try {
-        const base64 = await window.__TAURI__.invoke('read_file_base64', { path: filePath });
+        const base64 = await window.__TAURI__.invoke('read_file_base64', {
+            path: filePath,
+            shellId: window.ocoteActiveShellId,
+        });
         const ext = filePath.split('.').pop()?.toLowerCase();
         const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext === 'jpg' ? 'jpeg' : ext}`;
         contentEl.innerHTML = `

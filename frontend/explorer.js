@@ -148,7 +148,10 @@ async function loadDirectory(path, options = {}) {
     }
     
     try {
-        const entries = await window.__TAURI__.invoke('list_directory', { path });
+        const entries = await window.__TAURI__.invoke('list_directory', {
+            path,
+            shellId: window.ocoteActiveShellId,
+        });
         dirCache.set(path, { entries, timestamp: Date.now() });
         renderEntries(entries, path);
         // Git status en paralelo (no bloquea el render de archivos).
@@ -161,7 +164,10 @@ async function loadDirectory(path, options = {}) {
 
 async function refreshDirectory(path) {
     try {
-        const entries = await window.__TAURI__.invoke('list_directory', { path });
+        const entries = await window.__TAURI__.invoke('list_directory', {
+            path,
+            shellId: window.ocoteActiveShellId,
+        });
         dirCache.set(path, { entries, timestamp: Date.now() });
         // Solo re-renderizar si seguimos en este path
         if (currentPath === path) {
@@ -180,7 +186,10 @@ let currentGitStatus = {};
 
 async function loadGitStatus(path) {
     try {
-        const status = await window.__TAURI__.invoke('git_status', { path });
+        const status = await window.__TAURI__.invoke('git_status', {
+            path,
+            shellId: window.ocoteActiveShellId,
+        });
         // Solo aplicar si seguimos en el mismo directorio (evita race entre cd rápidos).
         if (currentPath !== path) return;
         currentGitStatus = status || {};
@@ -372,7 +381,11 @@ async function handleBreadcrumbClick(e) {
     } else {
         const shellId = window.ocoteActiveShellId;
         if (!shellId) return;
-        await loadDirectory(path, { instant: true });
+        // NO llamar loadDirectory(path) antes del cd: la validación estricta del
+        // backend rechaza el path si el shell todavía no cambió de cwd. El cd
+        // dispara OSC 6731, que (con la chain en terminal.js) actualiza el cwd
+        // del backend ANTES de notificar al explorador — loadDirectory se hace
+        // una sola vez, por la cadena onShellCwdChanged.
         try {
             await window.__TAURI__.invoke('write_to_shell', { shellId, input: '\x15' });
             await window.__TAURI__.invoke('write_to_shell', { shellId, input: `cd "${path}"\r` });
@@ -389,7 +402,10 @@ async function showBreadcrumbDropdown(btn, path) {
     const rect = btn.getBoundingClientRect();
     
     try {
-        const entries = await window.__TAURI__.invoke('list_directory', { path });
+        const entries = await window.__TAURI__.invoke('list_directory', {
+            path,
+            shellId: window.ocoteActiveShellId,
+        });
         const dirs = entries.filter(e => e.is_dir).sort((a, b) => a.name.localeCompare(b.name));
         
         if (dirs.length === 0) return;
@@ -421,7 +437,9 @@ async function showBreadcrumbDropdown(btn, path) {
                 const shellId = window.ocoteActiveShellId;
                 if (!shellId) return;
                 closeBreadcrumbDropdown();
-                await loadDirectory(dirPath, { instant: true });
+                // No loadDirectory aquí: el cd dispara OSC 6731 y la chain en
+                // terminal.js (set_shell_cwd → onShellCwdChanged) carga el
+                // directorio una vez que el backend ya tiene el nuevo cwd.
                 try {
                     await window.__TAURI__.invoke('write_to_shell', { shellId, input: '\x15' });
                     await window.__TAURI__.invoke('write_to_shell', { shellId, input: `cd "${dirPath}"\r` });
@@ -458,12 +476,13 @@ async function handleClick(e) {
     const isDir = item.getAttribute('data-is-dir') === 'true';
     
     if (!isDir) return;
-    
-    // Cargar directorio (con cache es instantáneo)
-    await loadDirectory(path, { instant: true });
-    
+
     const shellId = window.ocoteActiveShellId;
     if (!shellId) return;
+    // No loadDirectory aquí: con la validación estricta del backend, listar
+    // antes del cd falla porque el shell todavía no cambió de cwd. El cd
+    // dispara OSC 6731 → la chain en terminal.js actualiza el cwd del backend
+    // ANTES de invocar onShellCwdChanged → loadDirectory.
     try {
         await window.__TAURI__.invoke('write_to_shell', { shellId, input: '\x15' });
         await window.__TAURI__.invoke('write_to_shell', { shellId, input: `cd "${path}"\r` });
@@ -764,7 +783,10 @@ async function handleContextAction(action) {
                 // Si el conteo falla (permisos, etc.) seguimos con 0.
                 let count = 0;
                 try {
-                    count = await window.__TAURI__.invoke('count_dir_entries', { path: target.path });
+                    count = await window.__TAURI__.invoke('count_dir_entries', {
+                        path: target.path,
+                        shellId: window.ocoteActiveShellId,
+                    });
                 } catch (_) { /* silencioso */ }
 
                 // Mensaje diferente según si la carpeta tiene contenido o no
@@ -774,7 +796,10 @@ async function handleContextAction(action) {
 
                 if (await ocoteConfirm(dirMsg)) {
                     try {
-                        await window.__TAURI__.invoke('delete_item_recursive', { path: target.path });
+                        await window.__TAURI__.invoke('delete_item_recursive', {
+                            path: target.path,
+                            shellId: window.ocoteActiveShellId,
+                        });
                         refreshDirectory(currentPath);
                     } catch (err) {
                         console.error('[Explorer] Error al eliminar carpeta:', err);
@@ -785,7 +810,10 @@ async function handleContextAction(action) {
                 // Archivo: confirmación simple
                 if (await ocoteConfirm(`¿Eliminar "${target.name}"?`)) {
                     try {
-                        await window.__TAURI__.invoke('delete_item', { path: target.path });
+                        await window.__TAURI__.invoke('delete_item', {
+                            path: target.path,
+                            shellId: window.ocoteActiveShellId,
+                        });
                         refreshDirectory(currentPath);
                     } catch (err) {
                         console.error('[Explorer] Error al eliminar archivo:', err);
@@ -834,7 +862,11 @@ function inlineRename(item, oldPath, oldName) {
             const parent = oldPath.substring(0, oldPath.lastIndexOf('/'));
             const newPath = parent + '/' + newName;
             try {
-                await window.__TAURI__.invoke('rename_item', { oldPath, newPath });
+                await window.__TAURI__.invoke('rename_item', {
+                    oldPath,
+                    newPath,
+                    shellId: window.ocoteActiveShellId,
+                });
                 await refreshDirectory(currentPath);
             } catch (err) {
                 console.error('[Explorer] Error al renombrar:', err);
@@ -893,9 +925,15 @@ function inlineCreate(type, basePath) {
             const newPath = basePath + (basePath.endsWith('/') ? '' : '/') + name;
             try {
                 if (type === 'file') {
-                    await window.__TAURI__.invoke('create_file', { path: newPath });
+                    await window.__TAURI__.invoke('create_file', {
+                        path: newPath,
+                        shellId: window.ocoteActiveShellId,
+                    });
                 } else {
-                    await window.__TAURI__.invoke('create_directory', { path: newPath });
+                    await window.__TAURI__.invoke('create_directory', {
+                        path: newPath,
+                        shellId: window.ocoteActiveShellId,
+                    });
                 }
                 await refreshDirectory(currentPath);
             } catch (err) {

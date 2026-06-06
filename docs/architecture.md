@@ -196,12 +196,85 @@ El backend tiene dos comandos:
 El frontend detecta la extensión y decide qué hacer:
 - Código/texto → `read_text_file` + `hljs.highlightAuto()` (highlight.js bundleado, sin CDN).
 - Imágenes (png/jpg/gif/svg/webp) → `read_file_base64` + data URL en `<img>`.
-- Archivos >500KB → warning sin cargar.
+- Archivos >512KB → warning + truncado a 512KB en el preview.
+- Archivos >10MB → el backend rechaza con error (`MAX_PREVIEW_SIZE` en `fs_explorer.rs`).
 - Resto → mensaje "Vista previa no disponible".
 
 Highlight.js corre completamente en el frontend, sin servidor. El archivo bundleado pesa ~400KB y soporta 40+ lenguajes.
 
 ## Consideraciones de seguridad
+
+### Defensa contra XSS y path traversal
+
+Cualquier string que viene del shell (vía OSC 6731: `cwd`, `branch`, `time`) o del
+filesystem (nombres de archivo) se trata como no-confiable. Dos capas de defensa:
+
+**1. Escapado en frontend.** Cada renderer que pinta metadata del shell escapa:
+- `prompt.js` → `esc()` aplicada a `m.cwd`, `m.branch`, `m.time` en los 8 renderers.
+- `explorer.js` → `escapeHtml()` en entries, breadcrumbs, mensajes de error.
+- `aliases.js` → `esc()` en el editor.
+- `searcher.js` → `escHtml()` en los resultados del buscador.
+
+**2. Validación de path en backend.** Las 10 funciones de `fs_explorer.rs`
+(`list_directory`, `read_text_file`, `read_file_base64`, `create_file`,
+`create_directory`, `delete_item`, `delete_item_recursive`,
+`count_dir_entries`, `rename_item`, `search_files`) reciben `shell_id` y
+validan que su `path` sea hijo del `cwd` del shell activo (canonicalize +
+`starts_with`).
+
+El `cwd` del shell vive en `pty.rs` como `ShellState.cwd: Mutex<Option<PathBuf>>`
+por `shellId`. La única forma de setearlo es a través del comando
+`set_shell_cwd`, llamado desde el handler OSC 6731 con el JSON que el
+shell emite en cada prompt. El frontend NUNCA lo setea directamente.
+
+`check_path_for_shell` en `fs_explorer.rs`:
+```rust
+fn check_path_for_shell(path: &str, shell_id: Option<&str>) -> Result<PathBuf, String> {
+    let canonical = std::fs::canonicalize(path)
+        .map_err(|e| format!("No se pudo resolver la ruta: {}", e))?;
+    let cwd = shell_id
+        .and_then(|id| pty::get_shell_cwd(id))
+        .or_else(home_dir)
+        .ok_or("No se pudo determinar el directorio permitido")?;
+    if !canonical.starts_with(&cwd) {
+        return Err(format!("Operación fuera del directorio permitido: '{}' no está dentro de '{}'",
+            canonical.display(), cwd.display()));
+    }
+    Ok(canonical)
+}
+```
+
+El `shell_id: Option<String>` permite el caso edge del primer arranque (el
+explorador necesita cargar el directorio antes del primer OSC 6731). En ese
+caso, fallback a `home_dir()`.
+
+**3. Sincronización sin race condition.** El handler OSC 6731 en `terminal.js`
+encadena `invoke('set_shell_cwd').finally(() => onShellCwdChanged)` — el
+explorador SIEMPRE se sincroniza después de que el backend tiene el nuevo
+CWD. Esto evita el bug `"Operación fuera del directorio permitido"` que
+aparecía al hacer `cd ..` desde una subcarpeta.
+
+**4. CSP estricto** (`tauri.conf.json`):
+```
+default-src 'self'
+img-src 'self' data: asset: https://asset.localhost
+style-src 'self' 'unsafe-inline'
+script-src 'self'
+font-src 'self' data:
+```
+`'unsafe-inline'` se mantiene en styles porque el JS genera estilos
+dinámicos (preview de highlight.js, position de overlays).
+
+**5. Límite de tamaño de archivo.** `MAX_PREVIEW_SIZE = 10 * 1024 * 1024` en
+`fs_explorer.rs::read_text_file` y `read_file_base64`. Previene DoS por
+preview de archivos grandes.
+
+**6. Escapado de `osascript`.** Notificaciones del sistema en macOS dev
+usan `osascript_escape()` en `main.rs` que escapa `\n`/`\r`/`\t` y descarta
+controles ASCII. Sin esto, un title con `"` o `\` ejecuta AppleScript
+arbitrario.
+
+### Otras consideraciones
 
 - La app no hace ninguna petición de red en runtime. Todo es local.
 - El PTY corre el shell con los mismos permisos del usuario — no hay escalada de privilegios.
