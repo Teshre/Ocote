@@ -110,8 +110,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Tauri updater signing (todas las plataformas necesitan firmar
           # latest.json con la misma clave privada).
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # IMPORTANTE: el bundler de tauri-cli 1.6.3 lee TAURI_PRIVATE_KEY
+          # (no TAURI_SIGNING_PRIVATE_KEY — eso es tauri 1.8+ / CLI más nuevo).
+          # Por eso mapeamos el secret a la variable que el bundler espera.
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           # macOS code signing + notarización (solo se usan en macos-latest,
           # pero las declaramos siempre; el action las ignora en otros OS).
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
