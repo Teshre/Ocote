@@ -84,7 +84,12 @@
       "csp": "default-src 'self'; img-src 'self' data: asset: https://asset.localhost; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:"
     },
     "updater": {
-      "active": false
+      "active": true,
+      "dialog": true,
+      "endpoints": [
+        "https://github.com/Teshre/Ocote/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI3RUIyQThCNTExOUQ5MzIKUldReTJSbFJpeXJySjROVDBzZ0lhZnUzWkswTXVrWmpQZ3F4MmVrQThxY1hFYlJROC9wZVo4RjIK"
     },
     "windows": [
       {

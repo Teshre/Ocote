@@ -16,7 +16,12 @@
         "resources/icons/icon-dark.png",
         "resources/icons/icon-light.icns",
         "resources/icons/icon-dark.icns"
-      ]
+      ],
+      "macOS": {
+        "signingIdentity": "Developer ID Application: Eduardo Perry Rangel (YLM9FRNQZD)",
+        "providerShortName": null,
+        "entitlements": null
+      }
     }
   }
 }

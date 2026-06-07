@@ -5,7 +5,8 @@
   "packageManager": "pnpm@11.1.2",
   "scripts": {
     "dev": "tauri dev",
-    "build": "tauri build"
+    "build": "tauri build",
+    "build:updater": "node scripts/generate-latest-json.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.6.0"

@@ -16,6 +16,18 @@
 #   Windows → Ocote_0.6.0_x64-setup.exe
 #   Linux   → Ocote_0.6.0_amd64.AppImage
 #             Ocote_0.6.0_amd64.deb
+#
+# ── Secretos de GitHub requeridos (en Settings → Secrets → Actions) ──────
+#
+#   TAURI_SIGNING_PRIVATE_KEY         contenido de ~/.tauri/ocote.key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  contraseña que pusiste al generarla
+#   APPLE_CERTIFICATE                 .p12 de Developer ID Application
+#                                     en base64 (cat cert.p12 | base64)
+#   APPLE_CERTIFICATE_PASSWORD        contraseña del .p12
+#   APPLE_SIGNING_IDENTITY            "Developer ID Application: Nombre (TEAMID)"
+#   APPLE_ID                          tu email de Apple Developer
+#   APPLE_PASSWORD                    app-specific password (appleid.apple.com)
+#   APPLE_TEAM_ID                     tu Team ID (10 chars, ej. A1B2C3D4E5)
 
 name: Release
 
@@ -26,6 +38,7 @@ on:
 
 jobs:
   release:
+    environment: ocote   # lee los secrets del environment "ocote" en lugar de los del repo
     strategy:
       fail-fast: false   # si un build falla, los otros dos siguen corriendo
       matrix:
@@ -84,12 +97,28 @@ jobs:
         run: pnpm install
 
       # ── 6. Build Tauri ───────────────────────────────────────────────────
-      # tauri-action maneja todo: cargo build --release, empaquetado,
-      # creación del GitHub Release y subida de artefactos.
+      # tauri-action maneja todo: cargo build --release, code signing macOS,
+      # notarización, generación de latest.json (para auto-updater), creación
+      # del GitHub Release y subida de artefactos.
+      #
+      # Los secrets se pasan como env vars — tauri-action los lee y los usa
+      # para firmar el binario macOS y para firmar el latest.json del updater.
       - name: Build y publicar release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Tauri updater signing (todas las plataformas necesitan firmar
+          # latest.json con la misma clave privada).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # macOS code signing + notarización (solo se usan en macos-latest,
+          # pero las declaramos siempre; el action las ignora en otros OS).
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: ${{ github.ref_name }}         # ej: v0.6.0
           releaseName: 'Ocote ${{ github.ref_name }}'
@@ -107,3 +136,6 @@ jobs:
             Consulta [CHANGELOG.md](https://github.com/Teshre/Ocote/blob/main/CHANGELOG.md) para ver los cambios de esta versión.
           releaseDraft: true      # crea el release como borrador — tú decides cuándo publicar
           prerelease: false
+          # includeUpdaterJson: true (es el default) — genera latest.json
+          # para que el auto-updater lo descargue
+
