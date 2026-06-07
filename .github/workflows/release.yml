@@ -38,6 +38,11 @@ on:
 
 jobs:
   release:
+    # Permisos explícitos: el GITHUB_TOKEN por defecto es read-only en
+    # contents, lo que rompe "create a release". `contents: write` permite
+    # a tauri-action crear el draft release y subir los assets.
+    permissions:
+      contents: write
     # Sin `environment:` → lee los secrets a nivel de repositorio.
     # (Los environment secrets tienen un bug con tauri-action v0: el valor llega vacío.)
     strategy:
