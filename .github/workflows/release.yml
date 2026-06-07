@@ -38,7 +38,8 @@ on:
 
 jobs:
   release:
-    environment: ocote   # lee los secrets del environment "ocote" en lugar de los del repo
+    # Sin `environment:` → lee los secrets a nivel de repositorio.
+    # (Los environment secrets tienen un bug con tauri-action v0: el valor llega vacío.)
     strategy:
       fail-fast: false   # si un build falla, los otros dos siguen corriendo
       matrix:
