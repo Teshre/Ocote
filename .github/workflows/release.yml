@@ -97,7 +97,31 @@ jobs:
       - name: Instalar dependencias de frontend
         run: pnpm install
 
-      # ── 6. Build Tauri ───────────────────────────────────────────────────
+      # ── 6. Clave updater: secret → archivo ────────────────────────────────
+      # La clave privada de minisign es multi-línea (PEM-like, ~590 bytes).
+      # Cuando GitHub la expande en una env var, a veces introduce/saca
+      # newlines y el bundler de minisign falla con "Invalid symbol 10,
+      # offset 464" (byte \n inesperado).
+      #
+      # Truco: escribir el contenido del secret a un archivo y pasarle al
+      # bundler la RUTA del archivo. El bundler detecta el path (Path::exists)
+      # y lee el archivo directo, sin pasar por la expansión del env var.
+      - name: Escribir clave updater a archivo
+        shell: bash
+        env:
+          RAW_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          # RUNNER_TEMP es cross-platform (Linux/macOS/Windows).
+          # En Windows con bash, traducimos backslashes a forward slashes.
+          KEY_DIR="${RUNNER_TEMP//\\/\/}"
+          KEY_FILE="$KEY_DIR/ocote.key"
+          # printf '%s' NO agrega newline final — escribe el contenido exacto.
+          printf '%s' "$RAW_KEY" > "$KEY_FILE"
+          echo "Key file: $KEY_FILE ($(wc -c < "$KEY_FILE") bytes)"
+          echo "Head: $(head -c 30 "$KEY_FILE")"
+
+      # ── 7. Build Tauri ───────────────────────────────────────────────────
       # tauri-action maneja todo: cargo build --release, code signing macOS,
       # notarización, generación de latest.json (para auto-updater), creación
       # del GitHub Release y subida de artefactos.
@@ -110,10 +134,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Tauri updater signing (todas las plataformas necesitan firmar
           # latest.json con la misma clave privada).
-          # IMPORTANTE: el bundler de tauri-cli 1.6.3 lee TAURI_PRIVATE_KEY
+          # IMPORTANTE 1: el bundler de tauri-cli 1.6.3 lee TAURI_PRIVATE_KEY
           # (no TAURI_SIGNING_PRIVATE_KEY — eso es tauri 1.8+ / CLI más nuevo).
-          # Por eso mapeamos el secret a la variable que el bundler espera.
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          # IMPORTANTE 2: pasamos la RUTA del archivo (no el contenido) para
+          # evitar que GitHub meta/saque newlines al expandir el secret.
+          TAURI_PRIVATE_KEY: ${{ runner.temp }}/ocote.key
           TAURI_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           # macOS code signing + notarización (solo se usan en macos-latest,
           # pero las declaramos siempre; el action las ignora en otros OS).
