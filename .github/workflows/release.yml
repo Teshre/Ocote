@@ -137,9 +137,13 @@ jobs:
           # IMPORTANTE 1: el bundler de tauri-cli 1.6.3 lee TAURI_PRIVATE_KEY
           # (no TAURI_SIGNING_PRIVATE_KEY — eso es tauri 1.8+ / CLI más nuevo).
           # IMPORTANTE 2: pasamos la RUTA del archivo (no el contenido) para
-          # evitar que GitHub meta/saque newlines al expandir el secret.
+          # evitar que GitHub meta/saca newlines al expandir el secret.
+          # IMPORTANTE 3: el bundler lee el password de TAURI_KEY_PASSWORD
+          # (no TAURI_PRIVATE_KEY_PASSWORD). Si la var no está y CI=true,
+          # el bundler usa string vacío como password → "Wrong password"
+          # para claves con password real.
           TAURI_PRIVATE_KEY: ${{ runner.temp }}/ocote.key
-          TAURI_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           # macOS code signing + notarización (solo se usan en macos-latest,
           # pero las declaramos siempre; el action las ignora en otros OS).
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
