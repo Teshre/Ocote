@@ -98,6 +98,12 @@ Ocote ships with the tools you'd normally install and configure by hand:
 
 ## 📦 Installation
 
+### Via Homebrew (macOS, Apple Silicon)
+```bash
+brew tap Teshre/ocote
+brew install --cask ocote
+```
+
 ### From binaries
 Download the latest version for your platform from [Releases](https://github.com/Teshre/Ocote/releases):
 - **macOS:** `.dmg` (Apple Silicon / Intel)
