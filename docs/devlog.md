@@ -5,6 +5,22 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-06-09 — Sesión 23: fix carpetas con acentos en producción
+
+**Reporte:** post-lanzamiento (3 updates ya en producción), el explorador seguía lanzando "Directorio padre inválido '/Users/acala/Cafe\xcc\x81 Divergente': No such file or directory" al entrar a carpetas acentuadas. Solo en el build empaquetado — en dev no ocurría.
+
+**Diagnóstico:** el nombre `Cafe\xcc\x81 Divergente` es "Café" en NFD (descompuesto: `e` + acento combinante). Revisando el disco, el usuario tiene normalización MIXTA: "Café Divergente" en NFD, pero "Café Divergente-Hub" y "Café" en NFC — distintas carpetas con distinta forma según cómo/cuándo se crearon. El fix anterior (`nfc_path`) solo normalizaba la COMPARACIÓN de seguridad (`starts_with`), pero `path.exists()` y `canonicalize()` seguían operando byte a byte. Cuando el path llegaba en una forma que no byte-coincidía con el disco, `canonicalize` daba ENOENT → caía al branch de "directorio padre" → error.
+
+**Por qué dev sí y prod no:** no se confirmó el mecanismo exacto del entorno de producción (mismo FS, misma máquina), pero el insight que hace el fix robusto: en APFS estándar (normalization-insensitive), `canonicalize()` de la forma **NFC** resuelve un archivo existente SIN IMPORTAR su forma en disco. Así que probar NFC garantiza éxito aunque la forma cruda falle por lo que sea del entorno empaquetado.
+
+**Fix:** `resolve_existing(path)` prueba canonicalize en orden: cruda → NFC → NFD, devuelve la primera que el FS resuelva. `validate_path_in_root` lo usa para root, path y parent. Como los 13 comandos de archivos pasan por `check_path_for_shell → validate_path_in_root`, todos quedan cubiertos (no solo el explorador). Bajo riesgo: prueba la forma cruda primero (dev intacto).
+
+**Lección:** normalizar para comparar NO basta; las llamadas reales al FS (`exists`, `canonicalize`, `read_dir`) también necesitan tolerancia de normalización. Especialmente crítico para Ocote (audiencia LatAm → muchos nombres con acentos/ñ).
+
+**Pendiente:** verificar en el `.app` de release (el bug es prod-only).
+
+---
+
 ## 2026-06-06 — Sesión 22: audit de seguridad + race condition fix
 
 **Estado al inicio:** features pre-lanzamiento completas. Antes de la distribución, un audit

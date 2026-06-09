@@ -313,6 +313,7 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 - **Borrado de carpetas**: primero `count_dir_entries()` para mostrar el número en el confirm; luego `delete_item_recursive()` con `remove_dir_all`. Flujo separado para archivos (usa `delete_item` existente).
 - **Redimensionamiento**: `resizer.js` escucha `mousedown/move/up` en los handles. Desactiva `transition: none` durante el drag para evitar lag. MutationObserver reactiva/oculta el handle según el estado del panel.
 - **Preview** (`preview.js`): `read_text_file()` para código/texto; `read_file_base64()` para imágenes. Highlight.js corre en el frontend, no en Rust.
+- **Normalización Unicode de paths (CRÍTICO)**: macOS guarda nombres en NFC (`é`) o NFD (`e`+◌́) según cómo se crearon — incluso mezclado en el mismo directorio. `validate_path_in_root` usa `resolve_existing(path)` que prueba `canonicalize()` en cruda→NFC→NFD y devuelve la primera que resuelva. NUNCA usar `path.exists()`/`canonicalize()` directo sobre paths del usuario: fallan con ENOENT si la forma no byte-coincide con el disco (bug de "Café Divergente" en producción). En APFS estándar, la forma NFC siempre resuelve. Igual para leer archivos de texto/historial: usar `from_utf8_lossy` (ver stats.rs).
 
 ### Sistema de notificaciones
 - **Dot de tab** (`tab-manager.js → setTabStatus`): aparece en tabs de fondo cuando termina un comando. Verde (éxito) 4s; rojo (error) persiste. Se limpia en `switchTab`. El span `.tab-status` está en cada tab del DOM.

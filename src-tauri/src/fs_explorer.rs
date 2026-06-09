@@ -33,26 +33,52 @@ fn nfc_path(p: &Path) -> PathBuf {
     p.to_string_lossy().nfc().collect::<String>().into()
 }
 
+/// Intenta canonicalizar un path probando su forma CRUDA, luego NFC y luego NFD.
+///
+/// El bug de los acentos (p. ej. "Café Divergente"): el frontend/shell puede
+/// pasar el path en una forma de normalización Unicode (NFC: `é`) que NO
+/// byte-coincide con cómo está guardado en disco (NFD: `e`+◌́), o viceversa.
+/// `canonicalize()` opera sobre bytes exactos, así que falla con ENOENT aunque
+/// la carpeta exista. Probamos las 3 formas y devolvemos la primera que el
+/// sistema de archivos resuelva — sea cual sea la normalización en disco.
+fn resolve_existing(p: &Path) -> Option<PathBuf> {
+    use unicode_normalization::UnicodeNormalization;
+    if let Ok(c) = p.canonicalize() {
+        return Some(c);
+    }
+    let s = p.to_string_lossy();
+    let nfc: PathBuf = s.nfc().collect::<String>().into();
+    if let Ok(c) = nfc.canonicalize() {
+        return Some(c);
+    }
+    let nfd: PathBuf = s.nfd().collect::<String>().into();
+    if let Ok(c) = nfd.canonicalize() {
+        return Some(c);
+    }
+    None
+}
+
 /// Verifica que `path` esté dentro de `root` (tras canonicalizar ambos).
 /// Devuelve el path canónico si pasa la validación, o un error.
 /// `path` puede no existir (create_file/create_directory) → en ese caso
 /// canonicaliza el parent.
 fn validate_path_in_root(path: &Path, root: &Path) -> Result<PathBuf, String> {
-    // Canonicalizar el root (debe existir).
-    let root_canon = root.canonicalize()
-        .map_err(|e| format!("CWD inválido: {}", e))?;
+    // Canonicalizar el root (debe existir) — tolerante a normalización.
+    let root_canon = resolve_existing(root)
+        .ok_or_else(|| format!("CWD inválido: {}", root.display()))?;
     let root_nfc = nfc_path(&root_canon);
 
-    // Si el path existe, canonicalizarlo directo.
-    // Si no, canonicalizar el parent y reconstruir.
-    let path_canon = if path.exists() {
-        path.canonicalize()
-            .map_err(|e| format!("Ruta inválida '{}': {}", path.display(), e))?
+    // Si el path existe (en cualquier forma de normalización), usar esa forma
+    // canónica. Si no existe (create_file/create_directory), resolver el parent
+    // y reconstruir. resolve_existing prueba cruda/NFC/NFD → arregla el bug de
+    // los acentos donde canonicalize fallaba por bytes que no coinciden.
+    let path_canon = if let Some(c) = resolve_existing(path) {
+        c
     } else {
         let parent = path.parent()
             .ok_or_else(|| format!("Ruta sin directorio padre: {}", path.display()))?;
-        let parent_canon = parent.canonicalize()
-            .map_err(|e| format!("Directorio padre inválido '{}': {}", parent.display(), e))?;
+        let parent_canon = resolve_existing(parent)
+            .ok_or_else(|| format!("Directorio padre inválido '{}': no existe", parent.display()))?;
         parent_canon.join(path.file_name().ok_or_else(|| "Ruta sin nombre".to_string())?)
     };
     let path_nfc = nfc_path(&path_canon);

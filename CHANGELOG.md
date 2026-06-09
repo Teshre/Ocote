@@ -49,6 +49,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 Próximo paso: auto-updater, build de producción continuo.
 (Ícono real, landing page y SEO concluidos en otras conversaciones.)
 
+### Corregido — 2026-06-09 (sesión 23)
+
+- **Carpetas con acentos en producción** (`Café Divergente`, etc.): el explorador y la terminal lanzaban "Directorio padre inválido … No such file or directory" al entrar a carpetas con caracteres acentuados (solo en el build empaquetado, no en dev). Causa: la validación de paths usaba `canonicalize()`/`exists()` con bytes exactos, y macOS guarda los nombres en distinta forma de normalización Unicode (NFC `é` vs NFD `e`+◌́) según cómo se crearon. El path llegaba en una forma que no byte-coincidía con el disco → ENOENT. Fix: `resolve_existing()` prueba la forma cruda, NFC y NFD; en APFS estándar la forma NFC siempre resuelve sin importar la del disco. Aplica a los 13 comandos de archivos (listar, preview, crear, renombrar, eliminar, buscar, git status).
+
 ### Seguridad — 2026-06-06 (sesión 22)
 
 Audit de seguridad + corrección de race condition. Build de producción verificado
