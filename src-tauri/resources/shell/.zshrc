@@ -73,8 +73,11 @@ fi
 ZDOTDIR="$_ocote_user_zdotdir"
 
 # ── 7. Historial fuera del bundle ──────────────────────────────────────────
-# Por defecto zsh escribe $ZDOTDIR/.zsh_history. Como nuestro ZDOTDIR estaba
-# dentro del .app, el historial se creaba ahí y rompía la firma de macOS.
-# Redirigir a ~/.zsh_history (o el HISTFILE que el usuario ya tenga).
-# Si el usuario configuró HISTFILE en su .zshrc (ya se cargó arriba), respetarlo.
-: "${HISTFILE:=$HOME/.zsh_history}"
+# Zsh setea HISTFILE a $ZDOTDIR/.zsh_history durante la inicialización
+# (antes de .zshenv). Con ZDOTDIR dentro del .app, el historial rompe la
+# firma de macOS. Si HISTFILE todavía apunta al bundle, redirigir afuera.
+# Si el usuario ya configuró HISTFILE en su .zshenv/.zshrc (pasos previos),
+# respetarlo (no coincide con _ocote_self_zdotdir).
+if [[ -n "$_ocote_self_zdotdir" && "$HISTFILE" == "$_ocote_self_zdotdir"* ]]; then
+  HISTFILE="${HOME}/.zsh_history"
+fi

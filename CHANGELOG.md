@@ -12,13 +12,20 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - Assets distribuidos vía GitHub Releases con verificación criptográfica (`latest.json` + firmas).
 - Landing page (ocote.app) actualizada con versión y enlaces a la release.
 
+## [0.5.7] — 2026-06-09
+
+### Corregido
+- **Fix del fix de HISTFILE**: v0.5.6 usó `: "${HISTFILE:=$HOME/.zsh_history}"` que no funciona porque
+  zsh setea `HISTFILE` antes de leer `.zshrc`. El `:=` condicional nunca se dispara. Ahora se verifica
+  si `HISTFILE` apunta al bundle y se redirige forzadamente.
+
 ## [0.5.6] — 2026-06-09
 
 ### Corregido
 - **Code signing seal roto por zsh history dentro del bundle**: Ocote setea `ZDOTDIR` a `resources/shell/`
   dentro del `.app`. Zsh por defecto escribe el historial en `$ZDOTDIR/.zsh_history`, creando un archivo
   dentro del bundle firmado. macOS Gatekeeper detectaba la modificación → sello roto → auto-updater
-  dejaba la app "dañada". Fix: `HISTFILE="$HOME/.zsh_history"` en `.zshrc`.
+  dejaba la app "dañada". Fix: redirigir HISTFILE fuera del bundle en `.zshrc`.
 
 ## [0.5.5] — 2026-06-09
 
