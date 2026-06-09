@@ -17,7 +17,7 @@ function showOnboarding() {
     // Ajustar el logo a la variante de ícono elegida en Settings (light/dark).
     const logo = document.getElementById('onboarding-logo');
     if (logo) {
-        const variant = localStorage.getItem('ocote_app_icon') || 'dark';
+        const variant = localStorage.getItem('ocote_app_icon') || 'light';
         logo.src = variant === 'light' ? 'icons/icon-light.png' : 'icons/icon-dark.png';
     }
     overlay.classList.remove('hidden');

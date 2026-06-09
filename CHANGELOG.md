@@ -12,6 +12,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - Assets distribuidos vía GitHub Releases con verificación criptográfica (`latest.json` + firmas).
 - Landing page (ocote.app) actualizada con versión y enlaces a la release.
 
+## [0.5.8] — 2026-06-09
+
+### Corregido
+- **Ícono por defecto ahora es light**: el bundle `.app` usaba el ícono dark como predeterminado.
+  El light es el diseño base (el dark es la variante). Se cambió `icons/icon.icns` y `icons/icon.png`
+  a la versión light. Tambien se actualizó `DEFAULTS.appIcon` en settings y onboarding a `'light'`.
+
 ## [0.5.7] — 2026-06-09
 
 ### Corregido

@@ -12,7 +12,7 @@
     iconTheme:           'seti',
     lang:                'es',
     prompt:              'pill',
-    appIcon:             'dark',
+    appIcon:             'light',
     fontSize:            14,
     cursorStyle:         'block',
     scrollback:          10000,
