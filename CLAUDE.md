@@ -69,8 +69,8 @@ ckb/
 - **Fase 3 (Meses 8-12):** Tooltip educativo, sugerencias contextuales, onboarding, distribución
 - **Fase 4 (Meses 12-18):** Comunidad, devlog, lanzamiento, credibilidad técnica
 
-## Estado actual — 2026-06-06
-**Fases 2, 3 y 4 en progreso. Features pre-lanzamiento completas; audit de seguridad aplicado.**
+## Estado actual — 2026-06-09
+**Release v0.5.4 publicada con binarios firmados. Features pre-lanzamiento completas; audit de seguridad aplicado.**
 
 - zsh/bash/fish/PowerShell conectado al PTY (`pty.rs` con `portable-pty`) ✅
 - xterm.js renderizado (migrado desde parser VT custom) ✅

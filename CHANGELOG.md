@@ -5,10 +5,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [0.5.4] — 2026-06-09
+
+### Agregado
+- Primer lanzamiento público con binarios firmados para macOS, Windows y Linux.
+- Assets distribuidos vía GitHub Releases con verificación criptográfica (`latest.json` + firmas).
+- Landing page (ocote.app) actualizada con versión y enlaces a la release.
+
 ## [Unreleased]
 
 ### Fase 4 — En progreso
-Próximo paso: firma de código macOS, auto-updater, build de producción final.
+Próximo paso: auto-updater, build de producción continuo.
 (Ícono real, landing page y SEO concluidos en otras conversaciones.)
 
 ### Seguridad — 2026-06-06 (sesión 22)

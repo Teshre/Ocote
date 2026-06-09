@@ -98,9 +98,7 @@ Ocote trae integradas las herramientas que normalmente instalas y configuras a m
 
 ## 📦 Instalación
 
-> ⚠️ Ocote está en desarrollo activo (Fase 4 / pre-lanzamiento). Los binarios firmados llegarán pronto.
-
-### Desde binarios (próximamente)
+### Desde binarios
 Descarga la última versión para tu plataforma desde [Releases](https://github.com/Teshre/Ocote/releases):
 - **macOS:** `.dmg` (Apple Silicon / Intel)
 - **Windows:** `.exe` (instalador NSIS)
