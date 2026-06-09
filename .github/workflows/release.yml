@@ -1,33 +1,17 @@
-# release.yml — Build y distribución multiplataforma de Ocote
+# release.yml — Build (Linux + Windows) + release draft
 #
-# Se activa cuando haces push de un tag que empiece con "v" (ej. v0.6.0).
-# Crea tres builds en paralelo — uno por plataforma — y los sube como
-# artefactos a un GitHub Release en borrador listo para publicar.
+# macOS se genera LOCALMENTE (evita el costo de runners macOS en CI).
+# Flujo completo para un release:
+#   1. En tu Mac: pnpm tauri build     → produce .dmg + .app.tar.gz
+#   2. En tu Mac: scripts/generate-latest-json.mjs → produce latest.json
+#   3. git tag v0.6.0; git push origin v0.6.0
+#   4. Esperar ~10 min a que CI suba Linux + Windows al borrador
+#   5. Subir .dmg + .app.tar.gz + .sig + latest.json de macOS manualmente
+#   6. Ir a GitHub → Releases → publicar el borrador
 #
-# Cómo lanzar un release:
-#   1. git tag v0.6.0
-#   2. git push origin v0.6.0
-#   3. Esperar ~10 minutos a que los tres builds terminen
-#   4. Ir a GitHub → Releases → editar el borrador y publicarlo
-#
-# Artefactos generados:
-#   macOS   → Ocote_0.6.0_aarch64.dmg  (Apple Silicon)
-#             Ocote_0.6.0_x64.dmg       (Intel Mac, si se configura)
+# Artefactos generados por CI:
 #   Windows → Ocote_0.6.0_x64-setup.exe
-#   Linux   → Ocote_0.6.0_amd64.AppImage
-#             Ocote_0.6.0_amd64.deb
-#
-# ── Secretos de GitHub requeridos (en Settings → Secrets → Actions) ──────
-#
-#   TAURI_SIGNING_PRIVATE_KEY         contenido de ~/.tauri/ocote.key
-#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  contraseña que pusiste al generarla
-#   APPLE_CERTIFICATE                 .p12 de Developer ID Application
-#                                     en base64 (cat cert.p12 | base64)
-#   APPLE_CERTIFICATE_PASSWORD        contraseña del .p12
-#   APPLE_SIGNING_IDENTITY            "Developer ID Application: Nombre (TEAMID)"
-#   APPLE_ID                          tu email de Apple Developer
-#   APPLE_PASSWORD                    app-specific password (appleid.apple.com)
-#   APPLE_TEAM_ID                     tu Team ID (10 chars, ej. A1B2C3D4E5)
+#   Linux   → Ocote_0.6.0_amd64.AppImage / .deb
 
 name: Release
 
@@ -49,7 +33,6 @@ jobs:
       fail-fast: false   # si un build falla, los otros dos siguen corriendo
       matrix:
         platform:
-          - macos-latest      # compila .dmg (Apple Silicon + Intel)
           - ubuntu-22.04      # compila .AppImage y .deb
           - windows-latest    # compila .exe (NSIS installer)
 
@@ -149,14 +132,8 @@ jobs:
           # para claves con password real.
           TAURI_PRIVATE_KEY: ${{ runner.temp }}/ocote.key
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # macOS code signing + notarización (solo se usan en macos-latest,
-          # pero las declaramos siempre; el action las ignora en otros OS).
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Nota: macOS se builda localmente. Las variables APPLE_* existen en
+          # secrets si alguna vez volvés a agregar macos-latest al matrix.
         with:
           tagName: ${{ github.ref_name }}         # ej: v0.6.0
           releaseName: 'Ocote ${{ github.ref_name }}'
