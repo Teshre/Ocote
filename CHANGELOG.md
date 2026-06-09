@@ -12,6 +12,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - Assets distribuidos vía GitHub Releases con verificación criptográfica (`latest.json` + firmas).
 - Landing page (ocote.app) actualizada con versión y enlaces a la release.
 
+## [0.5.5] — 2026-06-09
+
+### Corregido
+- **Explorer race condition con paths acentuados**: paths con caracteres no-ASCII (como `Café Divergente-Hub`)
+  fallaban con "Operación fuera del directorio permitido" por diferencia de normalización Unicode
+  (NFC vs NFD). Fix: normalización NFC en `validate_path_in_root` y `set_shell_cwd`.
+- **Shell path escaping**: `cd` desde el explorador ahora escapa correctamente paths con `$`, `"` o `` ` ``.
+- **Retry en loadDirectory**: reintento automático ante race condition transitoria del CWD del backend.
+
 ## [Unreleased]
 
 ### Fase 4 — En progreso

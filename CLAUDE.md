@@ -70,7 +70,7 @@ ckb/
 - **Fase 4 (Meses 12-18):** Comunidad, devlog, lanzamiento, credibilidad técnica
 
 ## Estado actual — 2026-06-09
-**Release v0.5.4 publicada con binarios firmados. Features pre-lanzamiento completas; audit de seguridad aplicado.**
+**Release v0.5.5 publicada. Fix de normalización Unicode + escapado de paths + retry en explorador.**
 
 - zsh/bash/fish/PowerShell conectado al PTY (`pty.rs` con `portable-pty`) ✅
 - xterm.js renderizado (migrado desde parser VT custom) ✅
