@@ -4,6 +4,11 @@
 // NOTA: Usamos window.__TAURI__.invoke directamente porque terminal.js ya declaró `const { invoke }`
 // y los scripts en el scope global no permiten redeclarar `const`.
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+// Escapa un path para usarlo como argumento en shell dentro de single quotes.
+// En single quotes todo es literal excepto ' — que se escapa como '\''
+function escShell(p) { return "'" + p.replace(/'/g, "'\\''") + "'"; }
+
 // ── Referencias DOM ───────────────────────────────────────────────────────
 const panel = document.getElementById('explorer-content');
 const explorerBreadcrumb = document.getElementById('explorer-breadcrumb');
@@ -157,8 +162,24 @@ async function loadDirectory(path, options = {}) {
         // Git status en paralelo (no bloquea el render de archivos).
         loadGitStatus(path);
     } catch (err) {
-        console.error('[Explorer] Error cargando directorio:', err);
-        panel.innerHTML = `<div style="padding:12px;color:#e06c75;font-size:11px">${escapeHtml(String(err))}</div>`;
+        const msg = String(err);
+        // Si es race condition (el backend aún no actualizó el CWD), reintentar
+        // una vez tras 300ms.
+        if (msg.includes('fuera del directorio permitido')) {
+            try {
+                await new Promise(r => setTimeout(r, 300));
+                const entries = await window.__TAURI__.invoke('list_directory', {
+                    path,
+                    shellId: window.ocoteActiveShellId,
+                });
+                dirCache.set(path, { entries, timestamp: Date.now() });
+                renderEntries(entries, path);
+                loadGitStatus(path);
+                return;
+            } catch (_) {}
+        }
+        console.error('[Explorer] Error cargando directorio:', msg);
+        panel.innerHTML = `<div style="padding:12px;color:#e06c75;font-size:11px">${escapeHtml(msg)}</div>`;
     }
 }
 
@@ -388,7 +409,7 @@ async function handleBreadcrumbClick(e) {
         // una sola vez, por la cadena onShellCwdChanged.
         try {
             await window.__TAURI__.invoke('write_to_shell', { shellId, input: '\x15' });
-            await window.__TAURI__.invoke('write_to_shell', { shellId, input: `cd "${path}"\r` });
+            await window.__TAURI__.invoke('write_to_shell', { shellId, input: `cd ${escShell(path)}\r` });
             if (window.resetTerminalInput) window.resetTerminalInput();
         } catch (err) {
             console.error('[Explorer] Error al sincronizar breadcrumb:', err);
