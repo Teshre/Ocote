@@ -1,15 +1,16 @@
-# release.yml — Build (Linux + Windows) + release draft
+# release.yml — Build y distribución multiplataforma de Ocote
 #
-# macOS se genera LOCALMENTE (evita el costo de runners macOS en CI).
-# Flujo completo para un release:
-#   1. En tu Mac: pnpm tauri build     → produce .dmg + .app.tar.gz
-#   2. En tu Mac: scripts/generate-latest-json.mjs → produce latest.json
-#   3. git tag v0.6.0; git push origin v0.6.0
-#   4. Esperar ~10 min a que CI suba Linux + Windows al borrador
-#   5. Subir .dmg + .app.tar.gz + .sig + latest.json de macOS manualmente
-#   6. Ir a GitHub → Releases → publicar el borrador
+# Repo público → GitHub Actions ILIMITADOS gratis (incluye macOS).
+# Se activa cuando hacés push de un tag que empiece con "v".
+# Crea tres builds en paralelo y los sube a un GitHub Release borrador.
 #
-# Artefactos generados por CI:
+# Cómo lanzar un release:
+#   1. git tag v0.6.0; git push origin v0.6.0
+#   2. Esperar ~25 min a que los tres builds terminen
+#   3. Ir a GitHub → Releases → publicar el borrador
+#
+# Artefactos generados:
+#   macOS   → Ocote_0.6.0_aarch64.dmg (Apple Silicon)
 #   Windows → Ocote_0.6.0_x64-setup.exe
 #   Linux   → Ocote_0.6.0_amd64.AppImage / .deb
 
@@ -33,6 +34,7 @@ jobs:
       fail-fast: false   # si un build falla, los otros dos siguen corriendo
       matrix:
         platform:
+          - macos-latest      # compila .dmg (Apple Silicon)
           - ubuntu-22.04      # compila .AppImage y .deb
           - windows-latest    # compila .exe (NSIS installer)
 
@@ -132,8 +134,14 @@ jobs:
           # para claves con password real.
           TAURI_PRIVATE_KEY: ${{ runner.temp }}/ocote.key
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # Nota: macOS se builda localmente. Las variables APPLE_* existen en
-          # secrets si alguna vez volvés a agregar macos-latest al matrix.
+          # macOS code signing + notarización (solo macos-latest las usa;
+          # los otros runners ignoran estas env vars).
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: ${{ github.ref_name }}         # ej: v0.6.0
           releaseName: 'Ocote ${{ github.ref_name }}'
