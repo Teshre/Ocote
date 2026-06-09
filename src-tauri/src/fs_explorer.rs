@@ -25,6 +25,14 @@ use std::process::Command;
 // cuando llega OSC 6731. Si el shell nunca reportó cwd, las operaciones se
 // rechazan (return Err).
 
+/// Normaliza un path a NFC. macOS puede almacenar paths en NFD
+/// (HFS+/APFS) o NFC según cómo se crearon. Al comparar con starts_with
+/// los bytes deben coincidir exactamente, así que normalizamos ambos.
+fn nfc_path(p: &Path) -> PathBuf {
+    use unicode_normalization::UnicodeNormalization;
+    p.to_string_lossy().nfc().collect::<String>().into()
+}
+
 /// Verifica que `path` esté dentro de `root` (tras canonicalizar ambos).
 /// Devuelve el path canónico si pasa la validación, o un error.
 /// `path` puede no existir (create_file/create_directory) → en ese caso
@@ -33,6 +41,7 @@ fn validate_path_in_root(path: &Path, root: &Path) -> Result<PathBuf, String> {
     // Canonicalizar el root (debe existir).
     let root_canon = root.canonicalize()
         .map_err(|e| format!("CWD inválido: {}", e))?;
+    let root_nfc = nfc_path(&root_canon);
 
     // Si el path existe, canonicalizarlo directo.
     // Si no, canonicalizar el parent y reconstruir.
@@ -46,8 +55,9 @@ fn validate_path_in_root(path: &Path, root: &Path) -> Result<PathBuf, String> {
             .map_err(|e| format!("Directorio padre inválido '{}': {}", parent.display(), e))?;
         parent_canon.join(path.file_name().ok_or_else(|| "Ruta sin nombre".to_string())?)
     };
+    let path_nfc = nfc_path(&path_canon);
 
-    if !path_canon.starts_with(&root_canon) {
+    if !path_nfc.starts_with(&root_nfc) {
         return Err(format!(
             "Operación fuera del directorio permitido: '{}' no está dentro de '{}'",
             path_canon.display(), root_canon.display()

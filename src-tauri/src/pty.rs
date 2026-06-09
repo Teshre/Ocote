@@ -21,6 +21,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 // Manager se necesita en todas las plataformas para resolve_resource + set_icon
 use tauri::Manager;
+use unicode_normalization::UnicodeNormalization;
 
 // ── Estado de un shell individual ────────────────────────────────────────
 
@@ -587,7 +588,9 @@ pub fn set_shell_cwd(
     // Canonicalizar resuelve symlinks. Si falla (path no existe), guardar la
     // ruta tal cual — la validación happens en fs_explorer.rs al usar el path.
     let resolved = expanded.canonicalize().unwrap_or(expanded);
+    // Normalizar a NFC para que coincida con la normalización en fs_explorer.rs
+    let normalized: PathBuf = resolved.to_string_lossy().nfc().collect::<String>().into();
 
-    *shell.cwd.lock().unwrap() = Some(resolved);
+    *shell.cwd.lock().unwrap() = Some(normalized);
     Ok(())
 }
