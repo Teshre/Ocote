@@ -69,8 +69,8 @@
         },
         "nsis": {
           "installMode": "currentUser",
-          "languages": ["SimpChinese"],
-          "displayLanguageSelector": false
+          "languages": ["SpanishInternational", "Spanish", "English", "PortugueseBR", "French", "German"],
+          "displayLanguageSelector": true
         }
       },
       "deb": {
