@@ -12,13 +12,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - Assets distribuidos vía GitHub Releases con verificación criptográfica (`latest.json` + firmas).
 - Landing page (ocote.app) actualizada con versión y enlaces a la release.
 
+## [0.6.0] — 2026-06-09
+
+### Corregido
+- **Causa raíz del bug de acentos en producción**: `get_shell_cwd` usaba `lsof` que bajo locale C
+  (el entorno del `.app` en Finder) escapa bytes no-ASCII como `\xc3\xa9` literal. El explorador
+  recibía un path corrupto que no existe. Fix: lanzar `lsof` con `LC_ALL=en_US.UTF-8` y añadir
+  `decode_lsof_escapes()` como red de seguridad.
+
 ## [0.5.9] — 2026-06-09
 
 ### Corregido
-- **Carpetas con acentos en producción**: el explorador fallaba con paths normalizados NFC/NFD en
-  macOS en producción pero no en desarrollo. Fix: normalización de paths en `list_directory`.
-- **Instalador de Windows en chino**: el instalador NSIS mostraba chino simplificado en lugar de
-  español. Fix: lista de idiomas corregida en `tauri.conf.json`.
+- **Carpetas con acentos en producción**: normalización Unicode NFC/NFD en `list_directory`.
+- **Instalador de Windows en chino**: lista de idiomas corregida en `tauri.conf.json`.
 
 ## [0.5.8] — 2026-06-09
 
