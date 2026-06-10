@@ -12,6 +12,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - Assets distribuidos vía GitHub Releases con verificación criptográfica (`latest.json` + firmas).
 - Landing page (ocote.app) actualizada con versión y enlaces a la release.
 
+## [0.5.9] — 2026-06-09
+
+### Corregido
+- **Carpetas con acentos en producción**: el explorador fallaba con paths normalizados NFC/NFD en
+  macOS en producción pero no en desarrollo. Fix: normalización de paths en `list_directory`.
+- **Instalador de Windows en chino**: el instalador NSIS mostraba chino simplificado en lugar de
+  español. Fix: lista de idiomas corregida en `tauri.conf.json`.
+
 ## [0.5.8] — 2026-06-09
 
 ### Corregido
