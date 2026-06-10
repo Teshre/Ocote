@@ -19,6 +19,21 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 **Pendiente:** verificar en el `.app` de release (el bug es prod-only).
 
+### Continuación (mismo día): la causa raíz real era lsof + locale C
+
+El fix de normalización no bastó: tras actualizar, el error mutó a "Operación fuera del directorio permitido: '/Users/acala/Caf\xc3\xa9 Divergente-Hub' no está dentro de '/Users/acala/Café Divergente-Hub'". El dato clave: el path contenía **literalmente el texto ASCII `\xc3\xa9`** (9 caracteres), no el carácter `é`. Un path así no existe → `resolve_existing` falla → se reconstruye vía el parent (`/Users/acala` sí existe) → el nombre escapado sobrevive → la comparación de seguridad falla con ese mensaje. La normalización nunca fue el problema de fondo.
+
+**Reproducción del mecanismo** (confirmada localmente):
+```
+LC_ALL=en_US.UTF-8 lsof … → n/Users/acala/Café Divergente-Hub      ← bien
+LC_ALL=C           lsof … → n/Users/acala/Caf\xc3\xa9 Divergente-Hub ← escapado
+```
+`lsof` (que `get_shell_cwd` usa para leer el cwd del proceso) **escapa los bytes no-ASCII como `\xNN` bajo locale C**. El `.app` lanzado desde Finder corre sin `LANG` (locale C) y hereda eso a sus hijos; en dev, el proceso hereda el locale UTF-8 de la terminal. Por eso el bug era estrictamente prod-only — y por eso el primer error mostraba la forma NFD (`\xcc\x81`, carpeta NFD en disco) y el segundo NFC (`\xc3\xa9`, carpeta NFC): lsof escapaba los bytes reales de cada carpeta.
+
+**Fix doble en `get_shell_cwd` (pty.rs):** (1) spawn de lsof con `LC_ALL/LANG=en_US.UTF-8` — ya no escapa; (2) `decode_lsof_escapes()` convierte `\xNN`→bytes→UTF-8 como red de seguridad, con 3 tests unitarios (NFC, NFD, sin escapes). El fix de normalización anterior se queda: sigue siendo necesario para el disco con formas mixtas NFC/NFD.
+
+**Lecciones:** (a) cuando un error muestra `\xNN` en el texto, preguntarse si son bytes mostrados o TEXTO literal — cambia todo el diagnóstico; (b) las herramientas externas (lsof) son sensibles al locale, y un .app de Finder corre con locale C: fijar `LC_ALL` explícito en cada `Command::new` que parsee salida con paths; (c) reproducir el mecanismo exacto (`LC_ALL=C lsof`) antes de arreglar.
+
 ---
 
 ## 2026-06-06 — Sesión 22: audit de seguridad + race condition fix

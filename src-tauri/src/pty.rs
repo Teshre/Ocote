@@ -465,15 +465,23 @@ pub fn get_shell_cwd(
 
     #[cfg(target_os = "macos")]
     {
+        // BUG de acentos en producción: lsof bajo locale C escapa los bytes
+        // no-ASCII como TEXTO literal `\xNN` (p. ej. "Café" → "Caf\xc3\xa9").
+        // El .app lanzado desde Finder no hereda LANG (locale C), mientras que
+        // en dev (lanzado desde terminal) sí — por eso solo fallaba empaquetado.
+        // Fix doble: (1) forzar locale UTF-8 al proceso lsof, (2) decodificar
+        // los escapes `\xNN` por si el locale no estuviera disponible.
         let output = std::process::Command::new("lsof")
             .args(&["-a", "-p", &pid.to_string(), "-d", "cwd", "-Fn"])
+            .env("LC_ALL", "en_US.UTF-8")
+            .env("LANG", "en_US.UTF-8")
             .output()
             .map_err(|e| format!("Error ejecutando lsof: {}", e))?;
 
         let text = String::from_utf8_lossy(&output.stdout);
         for line in text.lines() {
-            if line.starts_with('n') {
-                return Ok(line[1..].to_string());
+            if let Some(raw) = line.strip_prefix('n') {
+                return Ok(decode_lsof_escapes(raw));
             }
         }
         Err("No se pudo determinar el CWD del shell".to_string())
@@ -490,6 +498,70 @@ pub fn get_shell_cwd(
     #[cfg(target_os = "windows")]
     {
         Err("get_shell_cwd no implementado en Windows".to_string())
+    }
+}
+
+/// Decodifica los escapes `\xNN` que lsof produce bajo locale C de vuelta a
+/// bytes reales, y `\\` a backslash. Si no hay escapes, devuelve el str igual.
+///
+/// Ejemplo: "Caf\xc3\xa9 Divergente" (18 chars ASCII) → "Café Divergente".
+/// Los pares \xNN se acumulan como bytes y se reinterpretan como UTF-8 al
+/// final (un é son DOS bytes escapados: \xc3\xa9).
+#[cfg(target_os = "macos")]
+fn decode_lsof_escapes(s: &str) -> String {
+    if !s.contains('\\') {
+        return s.to_string();
+    }
+    let b = s.as_bytes();
+    let mut out: Vec<u8> = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'\\' && i + 3 < b.len() && b[i + 1] == b'x'
+            && b[i + 2].is_ascii_hexdigit() && b[i + 3].is_ascii_hexdigit()
+        {
+            let hi = (b[i + 2] as char).to_digit(16).unwrap() as u8;
+            let lo = (b[i + 3] as char).to_digit(16).unwrap() as u8;
+            out.push(hi * 16 + lo);
+            i += 4;
+        } else if b[i] == b'\\' && i + 1 < b.len() && b[i + 1] == b'\\' {
+            out.push(b'\\');
+            i += 2;
+        } else {
+            out.push(b[i]);
+            i += 1;
+        }
+    }
+    String::from_utf8_lossy(&out).to_string()
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod lsof_escape_tests {
+    use super::decode_lsof_escapes;
+
+    #[test]
+    fn decodifica_nfc() {
+        // "Café" NFC: é = \xc3\xa9
+        assert_eq!(
+            decode_lsof_escapes(r"/Users/acala/Caf\xc3\xa9 Divergente-Hub"),
+            "/Users/acala/Café Divergente-Hub"
+        );
+    }
+
+    #[test]
+    fn decodifica_nfd() {
+        // "Café" NFD: e + acento combinante U+0301 = e\xcc\x81.
+        // El decode restaura los bytes EXACTOS (forma NFD) — la tolerancia de
+        // normalización la maneja después resolve_existing en fs_explorer.
+        assert_eq!(
+            decode_lsof_escapes(r"/Users/acala/Cafe\xcc\x81 Divergente"),
+            "/Users/acala/Cafe\u{0301} Divergente"
+        );
+    }
+
+    #[test]
+    fn sin_escapes_queda_igual() {
+        assert_eq!(decode_lsof_escapes("/Users/acala/normal"), "/Users/acala/normal");
+        assert_eq!(decode_lsof_escapes("/Users/acala/Café"), "/Users/acala/Café");
     }
 }
 
