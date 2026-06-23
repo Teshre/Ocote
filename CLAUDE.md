@@ -70,7 +70,7 @@ ckb/
 - **Fase 4 (Meses 12-18):** Comunidad, devlog, lanzamiento, credibilidad técnica
 
 ## Estado actual — 2026-06-09
-**Release v0.5.6 publicada. Fix de HISTFILE rompiendo code signing seal que impedía el auto-updater.**
+**Release v0.6.0 publicada. Fix de causa raíz del bug de acentos en producción (lsof locale C).**
 
 - zsh/bash/fish/PowerShell conectado al PTY (`pty.rs` con `portable-pty`) ✅
 - xterm.js renderizado (migrado desde parser VT custom) ✅
@@ -115,6 +115,11 @@ ckb/
 - **Onboarding actualizado**: 6 features (incluye paneles y búsqueda), ícono real con variante, theme-aware, 5 idiomas ✅
 - **Workspaces / espacios conmutables** (`workspaces.rs` + `workspaces.js`): opt-in (toggle en Settings); barra entre ruta y tabs; cada workspace es un espacio vivo con sus tabs/splits, auto-guardado ✅
 - **Audit de seguridad** (sesión 22): 7 fixes de vulnerabilidades (XSS en `prompt.js`, path traversal en `fs_explorer.rs`, inyección en `osascript`, DoS por archivos grandes, CSP permisivo, `search_files` con validación incorrecta, errores I/O del PTY silenciados) + fix de race condition OSC 6731 ↔ explorador ✅
+- **v0.5.5**: Fix normalización Unicode NFC/NFD en `validate_path_in_root` + escapado de paths shell + retry en explorador ✅
+- **v0.5.6/v0.5.7**: Fix HISTFILE — zsh escribía `.zsh_history` dentro del bundle rompiendo el code signing seal (auto-updater fallaba). ✅
+- **v0.5.8**: Ícono por defecto cambiado a light. `DEFAULTS.appIcon = 'light'`. ✅
+- **v0.5.9**: Fix instalador Windows en chino + normalización en `list_directory`. ✅
+- **v0.6.0**: **Causa raíz del bug de acentos** — `get_shell_cwd` lanza `lsof` bajo locale C en producción (el `.app` en Finder no hereda UTF-8), escapando bytes no-ASCII como `\xc3\xa9` literal. Fix: `LC_ALL=en_US.UTF-8` + `decode_lsof_escapes()`. ✅
 
 ---
 
@@ -229,7 +234,43 @@ El binario se llama `fzf-darwin-arm64` (etc.), NO `fzf`. Una función shell `fzf
 **Sync explorador (NO usar fast-path de adivinanza):**
 El explorador sincroniza desde `window.onShellCwdChanged(cwd)`, llamado por el handler OSC 6731 con el cwd REAL del shell (expande `~`). NO adivinar la ruta del `cd` tecleado — `currentCommandLine` solo captura teclas crudas y falla con tab-completion/historial.
 
+**CRÍTICO — HISTFILE (se rompe code signing):**
+Zsh setea `HISTFILE=$ZDOTDIR/.zsh_history` durante su inicialización (antes de cualquier config). Con ZDOTDIR apuntando a `resources/shell/` dentro del `.app`, el historial se escribe dentro del bundle firmado. macOS Gatekeeper detecta el archivo nuevo → sello roto → "app dañada". El auto-updater falla porque la app no puede reemplazarse.
+- **Fix en `.zshrc` (paso 7)**: si `HISTFILE` empieza con `$_ocote_self_zdotdir` (el bundle), redirigir a `$HOME/.zsh_history`.
+- **NO usar** `: "${HISTFILE:=$HOME/.zsh_history}"` — zsh ya setea HISTFILE antes, el `:=` nunca se dispara. Usar `if [[ "$HISTFILE" == "$_ocote_self_zdotdir"* ]]; then HISTFILE=...`
+
 **Dev: resources se sirven desde `target/debug/resources/`**, no desde la fuente. Tras editar `resources/shell/*`, hay que copiar a `target/debug/resources/shell/` o recompilar para que el cambio tome efecto en `pnpm tauri dev`.
+
+**CRÍTICO — lsof locale C en producción (no reproducible en dev):**
+El `.app` lanzado desde Finder NO hereda `LANG`/`LC_ALL` — corre bajo locale C. `get_shell_cwd` en `pty.rs` usa `lsof -p <pid> -d cwd -Fn`. Bajo locale C, `lsof` escapa bytes no-ASCII como `\xc3\xa9` literal (texto ASCII). En dev heredas UTF-8 de tu terminal → el bug jamás se reproduce en dev.
+- **Fix en `pty.rs`**: `lsof` se lanza con `LC_ALL=en_US.UTF-8` antes de parsear.  
+- **Red de seguridad**: `decode_lsof_escapes()` decodifica secuencias `\xNN` por si otro escenario produce el mismo escape.
+- **Para probar en dev**: `LC_ALL=C pnpm tauri dev` reproduce el entorno del Finder.
+- Cualquier comando que invoque herramientas externas (`lsof`, `osascript`, etc.) debe considerar que el locale puede ser C en producción.
+
+`decode_lsof_escapes` — archivo `pty.rs`, función con 3 tests unitarios:
+```rust
+fn decode_lsof_escapes(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut bytes = s.bytes();
+    while let Some(b) = bytes.next() {
+        if b == b'\\' {
+            if bytes.next() == Some(b'x') {
+                let hi = bytes.next().and_then(|c| hex_val(c));
+                let lo = bytes.next().and_then(|c| hex_val(c));
+                if let (Some(h), Some(l)) = (hi, lo) {
+                    out.push((h << 4 | l) as char);
+                    continue;
+                }
+            }
+            out.push('\\');
+        } else {
+            out.push(b as char);
+        }
+    }
+    out
+}
+```
 
 ### Modelo de seguridad (CRÍTICO — leer antes de tocar)
 
