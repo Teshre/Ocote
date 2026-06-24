@@ -136,5 +136,8 @@ fi
 # ── zoxide (cd inteligente: comando `z`) + bat (disponible como `bat`) ───────
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init bash)"
 
+# ── Config de shell de Ocote (variables de entorno, PATH, preferencias) ──────
+[[ -n "$OCOTE_RC" && -f "$OCOTE_RC" ]] && source "$OCOTE_RC"
+
 # ── Aliases del editor de Ocote (después de la config del usuario) ───────────
 [[ -n "$OCOTE_ALIASES" && -f "$OCOTE_ALIASES" ]] && source "$OCOTE_ALIASES"

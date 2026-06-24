@@ -115,6 +115,11 @@ if type -q zoxide
     zoxide init fish | source
 end
 
+# ── Config de shell de Ocote (variables de entorno, PATH, preferencias) ──────
+if test -n "$OCOTE_RC"; and test -f "$OCOTE_RC"
+    source "$OCOTE_RC"
+end
+
 # ── Aliases del editor de Ocote (después de la config del usuario) ───────────
 if test -n "$OCOTE_ALIASES"; and test -f "$OCOTE_ALIASES"
     source "$OCOTE_ALIASES"

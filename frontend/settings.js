@@ -241,6 +241,9 @@
     if (tabId === 'aliases' && window.loadAliases) {
       window.loadAliases();
     }
+    if (tabId === 'shell' && window.loadShellConfig) {
+      window.loadShellConfig();
+    }
   }
 
   // ── Preview en vivo de íconos ────────────────────────────────────────────

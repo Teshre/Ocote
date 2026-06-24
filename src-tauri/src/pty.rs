@@ -178,6 +178,31 @@ fn windows_shell() -> String {
     if pwsh_ok { "pwsh.exe".to_string() } else { "powershell.exe".to_string() }
 }
 
+/// Resuelve el shell elegido en Settings a una ruta de binario ejecutable.
+/// - Si `s` ya es una ruta absoluta que existe, se usa tal cual (caso normal:
+///   el frontend manda la ruta que devolvió `detect_shells`).
+/// - Si es un nombre suelto (zsh/bash/fish/pwsh), se prueba en rutas conocidas.
+/// - Como último recurso devuelve `s` y deja que el sistema lo busque en PATH.
+#[cfg(not(target_os = "windows"))]
+fn resolve_shell_path(s: &str) -> String {
+    if s.contains('/') && Path::new(s).exists() {
+        return s.to_string();
+    }
+    let candidates: &[&str] = match s {
+        "zsh"  => &["/bin/zsh", "/usr/bin/zsh", "/usr/local/bin/zsh", "/opt/homebrew/bin/zsh"],
+        "bash" => &["/opt/homebrew/bin/bash", "/usr/local/bin/bash", "/bin/bash", "/usr/bin/bash"],
+        "fish" => &["/opt/homebrew/bin/fish", "/usr/local/bin/fish", "/usr/bin/fish"],
+        "pwsh" => &["/opt/homebrew/bin/pwsh", "/usr/local/bin/pwsh", "/usr/bin/pwsh"],
+        _ => &[],
+    };
+    for c in candidates {
+        if Path::new(c).exists() {
+            return c.to_string();
+        }
+    }
+    s.to_string()
+}
+
 // ── create_shell ──────────────────────────────────────────────────────────
 
 /// Crear una nueva sesión PTY. Devuelve el shell_id asignado.
@@ -187,6 +212,9 @@ fn windows_shell() -> String {
 /// - `prompt`         — preset de prompt: pill|block|minimal|ribbon|rail|passthrough.
 /// - `accent`         — hex del color accent del tema activo SIN #, e.g. "E8843A".
 ///                      Usado por el shell para colorear el chevron ❯ en el preset minimal.
+/// - `shell`          — ruta (o nombre) del shell elegido por el usuario en Settings.
+///                      Si es None o vacío, se usa el shell de login ($SHELL).
+///                      El frontend envía la ruta absoluta que devolvió `detect_shells`.
 #[tauri::command]
 pub fn create_shell(
     window:  tauri::Window,
@@ -195,8 +223,12 @@ pub fn create_shell(
     cols:    Option<u16>,
     prompt:  Option<String>,
     accent:  Option<String>,
+    shell:   Option<String>,
 ) -> Result<String, String> {
     let shell_id = state.generate_id();
+    // Guardar la elección de shell ANTES de rebindear `shell` al ShellState
+    // local (mismo nombre que el parámetro → lo movemos a otra variable).
+    let shell_choice = shell;
     let shell = ShellState::new();
 
     let pty_system = native_pty_system();
@@ -212,12 +244,20 @@ pub fn create_shell(
         })
         .map_err(|e| e.to_string())?;
 
-    // Shell del usuario
+    // Shell a usar: el que el usuario eligió en Settings (Ocote lo pasa como
+    // ruta absoluta desde detect_shells) o, si no eligió ninguno, el de login.
+    let chosen = shell_choice.as_deref().map(str::trim).filter(|s| !s.is_empty());
+
     #[cfg(target_os = "windows")]
-    let shell_cmd = windows_shell();   // pwsh.exe si existe, si no powershell.exe
+    let shell_cmd = match chosen {
+        Some(s) => s.to_string(),       // detect_shells ya da la ruta/exe correcta
+        None    => windows_shell(),     // pwsh.exe si existe, si no powershell.exe
+    };
     #[cfg(not(target_os = "windows"))]
-    let shell_cmd = std::env::var("SHELL")
-        .unwrap_or_else(|_| "/bin/bash".to_string());
+    let shell_cmd = match chosen {
+        Some(s) => resolve_shell_path(s),
+        None    => std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string()),
+    };
 
     let mut cmd = CommandBuilder::new(&shell_cmd);
     cmd.env("TERM", "xterm-256color");
@@ -243,15 +283,22 @@ pub fn create_shell(
         // Aliases del editor de Ocote: apuntar al archivo generado del shell
         // correspondiente (ver aliases.rs). Las configs bundleadas lo sourcean.
         if let Some(data_dir) = window.app_handle().path_resolver().app_data_dir() {
-            let alias_file = if shell_cmd.contains("fish") {
-                "aliases.fish"
-            } else if shell_cmd.contains("pwsh") || shell_cmd.contains("powershell") {
-                "aliases.ps1"
-            } else {
-                "aliases.sh" // zsh + bash
-            };
-            let p = data_dir.join(alias_file);
-            cmd.env("OCOTE_ALIASES", p.to_string_lossy().to_string());
+            // Familia del shell: determina qué archivo generado sourcear.
+            let is_fish = shell_cmd.contains("fish");
+            let is_ps   = shell_cmd.contains("pwsh") || shell_cmd.contains("powershell");
+
+            let alias_file = if is_fish { "aliases.fish" }
+                             else if is_ps { "aliases.ps1" }
+                             else { "aliases.sh" }; // zsh + bash
+            cmd.env("OCOTE_ALIASES", data_dir.join(alias_file).to_string_lossy().to_string());
+
+            // Config de shell (variables de entorno, PATH, preferencias) —
+            // mismo patrón que los aliases (ver shell_config.rs). Las configs
+            // bundleadas sourcean $OCOTE_RC después de la config del usuario.
+            let rc_file = if is_fish { "ocote-rc.fish" }
+                          else if is_ps { "ocote-rc.ps1" }
+                          else { "ocote-rc.sh" }; // zsh + bash
+            cmd.env("OCOTE_RC", data_dir.join(rc_file).to_string_lossy().to_string());
         }
 
         if let Some(res) = resolve_shell_resources(&window) {
@@ -604,8 +651,8 @@ pub fn spawn_shell(
     state:  tauri::State<PtyState>,
 ) -> Result<(), String> {
     // Crear shell por defecto con id "shell-1" para compatibilidad.
-    // Sin tamaño ni preset → fallback 24×80 y prompt "git".
-    create_shell(window, state, None, None, None, None)?;
+    // Sin tamaño ni preset → fallback 24×80 y prompt "git". shell=None → $SHELL.
+    create_shell(window, state, None, None, None, None, None)?;
     Ok(())
 }
 

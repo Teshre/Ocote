@@ -12,6 +12,7 @@ mod fs_explorer;
 mod context;
 mod stats;
 mod aliases;
+mod shell_config;
 mod workspaces;
 
 /// Escapa un string para usarlo DENTRO de un literal AppleScript entre comillas.
@@ -195,6 +196,9 @@ fn main() {
             // Regenerar los archivos de aliases desde el JSON para que apliquen
             // al primer shell tras un reinicio.
             aliases::regenerate_from_disk(&app.handle());
+            // Lo mismo para la config de shell (variables de entorno, PATH,
+            // preferencias) — para que aplique al primer shell tras reiniciar.
+            shell_config::regenerate_from_disk(&app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -234,6 +238,11 @@ fn main() {
             // Aliases
             aliases::get_aliases,
             aliases::save_aliases,
+            // Config de shell (variables de entorno, PATH, preferencias)
+            shell_config::get_shell_config,
+            shell_config::save_shell_config,
+            shell_config::detect_shells,
+            shell_config::preview_shell_config,
             // Workspaces
             workspaces::get_workspaces,
             workspaces::save_workspaces,

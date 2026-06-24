@@ -5,6 +5,51 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-06-23 — Sesión 24: config visual de shell + cambio de shell por defecto
+
+**Estado al inicio:** features pre-lanzamiento completas (v0.6.0 en producción). Objetivo: una "config de shell" para que usuarios sin conocimientos ajusten su entorno sin abrir `.zshrc`, y puedan cambiar entre zsh/bash/fish/PowerShell desde la UI.
+
+### Dos features en una
+
+1. **Selector de shell**: hasta ahora `create_shell` elegía SIEMPRE `$SHELL` (sin parámetro). Se añadió `shell: Option<String>` + `detect_shells`. La detección prueba **rutas absolutas conocidas primero** porque el `.app` de Finder corre con un PATH mínimo y `which fish` puede fallar aunque fish esté en `/opt/homebrew/bin`. El cambio es por DEFAULT global (pestañas nuevas), guardado en `localStorage('ocote_default_shell')` y pasado por `tab-manager.js`.
+2. **Editor de config**: reusa el patrón de aliases al 100% — JSON en `app_data_dir` → `ocote-rc.{sh,fish,ps1}` → `OCOTE_RC` sourceado por las 4 configs bundleadas (junto a `OCOTE_ALIASES`, después de la config del usuario). Nunca toca el `.zshrc` del usuario.
+
+### El reto: traducción cross-shell
+
+Variables de entorno y PATH son casi universales (fácil). Las "preferencias" divergen y algunas NO existen en algunos shells (autocd no está en fish/PowerShell) — mismo insight que el caso PowerShell-funciones de aliases. Decisiones:
+- **Preferencias curadas que mapean limpio**: historial (tamaño / no-dup / compartir / timestamps) + autocd. Las no soportadas no se emiten y la UI lo marca (nota para fish).
+- **Ramas en runtime dentro del MISMO `ocote-rc.sh`**: zsh y bash sourcean el mismo archivo, así que `setopt`/`shopt` van en `if [ -n "$ZSH_VERSION" ]; … elif [ -n "$BASH_VERSION" ]`. Un `setopt` suelto rompería bash con "command not found".
+- **Modo Vi y keybindings → modo avanzado, no toggle curado**: tocan el orden de carga de plugins (chocan con el binding `→` de zsh-autosuggestions). El textarea avanzado (raw, por familia) cubre al experto sin fragilidad, y permitió sourcear `OCOTE_RC` en el punto seguro junto a los aliases (env/PATH/prefs son independientes del orden).
+
+### Iteración con el usuario (4 mejoras)
+
+Tras probar en local, el usuario notó que no se veía cuál shell estaba "activa". Fix: `is_login_shell` (compara `$SHELL` por basename) → la UI resalta el shell EN USO = el elegido, o el de login si no hay elección. Luego pidió 4 mejoras más, todas implementadas en la misma sesión:
+- **Historial compartido + timestamps** (2 prefs curadas). `share_history` → zsh `SHARE_HISTORY` / bash `histappend`+`PROMPT_COMMAND` / pwsh `SaveIncrementally` / fish nativo. `timestamps_history` → zsh `EXTENDED_HISTORY` / bash `HISTTIMEFORMAT`. Los timestamps tienen **sinergia directa con el dashboard de Estadísticas** (el devlog de sesión 18 anotó que sin timestamps no hay "hora pico" desde el historial).
+- **Ver el código generado** (`preview_shell_config` genera sin escribir; panel plegable) — muy on-brand: Ocote enseña y no esconde la "magia".
+- **Pickers** de EDITOR/LANG/PAGER (elegir de lista; internamente son variables de entorno).
+- **Reset + export/import** (portapapeles + JSON; reset con `ocoteConfirm`).
+
+### Decisiones tomadas
+
+- **No `chsh`** (cambiar el login shell del OS): pide contraseña, modifica el sistema fuera de Ocote y rompe el modelo "no tocamos tu config". Descartado a propósito.
+- **Default global, no por-pestaña** (elección del usuario): mismo modelo mental que el resto de Settings; la opción por-pestaña queda como item de futuro.
+- **Detección por rutas absolutas primero**: robusta ante el PATH mínimo del `.app` de Finder.
+- **6 tests unitarios** en `shell_config.rs` (escape sh/fish/ps, ramas por shell, clamp/saneo).
+
+### Lección
+
+El patrón "JSON fuente de verdad → archivos por-shell → env var sourceada" (estrenado con aliases) volvió a pagar: el grueso de la feature fue reusar arquitectura conocida. Lo no-obvio siempre está en la traducción cross-shell — qué existe en cada shell y cómo expresarlo sin romper a los demás (las ramas `$ZSH_VERSION`/`$BASH_VERSION` en un archivo compartido son la pieza clave).
+
+### Pendiente / a futuro
+
+- Verificar que `stats.rs::parse_shell_history` lea el formato `: <epoch>:0;cmd` de `EXTENDED_HISTORY` (zsh) para aprovechar los timestamps nuevos en las métricas.
+- i18n de la tab Shell (hoy en español, igual que la tab Aliases).
+- Indicador de shell por pestaña; abrir una pestaña con un shell específico (por-pestaña).
+
+**Próximo paso:** documentación al día; luego el follow-up de stats+timestamps o distribución (firma de código macOS, auto-updater).
+
+---
+
 ## 2026-06-09 — Sesión 23: fix carpetas con acentos en producción
 
 **Reporte:** post-lanzamiento (3 updates ya en producción), el explorador seguía lanzando "Directorio padre inválido '/Users/acala/Cafe\xcc\x81 Divergente': No such file or directory" al entrar a carpetas acentuadas. Solo en el build empaquetado — en dev no ocurría.

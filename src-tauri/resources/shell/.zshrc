@@ -64,6 +64,11 @@ if [[ -f "$OCOTE_ZSH_AUTOSUGGEST" ]]; then
   bindkey '^[OC' _ocote_accept_or_forward
 fi
 
+# ── 4.5 Config de shell de Ocote (variables de entorno, PATH, preferencias) ──
+# Generada desde el panel de Settings (ver shell_config.rs). Va después de la
+# config del usuario para que las preferencias de Ocote ganen.
+[[ -n "$OCOTE_RC" && -f "$OCOTE_RC" ]] && source "$OCOTE_RC"
+
 # ── 5. Aliases del editor de Ocote ──────────────────────────────────────────
 # Va DESPUÉS de la config del usuario para que los aliases de Ocote ganen.
 [[ -n "$OCOTE_ALIASES" && -f "$OCOTE_ALIASES" ]] && source "$OCOTE_ALIASES"

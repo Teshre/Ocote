@@ -22,6 +22,7 @@ src-tauri/src/
   context.rs         ← detección de contexto: git, node, rust, etc.
   stats.rs           ← estadísticas: parse historial shell + log SQLite (StatsState)
   aliases.rs         ← editor de aliases: JSON + genera aliases.sh/.fish/.ps1
+  shell_config.rs    ← config de shell: JSON + genera ocote-rc.sh/.fish/.ps1; detect_shells; preview_shell_config
   workspaces.rs      ← persistencia de workspaces (JSON opaco en app_data_dir)
 src-tauri/resources/
   shell/
@@ -52,6 +53,7 @@ frontend/
   terminal-search.js ← buscador de texto en terminal (Ctrl+F) — SearchAddon
   stats.js           ← dashboard de estadísticas (modal, data-driven)
   aliases.js         ← editor de aliases (Settings → tab Aliases)
+  shell-config.js    ← config de shell (Settings → tab Shell): selector, env, PATH, prefs, pickers, preview, backup
   shortcuts.js       ← referencia de atajos de teclado (modal, plataforma-aware)
   workspaces.js      ← espacios conmutables + barra + auto-guardado (opt-in)
   theme.css          ← CSS variables + estilos base
@@ -69,8 +71,8 @@ ckb/
 - **Fase 3 (Meses 8-12):** Tooltip educativo, sugerencias contextuales, onboarding, distribución
 - **Fase 4 (Meses 12-18):** Comunidad, devlog, lanzamiento, credibilidad técnica
 
-## Estado actual — 2026-06-09
-**Release v0.6.0 publicada. Fix de causa raíz del bug de acentos en producción (lsof locale C).**
+## Estado actual — 2026-06-23
+**v1.0.0 — Primera versión estable. Config visual de shell añadida (selector de shell + variables/PATH/preferencias + modo avanzado + pickers + preview + export/import).**
 
 - zsh/bash/fish/PowerShell conectado al PTY (`pty.rs` con `portable-pty`) ✅
 - xterm.js renderizado (migrado desde parser VT custom) ✅
@@ -111,6 +113,7 @@ ckb/
 - **Split panes recursivos** (`tab-manager.js`): árbol binario tipo iTerm; Cmd+D / Cmd+Shift+D, redimensionables, foco con acento ✅
 - **Estadísticas de uso** (`stats.rs` + `stats.js`): dashboard offline — historial del shell (top comandos) + log propio vía OSC 133 (hora pico, % errores, comando más lento) ✅
 - **Editor de aliases** (`aliases.rs` + `aliases.js`): CRUD visual en Settings; genera archivos por-shell sourceados vía `OCOTE_ALIASES`, sin tocar el `.zshrc` del usuario ✅
+- **Config visual de shell** (`shell_config.rs` + `shell-config.js`): tab Settings → Shell. Selector de shell por defecto (`detect_shells` + `create_shell(shell)`, card EN USO resaltada), variables de entorno, carpetas en PATH, preferencias curadas cross-shell (historial: tamaño/no-dup/compartir/timestamps; autocd), modo avanzado (init por familia), pickers EDITOR/LANG/PAGER, "ver código generado" (`preview_shell_config`), export/import/reset. JSON → `ocote-rc.{sh,fish,ps1}` vía `OCOTE_RC`; no toca la config del usuario ✅
 - **Referencia de atajos de teclado** (`shortcuts.js`): modal con todos los atajos, plataforma-aware (⌘ mac / Ctrl otros), botón ⌨ en la barra superior ✅
 - **Onboarding actualizado**: 6 features (incluye paneles y búsqueda), ícono real con variante, theme-aware, 5 idiomas ✅
 - **Workspaces / espacios conmutables** (`workspaces.rs` + `workspaces.js`): opt-in (toggle en Settings); barra entre ruta y tabs; cada workspace es un espacio vivo con sus tabs/splits, auto-guardado ✅
@@ -186,6 +189,7 @@ El `endAbsRow` DEBE leerse síncronamente dentro del OSC handler, NO en un reque
 - `OCOTE_ZSH_AUTOSUGGEST` — ruta a `zsh-autosuggestions.zsh`
 - `OCOTE_FZF_BIN` — ruta al binario de fzf de la plataforma (también en Windows → PATH)
 - `OCOTE_ALIASES` — ruta al archivo de aliases generado del shell (`aliases.sh`/`.fish`/`.ps1` en app_data_dir); las configs lo sourcean
+- `OCOTE_RC` — ruta al archivo de config de shell generado (`ocote-rc.sh`/`.fish`/`.ps1` en app_data_dir); las configs lo sourcean junto a los aliases (ver shell_config.rs)
 - `_OCOTE_ZDOTDIR` — ZDOTDIR real del usuario (o `$HOME`) para que el bootstrap sourcee su config
 
 **Bootstrap ZDOTDIR (crítico):**
@@ -391,6 +395,18 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 - **Regeneración en startup**: `aliases::regenerate_from_disk()` en el `.setup()` de main.rs, para que los aliases existentes apliquen tras un reinicio.
 - **Validación**: nombre `^[A-Za-z_][A-Za-z0-9_-]*$` (front y back). UI: Settings → tab Aliases. `window.loadAliases()` se llama desde `switchTab`.
 
+### Sistema de config de shell (`shell_config.rs` + `shell-config.js`)
+- **Fuente de verdad**: `app_data_dir/shell-config.json` (`{env_vars, path_dirs, prefs, init}`). NUNCA toca el `.zshrc`/`config.fish` del usuario. Mismo patrón que aliases.
+- **Generación por shell** (`regenerate_files`): `ocote-rc.sh` (zsh+bash), `ocote-rc.fish`, `ocote-rc.ps1`. `pty.rs` inyecta `OCOTE_RC` apuntando al archivo de la familia del shell; las 4 configs bundleadas lo sourcean DESPUÉS de la config del usuario y justo ANTES de `OCOTE_ALIASES`. `regenerate_from_disk()` en el `.setup()` de main.rs.
+- **Selector de shell**: `create_shell` ahora acepta `shell: Option<String>` (ruta absoluta que pasa el frontend; `None`/vacío = `$SHELL`). `resolve_shell_path` mapea nombre→ruta y verifica que exista. `detect_shells` detecta instalados probando **rutas absolutas conocidas PRIMERO** (el `.app` de Finder corre con PATH mínimo → `which` puede fallar) y marca `is_login_shell` (= `$SHELL` comparado por basename). El frontend guarda la elección en `localStorage('ocote_default_shell')` (`{id, path}`) y `tab-manager.js` la pasa a `create_shell`. **Aplica solo en pestañas NUEVAS** (igual que aliases).
+- **Traducción cross-shell (CRÍTICO)**: zsh y bash sourcean el MISMO `ocote-rc.sh`, así que las opciones específicas van en ramas runtime `if [ -n "$ZSH_VERSION" ]; … elif [ -n "$BASH_VERSION" ]` (un `setopt` suelto rompería bash con "command not found"). fish maneja historial/dedup nativo y no tiene autocd → esas prefs NO se emiten. PowerShell usa PSReadLine (guardado con `if (Get-Module -ListAvailable PSReadLine)`).
+- **Preferencias curadas**: `history_size`, `no_duplicate_history`, `autocd`, `share_history`, `timestamps_history`. Mapeo: compartir → zsh `SHARE_HISTORY` / bash `histappend`+`PROMPT_COMMAND` / pwsh `SaveIncrementally`; timestamps → zsh `EXTENDED_HISTORY` / bash `HISTTIMEFORMAT` (pwsh/fish N/A). **Modo Vi y todo lo de keybindings NO es toggle curado** (choca con el orden de carga de plugins/autosuggestions) — va en el **modo avanzado** (`init.{sh,fish,ps1}`, raw por familia, sourceado en el mismo punto seguro).
+- **Escape**: `sh_escape` (`'`→`'\''`), `fish_escape` (`\`,`'`), `ps_escape` (`'`→`''`). Nombres de env var validados `^[A-Za-z_][A-Za-z0-9_]*$` (sin `-`, a diferencia de aliases). `clean()` hace trim, filtra y clampa `history_size` a `MAX_HISTORY` (1M).
+- **`preview_shell_config(config)`**: genera el `ocote-rc` SIN escribir a disco → la UI muestra "el código que se generará" (transparencia/educativo, alma de Ocote).
+- **Pickers** (EDITOR/LANG/PAGER en `shell-config.js`): atajos que upsertean variables de entorno (`.sc-pick` con `data-var`). **Export** copia el JSON al portapapeles; **import** parsea JSON (lo sanea el backend al guardar); **reset** con `window.ocoteConfirm`.
+- **Sinergia con Estadísticas**: `timestamps_history` activa `EXTENDED_HISTORY`/`HISTTIMEFORMAT` → da timestamps al dashboard. PENDIENTE: que `stats.rs::parse_shell_history` lea el formato `: <epoch>:0;cmd` de zsh para aprovecharlos.
+- **6 tests** en `shell_config.rs` (`cargo test shell_config`).
+
 ### Referencia de atajos + Onboarding (`shortcuts.js`, `onboarding.js`)
 - **`shortcuts.js`**: modal 100% estático (sin Rust) con todos los atajos en `GROUPS`. Plataforma-aware: `isMac` → `⌘⌥⇧⌃`, otros → `Ctrl/Alt/Shift`. Botón ⌨ `#shortcuts-btn` en la barra superior → `window.openShortcuts()`. **Si agregas/cambias un atajo en el código, actualiza también `GROUPS` aquí.**
 - **Onboarding** (`onboarding.js` + HTML en index.html): 6 features (explorador, autocompletado, tooltip, paneles, búsqueda, offline). Theme-aware (usa variables CSS; `settings.js applyAll()` aplica el tema antes del show a 600ms). Logo usa `icons/icon-dark.png`/`icon-light.png` según `localStorage('ocote_app_icon')`. i18n en los 5 idiomas (claves `onboarding.feature.*`). Se ve con Ctrl+Shift+? o en primer uso.
@@ -407,6 +423,15 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 ---
 
 ## Historial de avances
+
+**Fase 4 — Avance al 2026-06-23 (sesión 24):**
+✅ **Config visual de shell** (`shell_config.rs` + `shell-config.js`), Settings → Shell:
+  - **Selector de shell por defecto** (zsh/bash/fish/PowerShell) — `detect_shells` (rutas absolutas primero, robusto ante el PATH mínimo del `.app`) + `create_shell` acepta `shell` + inyecta `OCOTE_RC`; pestañas nuevas; card EN USO resaltada (`is_login_shell` = `$SHELL`).
+  - **Variables de entorno** + **carpetas en PATH** + **preferencias curadas cross-shell** (historial: tamaño/no-dup/compartir/timestamps; autocd) + **modo avanzado** (init por familia, raw).
+  - **Pickers** EDITOR/LANG/PAGER; **ver código generado** (`preview_shell_config`, sin escribir a disco); **export/import/reset**.
+  - Traducción por shell con ramas `$ZSH_VERSION`/`$BASH_VERSION` en el mismo `ocote-rc.sh`; fish nativo; PSReadLine. Las 4 configs sourcean `$OCOTE_RC` junto a `$OCOTE_ALIASES`. 6 tests.
+  - **Sinergia**: timestamps → habilita métricas temporales de Estadísticas (pendiente: parser de `EXTENDED_HISTORY`).
+  - **Descartado**: `chsh` (modifica el OS fuera de Ocote); elección de shell por-pestaña (futuro).
 
 **Fase 4 — Avance al 2026-06-06 (sesión 22):**
 ✅ **Audit de seguridad + race condition fix** — 9 fixes aplicados + build de producción verificado:

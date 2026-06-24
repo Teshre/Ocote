@@ -140,6 +140,11 @@ if (Get-Command zoxide -ErrorAction SilentlyContinue) {
     Invoke-Expression (& { (zoxide init powershell | Out-String) })
 }
 
+# ── Config de shell de Ocote (variables de entorno, PATH, preferencias) ──────
+if ($env:OCOTE_RC -and (Test-Path $env:OCOTE_RC)) {
+    . $env:OCOTE_RC
+}
+
 # ── Aliases del editor de Ocote (después de la config del usuario) ───────────
 if ($env:OCOTE_ALIASES -and (Test-Path $env:OCOTE_ALIASES)) {
     . $env:OCOTE_ALIASES

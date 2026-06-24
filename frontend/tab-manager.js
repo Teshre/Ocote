@@ -183,7 +183,14 @@
     const promptPreset = localStorage.getItem('ocote_prompt') || 'pill';
     const themeId   = localStorage.getItem('ocote_theme') || 'ocote';
     const accentHex = window.OCOTE_THEMES?.TOKENS?.[themeId]?.accent?.replace('#', '') ?? 'E8843A';
-    const shellId = await invoke('create_shell', { rows, cols, prompt: promptPreset, accent: accentHex });
+
+    // Shell por defecto elegido en Settings → Shell (ruta absoluta). Si no hay,
+    // se pasa null y el backend usa el shell de login ($SHELL).
+    let chosenShell = null;
+    try { chosenShell = JSON.parse(localStorage.getItem('ocote_default_shell') || 'null')?.path || null; }
+    catch { chosenShell = null; }
+
+    const shellId = await invoke('create_shell', { rows, cols, prompt: promptPreset, accent: accentHex, shell: chosenShell });
     paneEl.dataset.shellId = shellId;
 
     window.bindTerminalShell(termData.term, shellId);

@@ -2890,6 +2890,326 @@ button:focus-visible {
   text-align: center;
 }
 
+/* ── Config de shell (Settings → Shell) ──────────────────────────────────── */
+
+/* Selector de shell por defecto */
+.sc-shell-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.sc-shell-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  text-align: left;
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.sc-shell-card:hover:not([disabled]) { border-color: var(--accent); }
+.sc-shell-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-dim, rgba(232, 132, 58, 0.10));
+}
+.sc-shell-card.unavailable,
+.sc-shell-card[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.sc-shell-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.sc-shell-path {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.sc-shell-check {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+.sc-shell-badge {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: var(--accent);
+  color: #1a1816;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+/* Formularios de variables de entorno y PATH */
+.sc-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.sc-input {
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+.sc-input:focus { border-color: var(--accent); }
+.sc-input--name { flex: 0 0 170px; }
+.sc-input--val  { flex: 1; min-width: 0; }
+.sc-input--path { flex: 1; min-width: 0; }
+.sc-eq {
+  color: var(--text-dim);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.sc-add-btn {
+  flex-shrink: 0;
+  background: var(--accent);
+  color: #1a1816;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+.sc-add-btn:hover { opacity: 0.9; }
+
+.sc-error {
+  color: var(--syntax-red, #E8635A);
+  font-size: 11.5px;
+  margin-bottom: 10px;
+  font-family: var(--font-mono);
+}
+
+.sc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.sc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+.sc-row-name {
+  flex: 0 0 160px;
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sc-row-eq { color: var(--text-dim); flex-shrink: 0; }
+.sc-row-val,
+.sc-row-path {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sc-del {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.sc-del:hover {
+  background: rgba(232, 99, 90, 0.12);
+  color: var(--syntax-red, #E8635A);
+}
+.sc-empty {
+  color: var(--text-dim);
+  font-size: 12px;
+  font-style: italic;
+  padding: 14px 4px;
+  text-align: center;
+}
+
+/* Preferencias: número, select, textarea */
+.sc-num {
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  outline: none;
+  width: 130px;
+  flex-shrink: 0;
+  transition: border-color var(--transition-fast);
+}
+.sc-num:focus { border-color: var(--accent); }
+.sc-select {
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  outline: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sc-select:focus { border-color: var(--accent); }
+.sc-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  outline: none;
+  resize: vertical;
+  transition: border-color var(--transition-fast);
+}
+.sc-textarea:focus { border-color: var(--accent); }
+
+/* Pickers de valores comunes (EDITOR / LANG / PAGER) */
+.sc-pickers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--border);
+}
+.sc-pick-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sc-pick { min-width: 190px; }
+.sc-pick-var {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 6px;
+}
+
+/* Ver el código generado */
+.sc-details { border: none; }
+.sc-summary {
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 4px 0;
+  transition: color var(--transition-fast);
+  user-select: none;
+}
+.sc-summary:hover { color: var(--accent); }
+.sc-preview {
+  margin: 0;
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+  padding: 12px 14px;
+  max-height: 260px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Copia de seguridad / restaurar */
+.sc-backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.sc-btn-secondary,
+.sc-btn-danger {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+.sc-btn-secondary:hover { border-color: var(--accent); color: var(--text-primary); }
+.sc-btn-danger:hover {
+  border-color: var(--syntax-red, #E8635A);
+  color: var(--syntax-red, #E8635A);
+  background: rgba(232, 99, 90, 0.10);
+}
+.sc-msg {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--syntax-green, #7DC97A);
+}
+.sc-import-box {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sc-import-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 /* ── Referencia de atajos de teclado (modal) ─────────────────────────────── */
 
 #shortcuts-overlay {

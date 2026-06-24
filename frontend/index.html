@@ -286,6 +286,7 @@
       <div id="settings-tabs">
         <button class="settings-tab-btn active" data-tab="general" data-i18n="settings.tab.general">General</button>
         <button class="settings-tab-btn" data-tab="appearance" data-i18n="settings.tab.appearance">Apariencia</button>
+        <button class="settings-tab-btn" data-tab="shell">Shell</button>
         <button class="settings-tab-btn" data-tab="aliases">Aliases</button>
       </div>
 
@@ -453,6 +454,184 @@
       </div>
 
       <!-- Tab: Aliases -->
+      <div class="settings-tab-content hidden" data-tab="shell">
+
+        <!-- Shell por defecto -->
+        <div class="settings-section">
+          <div class="settings-section-head"><h3>Shell por defecto</h3></div>
+          <p class="settings-hint" style="margin:0 0 14px">
+            El shell que usarán las pestañas <strong>nuevas</strong>. Solo se muestran los instalados en tu equipo.
+          </p>
+          <div id="sc-shell-list" class="sc-shell-list"></div>
+        </div>
+
+        <!-- Variables de entorno -->
+        <div class="settings-section">
+          <div class="settings-section-head"><h3>Variables de entorno</h3></div>
+          <p class="settings-hint" style="margin:0 0 14px">
+            Define valores como <code>EDITOR</code> o <code>API_KEY</code> sin editar tu config. Se aplican en pestañas nuevas.
+          </p>
+
+          <!-- Atajos: valores comunes (elige de una lista, sin teclear) -->
+          <div class="sc-pickers">
+            <div class="sc-pick-row">
+              <span class="settings-label">Editor de texto <span class="sc-pick-var">EDITOR</span></span>
+              <select class="sc-select sc-pick" data-var="EDITOR">
+                <option value="">— sin definir —</option>
+                <option value="nano">nano (fácil)</option>
+                <option value="vim">vim</option>
+                <option value="vi">vi</option>
+                <option value="code">VS Code (code)</option>
+                <option value="micro">micro</option>
+                <option value="emacs">emacs</option>
+              </select>
+            </div>
+            <div class="sc-pick-row">
+              <span class="settings-label">Idioma del sistema <span class="sc-pick-var">LANG</span></span>
+              <select class="sc-select sc-pick" data-var="LANG">
+                <option value="">— sin definir —</option>
+                <option value="es_MX.UTF-8">Español (México)</option>
+                <option value="es_ES.UTF-8">Español (España)</option>
+                <option value="en_US.UTF-8">English (US)</option>
+                <option value="pt_BR.UTF-8">Português (Brasil)</option>
+                <option value="fr_FR.UTF-8">Français</option>
+                <option value="de_DE.UTF-8">Deutsch</option>
+              </select>
+            </div>
+            <div class="sc-pick-row">
+              <span class="settings-label">Visor de texto <span class="sc-pick-var">PAGER</span></span>
+              <select class="sc-select sc-pick" data-var="PAGER">
+                <option value="">— sin definir —</option>
+                <option value="less">less</option>
+                <option value="bat">bat (con colores)</option>
+                <option value="more">more</option>
+                <option value="cat">cat</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="sc-form">
+            <input id="sc-env-name" class="sc-input sc-input--name" type="text"
+                   placeholder="NOMBRE (ej: EDITOR)" autocomplete="off" spellcheck="false">
+            <span class="sc-eq">=</span>
+            <input id="sc-env-value" class="sc-input sc-input--val" type="text"
+                   placeholder="valor (ej: nano)" autocomplete="off" spellcheck="false">
+            <button id="sc-env-add" class="sc-add-btn">Añadir</button>
+          </div>
+          <div id="sc-env-error" class="sc-error hidden"></div>
+          <div id="sc-env-list" class="sc-list"></div>
+        </div>
+
+        <!-- Carpetas en el PATH -->
+        <div class="settings-section">
+          <div class="settings-section-head"><h3>Carpetas en el PATH</h3></div>
+          <p class="settings-hint" style="margin:0 0 14px">
+            Añade carpetas con programas para ejecutarlos por su nombre. Ej: <code>~/.local/bin</code>.
+          </p>
+          <div class="sc-form">
+            <input id="sc-path-input" class="sc-input sc-input--path" type="text"
+                   placeholder="/ruta/a/carpeta" autocomplete="off" spellcheck="false">
+            <button id="sc-path-add" class="sc-add-btn">Añadir</button>
+          </div>
+          <div id="sc-path-list" class="sc-list"></div>
+        </div>
+
+        <!-- Preferencias -->
+        <div class="settings-section">
+          <div class="settings-section-head"><h3>Preferencias</h3></div>
+          <div class="settings-row">
+            <span class="settings-label">Tamaño del historial (líneas)</span>
+            <input id="sc-history" class="sc-num" type="number" min="0" max="1000000" step="1000"
+                   placeholder="por defecto">
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">No guardar comandos duplicados</span>
+            <label class="settings-toggle-label" title="No guardar duplicados en el historial">
+              <input type="checkbox" id="sc-nodup" class="settings-toggle-input">
+              <span class="settings-toggle-track"><span class="settings-toggle-thumb"></span></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Entrar a una carpeta escribiendo su nombre (autocd)</span>
+            <label class="settings-toggle-label" title="autocd">
+              <input type="checkbox" id="sc-autocd" class="settings-toggle-input">
+              <span class="settings-toggle-track"><span class="settings-toggle-thumb"></span></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Compartir el historial entre pestañas al instante</span>
+            <label class="settings-toggle-label" title="Compartir historial entre pestañas">
+              <input type="checkbox" id="sc-share" class="settings-toggle-input">
+              <span class="settings-toggle-track"><span class="settings-toggle-thumb"></span></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Guardar fecha y hora de cada comando <span class="sc-pick-var">mejora Estadísticas</span></span>
+            <label class="settings-toggle-label" title="Guardar fecha/hora en el historial">
+              <input type="checkbox" id="sc-timestamps" class="settings-toggle-input">
+              <span class="settings-toggle-track"><span class="settings-toggle-thumb"></span></span>
+            </label>
+          </div>
+          <p id="sc-prefs-note" class="settings-hint hidden" style="margin:8px 0 0">
+            fish maneja el historial y los duplicados de forma nativa y no tiene autocd: estas preferencias no le aplican.
+          </p>
+        </div>
+
+        <!-- Avanzado -->
+        <div class="settings-section">
+          <div class="settings-section-head"><h3>Avanzado — comandos de inicio</h3></div>
+          <p class="settings-hint" style="margin:0 0 10px">
+            Para usuarios con experiencia. Se ejecutan al abrir cada pestaña nueva, con la sintaxis del shell elegido
+            (<span id="sc-init-label">zsh y bash</span>).
+          </p>
+          <div class="settings-row" style="margin-bottom:8px">
+            <span class="settings-label">Aplicar a</span>
+            <select id="sc-init-family" class="sc-select">
+              <option value="sh">zsh y bash</option>
+              <option value="fish">fish</option>
+              <option value="ps1">PowerShell</option>
+            </select>
+          </div>
+          <textarea id="sc-init-text" class="sc-textarea" rows="5" spellcheck="false"
+                    placeholder="# Ej (zsh/bash):&#10;bindkey -v        # modo vi&#10;export GPG_TTY=$(tty)"></textarea>
+        </div>
+
+        <!-- Ver el código generado -->
+        <div class="settings-section">
+          <details class="sc-details">
+            <summary class="sc-summary">Ver el código que se generará</summary>
+            <p class="settings-hint" style="margin:8px 0 8px">
+              Esto es lo que Ocote escribe por ti — el archivo que tu shell carga al abrir cada pestaña
+              (<span id="sc-preview-fam">zsh y bash</span>). Nada oculto.
+            </p>
+            <pre id="sc-preview" class="sc-preview"></pre>
+          </details>
+        </div>
+
+        <!-- Copia de seguridad / restaurar -->
+        <div class="settings-section">
+          <div class="settings-section-head"><h3>Copia de seguridad</h3></div>
+          <p class="settings-hint" style="margin:0 0 12px">
+            Lleva tu configuración a otra máquina, o restaura los valores por defecto.
+          </p>
+          <div class="sc-backup-actions">
+            <button id="sc-export" class="sc-btn-secondary">Exportar (copiar)</button>
+            <button id="sc-import-toggle" class="sc-btn-secondary">Importar…</button>
+            <button id="sc-reset" class="sc-btn-danger">Restaurar valores por defecto</button>
+            <span id="sc-backup-msg" class="sc-msg"></span>
+          </div>
+          <div id="sc-import-box" class="sc-import-box hidden">
+            <textarea id="sc-import-text" class="sc-textarea" rows="4" spellcheck="false"
+                      placeholder="Pega aquí el JSON exportado…"></textarea>
+            <div class="sc-import-actions">
+              <button id="sc-import-apply" class="sc-add-btn">Importar</button>
+              <span id="sc-import-msg" class="sc-msg"></span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
       <div class="settings-tab-content hidden" data-tab="aliases">
         <div class="settings-section">
           <div class="settings-section-head">
@@ -499,6 +678,7 @@
   <script src="settings.js"></script>
   <script src="stats.js"></script>
   <script src="aliases.js"></script>
+  <script src="shell-config.js"></script>
   <script src="shortcuts.js"></script>
   <script src="workspaces.js"></script>
   <script src="lib/highlight.min.js"></script>
