@@ -5,6 +5,36 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.0.0] — 2026-06-23 — Primera versión estable 🎉
+
+Ocote llega a **1.0**: la terminal offline, sin IA y para todos los niveles consolida
+toda la Fase 4 (pre-lanzamiento) y estrena la **configuración visual de shell**.
+
+### Agregado
+- **Config visual de shell** (Settings → Shell) — `shell_config.rs` + `shell-config.js`.
+  Ajusta tu shell sin abrir `.zshrc`/`config.fish` a mano. JSON fuente de verdad en
+  `app_data_dir/shell-config.json` → genera `ocote-rc.sh`/`.fish`/`.ps1` que las 4 configs
+  bundleadas sourcean vía la env var `OCOTE_RC`. **Nunca toca la config del usuario.**
+  - **Selector de shell por defecto** (zsh/bash/fish/PowerShell): `detect_shells` lista los
+    instalados; `create_shell` acepta el shell elegido e inyecta su `ocote-rc`. Las pestañas
+    **nuevas** lo usan (o `$SHELL` si no hay); la card del shell en uso se resalta.
+  - **Variables de entorno** y **carpetas en PATH**, con escape por shell.
+  - **Preferencias curadas cross-shell**: tamaño de historial, no-duplicados, autocd,
+    compartir historial entre pestañas y guardar fecha/hora. Traducidas por shell (ramas
+    `$ZSH_VERSION`/`$BASH_VERSION`); fish las maneja nativo; las que no existen se omiten.
+  - **Modo avanzado** (comandos de inicio por familia de shell), **pickers** de
+    `EDITOR`/`LANG`/`PAGER`, **ver el código generado** (`preview_shell_config`, transparente
+    y educativo) y **copia de seguridad** (exportar/importar/restaurar).
+  - 6 tests unitarios en `shell_config.rs`.
+- **Sinergia con Estadísticas**: "guardar fecha/hora" activa `EXTENDED_HISTORY` (zsh) /
+  `HISTTIMEFORMAT` (bash) → habilita las métricas temporales del dashboard desde el historial.
+
+> El historial detallado de las features previas de la Fase 4 (workspaces, estadísticas,
+> aliases, split panes, buscadores, notificaciones, audit de seguridad, fixes de acentos)
+> está documentado en las secciones siguientes.
+
+---
+
 ## [0.5.4] — 2026-06-09
 
 ### Agregado
@@ -62,6 +92,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ### Fase 4 — En progreso
 Próximo paso: auto-updater, build de producción continuo.
 (Ícono real, landing page y SEO concluidos en otras conversaciones.)
+(La config visual de shell de la sesión 24 se publicó en la versión [1.0.0] — ver arriba.)
 
 ### Corregido — 2026-06-09 (sesión 23)
 
