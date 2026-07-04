@@ -351,6 +351,9 @@ Los renders NO hardcodean colores. Todos usan `OCOTE_THEMES.getCurrentTokens()` 
 ### Pendiente (roadmap): import de temas custom
 Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, guardados en localStorage como `custom`. Decidido como feature futura — por ahora solo los 8 oficiales para mantener identidad de marca.
 
+### Pendiente (roadmap): transparencia de terminal opt-in
+Slider de opacidad del fondo (Settings → Apariencia), default 100% opaco → cero cambio para quien no lo quiera. **Insight clave:** la identidad de los temas Ocote vive en el FOREGROUND (accent, prompt, texto); la transparencia solo toca el fondo, así que se preserva el look del tema. **Enfoque:** `transparent: true` + `macOSPrivateApi: true` en tauri.conf.json; `allowTransparency: true` en xterm + `theme.background = rgba(bg, α)`; body/webview con fondo alpha. **Gotcha:** los overlays de prompt (`prompt.js`) tapan el ANSI de respaldo con fondo OPACO (`termBg()`) — con transparencia hay que (a) darles alpha alto (línea de prompt algo menos transparente, se ve intencional) o (b) apagar el ANSI de respaldo (más limpio, toca los hooks de shell). **Cross-platform:** macOS-first (WebKitGTK/WebView2 son irregulares → degradar a opaco). Decisión pendiente: transparencia de toda la ventana (incluye explorador) vs solo el área de terminal. Esfuerzo estimado: medio.
+
 ### Notas generales
 - `vt_parser.js` fue eliminado en v0.3.0. xterm.js maneja todo el renderizado.
 - Backspace usa `\x08` (no `\x7f`). No cambiar sin probar con p10k.
