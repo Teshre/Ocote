@@ -5,6 +5,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.0.2] — 2026-07-04 — Shell por pestaña + i18n de Settings
+
+### Agregado
+- **Shell por pestaña**: cada pestaña muestra un indicador con su shell (`zsh`/`bash`/`fish`/
+  `pwsh`), con un color distintivo por shell. Junto al botón `+` hay un selector (`zsh ▾`) que
+  muestra el shell por defecto y abre un menú para **abrir una pestaña con un shell específico**
+  (sin cambiar el default). Reusa `create_shell(shell)` + `detect_shells` — sin cambios de Rust.
+- **i18n de las tabs Shell y Aliases**: traducidas a los 5 idiomas (ES/EN/PT/FR/DE) como el resto
+  de la UI — headers, hints, etiquetas, botones, placeholders, opciones y las cadenas dinámicas
+  (estados vacíos, errores, mensajes de copia de seguridad).
+
 ## [1.0.1] — 2026-07-04 — Fixes del sistema de overlays de prompt
 
 Correcciones al sistema de prompts visuales (los divs HTML que Ocote dibuja sobre el
