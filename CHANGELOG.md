@@ -5,6 +5,37 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.0.1] — 2026-07-04 — Fixes del sistema de overlays de prompt
+
+Correcciones al sistema de prompts visuales (los divs HTML que Ocote dibuja sobre el
+canvas del terminal), sobre todo su comportamiento durante el scroll y con apps de
+pantalla completa.
+
+### Corregido
+- **Los prompts se "arrastraban" al hacer scroll** (se veían dobles, como un screenshot
+  pegado): los overlays se reposicionaban con `baseY` (constante al scrollear) en vez de
+  `viewportY` (la posición real del scroll), así que se quedaban pegados a la pantalla
+  mientras el texto se movía. Además se reposicionaban en un `requestAnimationFrame` propio
+  que los dejaba un frame por detrás del canvas. Fix: usar `viewportY` y reposicionar EN el
+  ciclo de render de xterm (`onScroll` + `onRender`), como las decoraciones nativas.
+- **El autocompletado aparecía sobrepuesto en apps de terminal** (vim, htop, `cops`, y demás
+  TUIs): ahora se apaga cuando hay un comando de primer plano corriendo (detectado vía OSC 133)
+  o cuando el buffer alternativo de xterm está activo. Los overlays de prompt también se ocultan
+  mientras una app de pantalla completa está activa.
+- **Overlays desalineados tras redimensionar la ventana o cambiar el tamaño/familia de fuente**:
+  ahora se reposicionan tras cada ajuste de tamaño (handler de resize consolidado en uno solo +
+  las rutas de Settings de tipografía).
+
+### Cambiado
+- **Anclaje de overlays migrado a la Marker API de xterm** (`registerMarker`): en vez de guardar
+  un número de fila absoluto —que se desincroniza al recortarse el scrollback (trim, +10 000
+  líneas) o re-envolverse el texto por ancho (reflow)— cada overlay se ancla a un *marker* que
+  xterm mueve y descarta automáticamente junto con su línea. Elimina de raíz la deriva por trim
+  y por reflow. Fallback a un pseudo-marker si `registerMarker` no estuviera disponible.
+- **Rendimiento y limpieza**: `updateOverlayPositions` calcula el alto de fila y el offset de
+  scroll una sola vez por pasada (no por overlay); se llama a `clearOverlays` al cerrar
+  pestañas/paneles; los markers se liberan en todos los caminos (eviction, cierre, cambio de tema).
+
 ## [1.0.0] — 2026-06-23 — Primera versión estable 🎉
 
 Ocote llega a **1.0**: la terminal offline, sin IA y para todos los niveles consolida
