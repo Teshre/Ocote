@@ -73,6 +73,8 @@
     if (window.TAB_MANAGER) {
       window.TAB_MANAGER.getAllTabs().forEach(([, tab]) => {
         if (tab?.fitAddon) tab.fitAddon.fit();
+        // La fuente cambia el alto de celda → reposicionar overlays de prompt.
+        window.OCOTE_PROMPT?.updateOverlayPositions?.(tab.term);
       });
     }
   }
@@ -116,6 +118,8 @@
     if (window.TAB_MANAGER) {
       window.TAB_MANAGER.getAllTabs().forEach(([, tab]) => {
         if (tab?.fitAddon) tab.fitAddon.fit();
+        // El tamaño de fuente cambia el alto de celda → reposicionar overlays.
+        window.OCOTE_PROMPT?.updateOverlayPositions?.(tab.term);
       });
     }
   }

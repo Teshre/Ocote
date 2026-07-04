@@ -297,8 +297,8 @@ window.OCOTE_PROMPT = (() => {
   // texto ANSI que sirve como fallback (si JS falla, el ANSI sigue visible).
 
   const _containers = new WeakMap();   // term → overlay container div
-  const _overlayMaps = new WeakMap();  // term → Map<absRow, div>  (headers)
-  const _bodyMaps   = new WeakMap();   // term → Map<infoAbsRow, {el, startAbsRow, endAbsRow}>
+  const _overlayMaps = new WeakMap();  // term → Map<infoMarker, div>  (headers)
+  const _bodyMaps   = new WeakMap();   // term → Map<infoMarker, {el, startMarker, endMarker}>
   const MAX_OVERLAYS = 60;
 
   function _ensureContainer(term) {
@@ -345,9 +345,23 @@ window.OCOTE_PROMPT = (() => {
     return Math.ceil(fontSize * lineHeight);
   }
 
-  function _placeOverlay(term, el, absRow) {
-    const h = _rowPx(term);
-    const ydisp = term.buffer?.active?.baseY ?? 0;
+  // viewportY = fila del buffer donde está el TOPE del viewport AHORA (cambia al
+  // scrollear). baseY solo es correcto cuando estás hasta abajo — usarlo dejaba
+  // los overlays pegados a la pantalla al scrollear. Fallback a baseY por si una
+  // versión de xterm no expusiera viewportY.
+  function _ydisp(term) {
+    const buf = term.buffer?.active;
+    return buf?.viewportY ?? buf?.baseY ?? 0;
+  }
+
+  // Un overlay se ancla a un MARKER de xterm (no a un número de fila fijo): el
+  // marker sigue a su línea cuando el buffer recorta (trim) o re-envuelve
+  // (reflow), y xterm lo descarta solo cuando su línea se recorta. `marker.line`
+  // da la fila absoluta actual. h e ydisp se pasan ya calculados (una vez por
+  // pasada) para no forzar reflow por elemento.
+  function _placeHeader(term, el, marker, h, ydisp) {
+    const absRow = marker.line;
+    if (marker.isDisposed || absRow < 0) { el.style.display = 'none'; return; }
     const vRow = absRow - ydisp;
     el.style.height = h + 'px';
     if (vRow >= 0 && vRow < term.rows) {
@@ -358,15 +372,13 @@ window.OCOTE_PROMPT = (() => {
     }
   }
 
-  // Posiciona el body overlay (multi-fila) para block/rail.
-  // El body abarca desde startAbsRow (fila ❯) hasta endAbsRow (última línea del output).
-  // Al hacer scroll se recorta al viewport visible con clamping.
-  function _placeBody(term, entry) {
-    const { el, startAbsRow, endAbsRow } = entry;
-    const h = _rowPx(term);
-    const ydisp = term.buffer?.active?.baseY ?? 0;
-    const startVRow = startAbsRow - ydisp;
-    const endVRow   = endAbsRow   - ydisp;
+  // Body overlay (multi-fila) para block/rail: abarca del ❯ (startMarker) al final
+  // del output (endMarker). Se recorta al viewport visible con clamping.
+  function _placeBody(term, entry, h, ydisp) {
+    const { el, startMarker, endMarker } = entry;
+    if (startMarker.isDisposed || endMarker.isDisposed) { el.style.display = 'none'; return; }
+    const startVRow = startMarker.line - ydisp;
+    const endVRow   = endMarker.line   - ydisp;
 
     if (endVRow < 0 || startVRow >= term.rows) {
       el.style.display = 'none';
@@ -389,14 +401,14 @@ window.OCOTE_PROMPT = (() => {
      * después de que ❯ ya está en pantalla). En ese momento cursor está en la fila
      * del ❯; la fila info = cursor - 1.
      *
-     * @param {Terminal} term          — instancia xterm.js
-     * @param {object|null} meta       — {cwd, branch, dirty, time, exit}
-     * @param {number} infoAbsRow      — fila absoluta (buffer) donde va el overlay
+     * @param {Terminal} term        — instancia xterm.js
+     * @param {object|null} meta     — {cwd, branch, dirty, time, exit}
+     * @param {object} infoMarker    — IMarker de xterm (o pseudo-marker) anclado a la fila info
      */
-    showPromptOverlay(term, meta, infoAbsRow) {
+    showPromptOverlay(term, meta, infoMarker) {
       const p = getPreset();
       if (p === 'minimal' || p === 'passthrough') return; // ANSI puro, sin overlay
-      if (!meta) return;
+      if (!meta || !infoMarker) return;
 
       const fn = _termRenders[p];
       if (!fn) return;
@@ -411,13 +423,12 @@ window.OCOTE_PROMPT = (() => {
       let map = _overlayMaps.get(term);
       if (!map) { map = new Map(); _overlayMaps.set(term, map); }
 
-      // Reusar o crear el elemento para esta fila
+      // El header se keyea por su MARKER (cada prompt tiene el suyo).
       const bg = termBg();
-      let el = map.get(infoAbsRow);
+      let el = map.get(infoMarker);
       if (!el) {
         el = document.createElement('div');
         el.className = 'ocote-ol';
-        el.dataset.row = infoAbsRow;
         el.style.cssText = [
           'position:absolute',
           'left:0',
@@ -431,13 +442,14 @@ window.OCOTE_PROMPT = (() => {
           'z-index:8',
         ].join(';') + ';';
         container.appendChild(el);
-        map.set(infoAbsRow, el);
+        map.set(infoMarker, el);
 
-        // Límite de overlays: eliminar el más antiguo si hay demasiados
+        // Límite de overlays: descartar el más antiguo (y liberar su marker).
         if (map.size > MAX_OVERLAYS) {
           const oldest = map.keys().next().value;
           map.get(oldest)?.remove();
           map.delete(oldest);
+          oldest?.dispose?.();
         }
       }
 
@@ -445,7 +457,7 @@ window.OCOTE_PROMPT = (() => {
       el.dataset.meta = JSON.stringify(meta);
       el.dataset.preset = p;
       el.innerHTML = html;
-      _placeOverlay(term, el, infoAbsRow);
+      _placeHeader(term, el, infoMarker, _rowPx(term), _ydisp(term));
     },
 
     /**
@@ -453,15 +465,16 @@ window.OCOTE_PROMPT = (() => {
      * Llamado desde terminal.js cuando OSC 133 D (fin de comando) llega.
      *
      * @param {Terminal} term
-     * @param {number} infoAbsRow    — fila del header (key para el header map)
-     * @param {number} chevronAbsRow — fila ❯ donde el usuario escribió el comando
-     * @param {number} endAbsRow     — última fila del output (leída síncronamente en 133 D)
-     * @param {number} exitCode      — código de salida del comando
+     * @param {object} infoMarker  — marker del header (key para correlacionar con el body)
+     * @param {object} chevMarker  — marker de la fila ❯ (inicio del body)
+     * @param {object} endMarker   — marker de la última fila del output (fin del body)
+     * @param {number} exitCode    — código de salida del comando
      */
-    extendCommandBlock(term, infoAbsRow, chevronAbsRow, endAbsRow, exitCode) {
+    extendCommandBlock(term, infoMarker, chevMarker, endMarker, exitCode) {
       const p = getPreset();
       if (p !== 'block' && p !== 'rail') return;
-      if (endAbsRow < chevronAbsRow) return; // no hay output
+      if (!chevMarker || !endMarker) return;
+      if (endMarker.line < chevMarker.line) return; // no hay output
 
       const container = _ensureContainer(term);
       if (!container) return;
@@ -470,24 +483,27 @@ window.OCOTE_PROMPT = (() => {
       if (!bodyMap) { bodyMap = new Map(); _bodyMaps.set(term, bodyMap); }
 
       const t = theme();
-      let entry = bodyMap.get(infoAbsRow);
+      let entry = bodyMap.get(infoMarker);
 
       if (!entry) {
         const el = document.createElement('div');
         el.className = 'ocote-ol-body';
         el.style.cssText = 'position:absolute;left:0;width:100%;pointer-events:none;z-index:7;box-sizing:border-box;';
         container.appendChild(el);
-        entry = { el, startAbsRow: chevronAbsRow, endAbsRow };
-        bodyMap.set(infoAbsRow, entry);
+        entry = { el, startMarker: chevMarker, endMarker };
+        bodyMap.set(infoMarker, entry);
 
         if (bodyMap.size > MAX_OVERLAYS) {
           const oldest = bodyMap.keys().next().value;
-          bodyMap.get(oldest)?.el?.remove();
+          const oe = bodyMap.get(oldest);
+          oe?.el?.remove();
+          oe?.startMarker?.dispose?.();
+          oe?.endMarker?.dispose?.();
           bodyMap.delete(oldest);
         }
       } else {
-        entry.startAbsRow = chevronAbsRow;
-        entry.endAbsRow   = endAbsRow;
+        entry.startMarker = chevMarker;
+        entry.endMarker   = endMarker;
       }
 
       if (p === 'block') {
@@ -506,27 +522,67 @@ window.OCOTE_PROMPT = (() => {
           `background:linear-gradient(180deg,${a(t.accent, 0.40)} 0%,${a(t.accent, 0.12)} 100%)"></div>`;
       }
 
-      _placeBody(term, entry);
+      _placeBody(term, entry, _rowPx(term), _ydisp(term));
     },
 
-    /** Reposiciona todos los overlays al hacer scroll o resize */
+    /** Reposiciona todos los overlays (scroll/render/resize) y limpia los descartados. */
     updateOverlayPositions(term) {
+      // Calcular h e ydisp UNA vez (no por overlay) — evita reflows repetidos.
+      const h = _rowPx(term);
+      const ydisp = _ydisp(term);
       const map = _overlayMaps.get(term);
       if (map) {
-        for (const [absRow, el] of map) _placeOverlay(term, el, absRow);
+        for (const [marker, el] of map) {
+          // Marker descartado (su línea salió del scrollback) → limpiar el overlay.
+          if (marker.isDisposed) { el.remove(); map.delete(marker); continue; }
+          _placeHeader(term, el, marker, h, ydisp);
+        }
       }
       const bodyMap = _bodyMaps.get(term);
       if (bodyMap) {
-        for (const entry of bodyMap.values()) _placeBody(term, entry);
+        for (const [key, entry] of bodyMap) {
+          if (entry.startMarker.isDisposed || entry.endMarker.isDisposed) {
+            entry.el.remove();
+            entry.startMarker?.dispose?.();
+            entry.endMarker?.dispose?.();
+            bodyMap.delete(key);
+            continue;
+          }
+          _placeBody(term, entry, h, ydisp);
+        }
+      }
+    },
+
+    /**
+     * Oculta/muestra los overlays al entrar/salir del buffer alternativo de
+     * xterm (vim, htop, less…). En esas TUIs no hay prompt: si dejáramos los
+     * overlays visibles quedarían sobrepuestos a la app. Al volver al buffer
+     * normal, se remuestran y reposicionan.
+     */
+    setAltScreen(term, active) {
+      const c = _containers.get(term);
+      if (!c) return;
+      if (active) {
+        c.style.display = 'none';
+      } else {
+        c.style.display = '';
+        this.updateOverlayPositions(term);
       }
     },
 
     /** Elimina todos los overlays de un terminal (para respawn / clear terminal) */
     clearOverlays(term) {
       const map = _overlayMaps.get(term);
-      if (map) { map.forEach(el => el.remove()); map.clear(); }
+      if (map) { map.forEach((el, marker) => { el.remove(); marker?.dispose?.(); }); map.clear(); }
       const bodyMap = _bodyMaps.get(term);
-      if (bodyMap) { bodyMap.forEach(entry => entry.el?.remove()); bodyMap.clear(); }
+      if (bodyMap) {
+        bodyMap.forEach(entry => {
+          entry.el?.remove();
+          entry.startMarker?.dispose?.();
+          entry.endMarker?.dispose?.();
+        });
+        bodyMap.clear();
+      }
     },
 
     /** Actualiza overlays al cambiar tema: re-renderiza HTML con nuevos colores */
@@ -562,7 +618,14 @@ window.OCOTE_PROMPT = (() => {
         if (!tab?.term) return;
         tab.term.clearTextureAtlas?.();
         const bodyMap = _bodyMaps.get(tab.term);
-        if (bodyMap) { bodyMap.forEach(entry => entry.el?.remove()); bodyMap.clear(); }
+        if (bodyMap) {
+          bodyMap.forEach(entry => {
+            entry.el?.remove();
+            entry.startMarker?.dispose?.();
+            entry.endMarker?.dispose?.();
+          });
+          bodyMap.clear();
+        }
         this.updateOverlayPositions(tab.term);
       });
     },

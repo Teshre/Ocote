@@ -87,6 +87,13 @@ function filterContextSuggestions(contextInfo, prefix) {
 window.onTerminalInputChanged = function (input) {
   clearTimeout(debounceTimer);
 
+  // No mostrar sugerencias dentro de apps de pantalla alternativa (vim/htop/less):
+  // ahí las teclas van a la TUI, no al prompt, y el popup quedaría sobrepuesto.
+  const _at = window.TAB_MANAGER?.getTab?.(window.ocoteActiveShellId)?.term;
+  if (_at?.buffer?.active?.type === 'alternate') { hidePopup(); return; }
+  // Comando de primer plano corriendo (TUI sin buffer alternativo, build, etc.).
+  if (_at?._ocoteHas133 && _at?._ocoteCmdRunning) { hidePopup(); return; }
+
   // Sin input o con espacio → el usuario ya escribió el comando completo
   if (!input || input.length === 0 || input.includes(' ')) {
     hidePopup();
@@ -259,3 +266,7 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
+
+// Expuesto para que terminal.js oculte el popup al entrar a una app de pantalla
+// alternativa (vim/htop), donde onBufferChange no pasa por onTerminalInputChanged.
+window.hideAutocomplete = hidePopup;

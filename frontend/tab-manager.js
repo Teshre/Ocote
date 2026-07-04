@@ -336,7 +336,7 @@
 
     if (leavesOf(tab.root).length <= 1) { closeTab(tab.tabId); return; }
 
-    try { pane.term.dispose(); } catch (_) {}
+    try { window.OCOTE_PROMPT?.clearOverlays?.(pane.term); pane.term.dispose(); } catch (_) {}
     try { await invoke('close_shell', { shellId }); } catch (_) {}
     pane.el.remove();
     panes.delete(shellId);
@@ -360,7 +360,7 @@
     for (const sid of leavesOf(tab.root)) {
       const p = panes.get(sid);
       if (p) {
-        try { p.term.dispose(); } catch (_) {}
+        try { window.OCOTE_PROMPT?.clearOverlays?.(p.term); p.term.dispose(); } catch (_) {}
         try { await invoke('close_shell', { shellId: sid }); } catch (_) {}
         panes.delete(sid);
       }
@@ -649,7 +649,15 @@
   window.addEventListener('resize', () => {
     clearTimeout(_resizeTimer);
     _resizeTimer = setTimeout(() => {
-      panes.forEach(p => { if (p?.fitAddon) { try { p.fitAddon.fit(); } catch (_) {} } });
+      panes.forEach(p => {
+        if (!p?.term) return;
+        try { p.fitAddon?.fit(); } catch (_) {}       // panes ocultos: fit() es no-op
+        // Reposicionar overlays de prompt: al cambiar el tamaño de ventana cambia
+        // el alto de fila y quedaban a la altura vieja hasta el siguiente scroll.
+        // Solo en panes visibles (los ocultos medirían 0 y darían posiciones malas).
+        if (p.el && p.el.clientWidth === 0) return;
+        window.OCOTE_PROMPT?.updateOverlayPositions?.(p.term);
+      });
     }, 150);
   });
 

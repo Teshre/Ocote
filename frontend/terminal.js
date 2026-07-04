@@ -94,8 +94,8 @@ function bindTerminalShell(term, shellId) {
   // OSC 6731 — metadata del prompt: {cwd, branch, dirty, time, exit}.
   // Se guarda aquí y se consume en OSC 133 A para generar el overlay.
   let lastPromptMeta = null;
-  // Coordenadas del prompt anterior — usadas en 133 D para saber dónde empieza el body.
-  let lastChevronRow = null; // { infoAbsRow, chevronAbsRow }
+  // Markers del prompt anterior — usados en 133 D para delimitar el body.
+  let lastChevronRow = null; // { infoMarker, chevMarker } — markers de xterm
 
   term.parser.registerOscHandler(6731, (data) => {
     const sep = data.indexOf(';');
@@ -143,6 +143,12 @@ function bindTerminalShell(term, shellId) {
   let commandStartTime = null;
 
   term.parser.registerOscHandler(133, (data) => {
+    // Shell integration presente → habilita el gate de "comando en ejecución"
+    // del autocompletado (ver updateCurrentInput). En 'A' (prompt listo) y 'D'
+    // (comando terminó) NO hay una app de primer plano corriendo.
+    term._ocoteHas133 = true;
+    if (data === 'A' || data[0] === 'D') term._ocoteCmdRunning = false;
+
     if (data === 'A' && lastPromptMeta) {
       const meta = lastPromptMeta;
       lastPromptMeta = null;
@@ -154,8 +160,13 @@ function bindTerminalShell(term, shellId) {
         const buf = term.buffer.active;
         const chevronAbsRow = buf.baseY + buf.cursorY;
         const infoAbsRow = Math.max(0, chevronAbsRow - 1);
-        lastChevronRow = { infoAbsRow, chevronAbsRow };
-        window.OCOTE_PROMPT?.showPromptOverlay(term, meta, infoAbsRow);
+        // Anclar con MARKERS de xterm: siguen a su línea ante trim/reflow, en vez
+        // de un número fijo que se desincroniza. registerMarker(offset) ancla en
+        // baseY+cursorY+offset (cursor en ❯): info = -1, ❯ = 0.
+        const infoMarker = _makeMarker(term, -1, infoAbsRow);
+        const chevMarker = _makeMarker(term, 0, chevronAbsRow);
+        lastChevronRow = { infoMarker, chevMarker };
+        window.OCOTE_PROMPT?.showPromptOverlay(term, meta, infoMarker);
       });
 
     } else if (data[0] === 'D' && lastChevronRow) {
@@ -163,6 +174,9 @@ function bindTerminalShell(term, shellId) {
       // ya está en el buffer pero el siguiente prompt aún NO se ha procesado.
       const buf = term.buffer.active;
       const endAbsRow = buf.baseY + buf.cursorY;
+      // Marker del fin del output — SÍNCRONO: el cursor está al final del output;
+      // en el rAF ya se habría movido al nuevo ❯. registerMarker(0)=baseY+cursorY.
+      const endMarker = _makeMarker(term, 0, endAbsRow);
       const exitCode = data.includes(';') ? (parseInt(data.slice(2)) || 0) : 0;
       const saved = lastChevronRow;
 
@@ -197,16 +211,33 @@ function bindTerminalShell(term, shellId) {
       // si la ventana está en fondo, el overlay se pinta cuando vuelva al foco.
       requestAnimationFrame(() => {
         window.OCOTE_PROMPT?.extendCommandBlock(
-          term, saved.infoAbsRow, saved.chevronAbsRow, endAbsRow, exitCode
+          term, saved.infoMarker, saved.chevMarker, endMarker, exitCode
         );
       });
     }
     return true;
   });
 
-  // Reposicionar overlays cuando el usuario hace scroll o la terminal hace resize.
-  term.onScroll(() => {
-    window.OCOTE_PROMPT?.updateOverlayPositions(term);
+  // Reposicionar los overlays SINCRONIZADOS con el render de xterm:
+  //   - onScroll: inmediato, en el mismo tick del evento de scroll (antes del paint).
+  //   - onRender: tras cada repintado (output nuevo, resize) para seguir al contenido.
+  // Antes se reposicionaba en un rAF propio tras onScroll, pero eso dejaba los
+  // overlays un frame POR DETRÁS del canvas → arrastre visible y "doble prompt"
+  // durante el scroll. Este es el mismo enfoque que la DecorationService nativa de
+  // xterm. updateOverlayPositions ya calcula h/ydisp una sola vez (rowPx viene de
+  // renderService, sin forzar reflow), así que es barato llamarlo por frame.
+  const _reposition = () => window.OCOTE_PROMPT?.updateOverlayPositions(term);
+  term.onScroll(_reposition);
+  term.onRender(_reposition);
+
+  // Apps de pantalla alternativa (vim, htop, less…) usan el buffer "alternate"
+  // de xterm. Ahí no hay prompt: ocultamos los overlays y el autocompletado (si
+  // no, quedan sobrepuestos a la TUI). Al volver al buffer normal, remostramos y
+  // reposicionamos. onBufferChange NO dispara onScroll, por eso hace falta.
+  term.buffer?.onBufferChange?.((buf) => {
+    const alt = buf?.type === 'alternate';
+    window.OCOTE_PROMPT?.setAltScreen?.(term, alt);
+    if (alt) window.hideAutocomplete?.();
   });
 }
 
@@ -235,6 +266,21 @@ function fitWithRetries(fitAddon) {
 window.createTerminalInstance = createTerminalInstance;
 window.bindTerminalShell = bindTerminalShell;
 
+/**
+ * Crea un marker de xterm anclado a la línea (cursor + offset). El marker sigue a
+ * su línea cuando el buffer recorta (trim) o re-envuelve (reflow), y xterm lo
+ * descarta solo si su línea se recorta — así los overlays no se desincronizan.
+ * Fallback: pseudo-marker estático (comportamiento anterior, sin tracking) por si
+ * registerMarker no estuviera disponible o devolviera null.
+ */
+function _makeMarker(term, offset, fallbackAbsRow) {
+  try {
+    const m = term.registerMarker?.(offset);
+    if (m) return m;
+  } catch (_) {}
+  return { line: fallbackAbsRow, isDisposed: false, dispose() {} };
+}
+
 // ── Trackear input del usuario (global, aplica al tab activo) ──────────────
 let currentInput = '';
 let currentCommandLine = '';
@@ -246,6 +292,16 @@ const pendingCommand = new Map(); // shellId → texto del comando
 function updateCurrentInput(data, shellId) {
   // Solo trackear input si este tab es el activo
   if (window.ocoteActiveShellId && shellId !== window.ocoteActiveShellId) return;
+
+  // En apps de pantalla alternativa (vim/htop/less) las teclas van a la app, no
+  // al prompt: no trackear input ni disparar autocomplete/tooltip (aparecerían
+  // sobrepuestos a la TUI, que no tiene un prompt donde anclarlos).
+  const _t = window.TAB_MANAGER?.getTab?.(shellId)?.term;
+  if (_t?.buffer?.active?.type === 'alternate') return;
+  // Comando de primer plano en ejecución — incluye TUIs que NO usan el buffer
+  // alternativo (dashboards de Node como `cops`, etc.): las teclas van a la app,
+  // no al prompt. Solo aplica si el shell emite OSC 133 (si no, no se limpiaría).
+  if (_t?._ocoteHas133 && _t?._ocoteCmdRunning) return;
 
   // Backspace: \x08 (BS) o \x7f (DEL)
   if (data === '\x08' || data === '\x7f') {
@@ -272,6 +328,11 @@ function updateCurrentInput(data, shellId) {
       if (window.onTerminalCommandExecuted) {
         window.onTerminalCommandExecuted(cmdName);
       }
+
+      // Comando enviado → marcar "en ejecución": el autocompletado no debe
+      // aparecer mientras corre una app de primer plano (TUI, build, etc.).
+      // Se limpia en el OSC 133 A/D del próximo prompt.
+      if (_t?._ocoteHas133) _t._ocoteCmdRunning = true;
     }
     currentInput = '';
     currentCommandLine = '';
@@ -351,14 +412,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// ── Resize global (cuando la ventana del OS cambia) ─────────────────────
-
-window.addEventListener('resize', () => {
-  // Solo resize el tab activo
-  if (window.TAB_MANAGER) {
-    const active = window.TAB_MANAGER.getTab(window.ocoteActiveShellId);
-    if (active && active.fitAddon) {
-      active.fitAddon.fit();
-    }
-  }
-});
+// ── Resize global ───────────────────────────────────────────────────────
+// El fit + reposicionamiento de overlays en TODOS los panes al cambiar el tamaño
+// de la ventana lo maneja un ÚNICO handler en tab-manager.js (dueño del registro
+// de panes). Aquí no duplicamos el listener.

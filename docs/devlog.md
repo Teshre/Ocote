@@ -5,6 +5,52 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-07-04 — Sesión 25: fixes del sistema de overlays de prompt + migración a Marker API (v1.0.1)
+
+**Estado al inicio:** v1.0.0 en producción. El usuario reportó, probando en local, que los prompts (los overlays HTML que Ocote dibuja sobre el canvas) se "arrastraban" al hacer scroll.
+
+### El bug del scroll, en dos capas
+
+1. **`baseY` vs `viewportY`.** `_placeOverlay` calculaba la fila de pantalla con `baseY` (posición del viewport SOLO estando hasta abajo, constante al scrollear) en vez de `viewportY` (posición viva del scroll). Al scrollear, `vRow = absRow - baseY` no cambiaba → los overlays se quedaban pegados a la pantalla mientras el texto se movía → "doble prompt / screenshot pegado". Verificado contra el xterm real: `get viewportY(){return this._buffer.ydisp}`. Fix: usar `viewportY`.
+2. **Lag de un frame.** Tras el fix el usuario seguía viendo arrastre. Causa: yo había metido un `requestAnimationFrame` "por performance" que reposicionaba DESPUÉS de que xterm repintaba el canvas → un frame por detrás. Fix: reposicionar EN el ciclo de render de xterm (`onScroll` inmediato + `onRender`), como la DecorationService nativa. Ahí sí quedó pegado al texto.
+
+**Lección de proceso:** Ocote en dev NO tiene hot-reload (`devPath` estático, sin dev-server). El usuario veía builds viejos varias iteraciones. Agregué un `console.info` temporal como marcador de versión para confirmar en DevTools que el código nuevo cargaba — recomendable para cualquier debugging de frontend en este proyecto.
+
+### Autocompletado sobrepuesto en TUIs (vim, htop, `cops`)
+
+El usuario mostró el popup de sugerencias apareciendo sobre un dashboard TUI (`cops`). Insight clave de su screenshot: `cops` renderiza en el buffer NORMAL (no en el alternativo), así que detectar solo el buffer alternativo no bastaba. Señal robusta: "¿hay un comando de primer plano corriendo?" — Ocote ya lo sabe por OSC 133 (comando = entre el Enter y el marcador `D`). Se apaga el autocompletado si (buffer alternativo activo) **o** (comando corriendo, con guard `_ocoteHas133` para shells sin shell-integration). Los overlays de prompt se ocultan con `onBufferChange` en el buffer alternativo.
+
+### Migración a la Marker API (la mejora de fondo)
+
+Los overlays anclaban a un número de fila absoluto que se desincroniza cuando xterm recorta el scrollback (trim) o re-envuelve por ancho (reflow). Se migró a `registerMarker`. Verificado contra el xterm bundleado:
+- `registerMarker(e){ return this.buffer.addMarker(this.buffer.ybase + this.buffer.y + e) }` → `marker.line = baseY + cursorY + offset`. En OSC 133 A (cursor en ❯): info = `-1`, ❯ = `0`. En 133 D (síncrono, cursor al final del output): fin = `0`.
+- El marker registra `onTrim: (e)=>{ t.line -= e; t.line<0 && t.dispose() }` y `onInsert` (reflow). Como `ydisp` también baja `-e` en trim, `vRow = marker.line - ydisp` queda INVARIANTE → sin deriva. Ese mismo hecho explica por qué el código viejo (absRow fijo) derivaba.
+- Los overlays se keyean por su marker; `dispose()` en eviction, `clearOverlays`, `refresh` y auto-descarte por trim. `updateOverlayPositions` limpia los descartados.
+
+### Bonus (del barrido de verificación)
+
+Handler de resize consolidado (había dos: terminal.js solo-activo + tab-manager.js todos-los-panes) en uno solo que además reposiciona overlays; `applyFont`/`applyFontSize` reposicionan tras el `fit()`; `clearOverlays` al cerrar pestañas/paneles.
+
+### Verificación
+
+Dos workflows adversariales confirmaron los primeros fixes (alta confianza). El de la migración a markers murió por infraestructura (agentes colgados), así que la verifiqué manualmente contra el código fuente real de xterm (offsets, consistencia de coordenadas trim/reflow, disposal) — más autoritativo. El usuario confirmó el smoke test (scroll normal).
+
+### Decisiones tomadas
+
+- **Sync con `onRender`, no rAF propio**: el rAF añadía lag; el ciclo de render de xterm es la referencia correcta.
+- **Autocompletado gateado por comando-corriendo (no solo buffer alternativo)**: cubre TUIs que renderizan en el buffer normal.
+- **Markers, no un `onTrim` manual**: es la API pública de xterm y maneja trim + reflow de una.
+- **Overlays de prompt se ocultan solo en buffer alternativo** (no en todo comando): durante un `npm build` normal deben seguir enmarcando la salida.
+
+### Pendiente / a futuro
+
+- i18n de la tab Shell (heredado de sesión 24).
+- Indicador de shell por pestaña.
+
+**Próximo paso:** publicar el draft de v1.0.1 (el mismo flujo de tag → GitHub Actions; recordar el gotcha del Apple Developer Agreement si la notarización falla).
+
+---
+
 ## 2026-06-23 — Sesión 24: config visual de shell + cambio de shell por defecto
 
 **Estado al inicio:** features pre-lanzamiento completas (v0.6.0 en producción). Objetivo: una "config de shell" para que usuarios sin conocimientos ajusten su entorno sin abrir `.zshrc`, y puedan cambiar entre zsh/bash/fish/PowerShell desde la UI.

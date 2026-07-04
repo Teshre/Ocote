@@ -71,8 +71,8 @@ ckb/
 - **Fase 3 (Meses 8-12):** Tooltip educativo, sugerencias contextuales, onboarding, distribución
 - **Fase 4 (Meses 12-18):** Comunidad, devlog, lanzamiento, credibilidad técnica
 
-## Estado actual — 2026-06-23
-**v1.0.0 — Primera versión estable. Config visual de shell añadida (selector de shell + variables/PATH/preferencias + modo avanzado + pickers + preview + export/import).**
+## Estado actual — 2026-07-04
+**v1.0.1 — Fixes del sistema de overlays de prompt: el scroll ya no arrastra (viewportY + sync `onRender`), el autocompletado no aparece sobre TUIs (vim/htop/`cops`), y el anclaje migró a la Marker API de xterm (sobrevive trim/reflow). v1.0.0 estrenó la config visual de shell.**
 
 - zsh/bash/fish/PowerShell conectado al PTY (`pty.rs` con `portable-pty`) ✅
 - xterm.js renderizado (migrado desde parser VT custom) ✅
@@ -169,15 +169,30 @@ El cursor queda en la fila del ❯. `infoAbsRow = chevronRow - 1` es siempre la 
 | `block` | `┌─ path · git · hora \n ❯` | header de card con borde accent |
 | `passthrough` | prompt nativo | ninguno |
 
-**Overlay management (`prompt.js`):**
-- `showPromptOverlay(term, meta, infoAbsRow)` — crea/actualiza header overlay en fila
-- `extendCommandBlock(term, infoAbsRow, chevronAbsRow, endAbsRow, exitCode)` — crea body overlay para block/rail (llamado desde OSC 133 D)
-- `updateOverlayPositions(term)` — reposiciona headers y bodies al hacer scroll
-- `clearOverlays(term)` — limpia headers y bodies (respawn, cerrar tab, clear command)
-- `refresh()` — actualiza backgrounds y estilos al cambiar tema; descarta body overlays
+**Overlay management (`prompt.js`) — anclado a MARKERS de xterm (v1.0.1):**
+Los overlays se anclan a `IMarker`s de xterm (`registerMarker`), NO a números de fila absolutos.
+El marker sigue a su línea ante trim (recorte de scrollback) y reflow (re-envuelto por ancho) y
+xterm lo descarta solo cuando su línea se recorta — así los overlays no se desincronizan.
+`terminal.js::_makeMarker(term, offset, fallbackAbsRow)` los crea con fallback a un pseudo-marker.
+- `showPromptOverlay(term, meta, infoMarker)` — header; keyea el map por el marker.
+- `extendCommandBlock(term, infoMarker, chevMarker, endMarker, exitCode)` — body block/rail.
+- `updateOverlayPositions(term)` — reposiciona headers/bodies y limpia los markers descartados.
+- `setAltScreen(term, active)` — oculta/muestra los overlays al entrar/salir del buffer alterno.
+- `clearOverlays(term)` — limpia headers y bodies (respawn, cerrar tab, clear); dispone markers.
+- `refresh()` — re-renderiza headers al cambiar tema; descarta bodies (dispone sus markers).
+
+**Posición = `marker.line - viewportY` (CRÍTICO):** usar `viewportY` (posición viva del scroll,
+`= buffer.ydisp`), NO `baseY` (constante estando abajo). `marker.line` y `viewportY` bajan lo
+mismo en trim → `vRow` invariante. Reposicionar EN el ciclo de render de xterm: `term.onScroll` +
+`term.onRender` (como la DecorationService nativa), NO en un rAF propio — el rAF deja los overlays
+un frame por detrás del canvas → arrastre visible ("doble prompt"). Bug histórico: usar `baseY` los
+dejaba pegados a la pantalla al scrollear.
 
 **Timing crítico de OSC 133 D (para extendCommandBlock):**
-El `endAbsRow` DEBE leerse síncronamente dentro del OSC handler, NO en un requestAnimationFrame. Si se usa rAF, el write() habrá terminado y el cursor estará en la fila del nuevo `❯` — 2 filas más arriba del fin del output real. Leer dentro del handler garantiza capturar el cursor al final del output del comando.
+El `endMarker` DEBE crearse síncronamente dentro del OSC handler (con `registerMarker(0)`), NO en un
+requestAnimationFrame. Si se usa rAF, el write() habrá terminado y el cursor estará en la fila del
+nuevo `❯` — más arriba del fin del output real. Los markers info/❯ sí se crean en el rAF de 133 A
+(cursor en ❯): `registerMarker(-1)` = info, `registerMarker(0)` = ❯.
 
 **`_termRenders` (compactos, ajustados a 1 fila ~17px) vs `renders` (tamaño normal para settings picker)**
 
@@ -293,10 +308,11 @@ fn decode_lsof_escapes(s: &str) -> String {
 Los renders NO hardcodean colores. Todos usan `OCOTE_THEMES.getCurrentTokens()` que devuelve `{accent, green, blue, comment, warning, fg}` del tema activo. La FORMA identifica a Ocote; el COLOR hereda del tema.
 
 **API de `window.OCOTE_PROMPT`:**
-- `showPromptOverlay(term, meta, infoAbsRow)` — crea/actualiza header overlay
-- `extendCommandBlock(term, infoAbsRow, chevronAbsRow, endAbsRow, exitCode)` — body overlay para block/rail
-- `updateOverlayPositions(term)` — reposiciona todo al hacer scroll/resize
-- `clearOverlays(term)` — elimina todos los overlays (tabs, clear, respawn)
+- `showPromptOverlay(term, meta, infoMarker)` — header (anclado al marker de la fila info)
+- `extendCommandBlock(term, infoMarker, chevMarker, endMarker, exitCode)` — body block/rail
+- `updateOverlayPositions(term)` — reposiciona todo (scroll/render/resize) y limpia descartados
+- `setAltScreen(term, active)` — oculta/muestra overlays en el buffer alterno (vim/htop)
+- `clearOverlays(term)` — elimina todos los overlays (tabs, clear, respawn); dispone markers
 - `refresh()` — re-renderiza headers con nuevo tema; descarta bodies (se recrean solos)
 - `previewHtml(presetId, meta, tokens)` — devuelve HTML para el picker de settings
 
@@ -423,6 +439,14 @@ Permitir que usuarios importen temas externos (Dracula, etc.) vía base16/JSON, 
 ---
 
 ## Historial de avances
+
+**Fase 4 — Avance al 2026-07-04 (sesión 25) — v1.0.1:**
+✅ **Fixes del sistema de overlays de prompt** (`prompt.js` + `terminal.js` + `autocomplete.js` + `tab-manager.js` + `settings.js`):
+  - **Scroll no arrastra**: `baseY`→`viewportY` + reposicionar en el ciclo de render (`onScroll`+`onRender`), no en un rAF propio (dejaba un frame de lag → "doble prompt").
+  - **Autocompletado no aparece sobre TUIs** (vim/htop/`cops`): gate por "comando de primer plano corriendo" (OSC 133) **o** buffer alternativo. Overlays de prompt ocultados en el buffer alterno (`onBufferChange`).
+  - **Anclaje migrado a la Marker API** (`registerMarker`): sobrevive trim (+10 000 líneas) y reflow (cambio de ancho); antes derivaba con un número de fila fijo. Fallback a pseudo-marker.
+  - **Resize/fuente** reposicionan overlays (handler de resize consolidado); `clearOverlays` al cerrar; perf (h/ydisp una vez por pasada).
+  - Verificado contra el código real de xterm (offsets, consistencia trim/reflow). Gotcha de proceso: dev SIN hot-reload → reiniciar `pnpm tauri dev` para cargar cambios de frontend.
 
 **Fase 4 — Avance al 2026-06-23 (sesión 24):**
 ✅ **Config visual de shell** (`shell_config.rs` + `shell-config.js`), Settings → Shell:
