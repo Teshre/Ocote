@@ -5,6 +5,28 @@ Formato: fecha → qué se construyó → decisiones tomadas → próximo paso.
 
 ---
 
+## 2026-07-04 — Sesión 26: pulido — shell por pestaña + i18n de Settings (v1.0.2)
+
+**Estado al inicio:** v1.0.1 en producción. Dos "menores" pendientes: indicador de shell por pestaña e i18n de la tab Shell (y por consistencia, Aliases).
+
+### Shell por pestaña (indicador + abrir con shell)
+
+`create_shell` ya aceptaba `shell` (desde la config visual), así que la feature fue puro frontend. `createPane`/`createTab` reciben un `override {id, path}`; `resolveNewPaneShell` elige override → default global → login. Cada pane guarda su `shell` id → indicador `.tab-shell` en la pestaña. Un botón junto al `+` (`#tab-new-shell`) muestra el shell por defecto (`zsh ▾`) y abre un menú (construido de `detect_shells`) para abrir una pestaña con otro shell sin cambiar el default.
+
+**Iteración con el usuario:** el badge inicial (8.5px, gris) se perdía. El usuario pidió "más visible o integrarlo en el +". Se hizo **ambos**: color distintivo por shell (`color-mix` sobre las vars del tema: accent/green/teal/blue), mayúsculas y más grande; y el botón del `+` pasó de un `▾` suelto a `zsh ▾` (muestra el default, se sincroniza vía `TAB_MANAGER.refreshShellButton` cuando cambia en Settings). Se confirmó que cambiar el default en Settings afecta solo a pestañas nuevas y NO toca el `$SHELL` del sistema (chsh descartado por el usuario).
+
+### i18n de Shell + Aliases
+
+81 cadenas a ES/EN/PT/FR/DE. Las traducciones (EN/PT/FR/DE) las generó un **workflow de 4 agentes en paralelo** (uno por idioma) con validación de que se preservaran tags HTML y placeholders `{name}`/`{fam}`; un script des-escapó las entidades (`&lt;`) que devolvió el structured output e insertó las claves en cada diccionario. HTML con `data-i18n`; se reestructuraron las etiquetas con badge y los hints con `{fam}` (via JS + `I18N.get().replace()`) porque `apply()` solo preserva `code/kbd/strong`. Verificado: las 81 claves usadas existen en los 5 idiomas.
+
+### Lección
+
+El workflow de traducción escapó las entidades HTML en el structured output — un post-proceso de des-escape es necesario al integrar traducciones generadas por agentes. Y para i18n de labels con sub-elementos, aislar el texto traducible en su propio `data-i18n` span (o manejarlo en JS) evita que `apply()` borre el markup interno.
+
+**Próximo paso:** publicar el draft de v1.0.2. Idea en evaluación: transparencia de terminal opt-in (opacidad del fondo) sin tocar la identidad de los temas Ocote (el color/prompt vive en el foreground).
+
+---
+
 ## 2026-07-04 — Sesión 25: fixes del sistema de overlays de prompt + migración a Marker API (v1.0.1)
 
 **Estado al inicio:** v1.0.0 en producción. El usuario reportó, probando en local, que los prompts (los overlays HTML que Ocote dibuja sobre el canvas) se "arrastraban" al hacer scroll.

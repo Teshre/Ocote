@@ -803,6 +803,43 @@ button:focus-visible {
   font-size: 11px;
 }
 
+/* Indicador de shell por pestaña (zsh/bash/fish/pwsh) — color distintivo por shell */
+.terminal-tab .tab-shell {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 5px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  background: var(--hover-bg, rgba(255, 255, 255, 0.06));
+  flex-shrink: 0;
+}
+.terminal-tab .tab-shell[data-shell="zsh"] {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.terminal-tab .tab-shell[data-shell="bash"] {
+  color: var(--syntax-green);
+  border-color: color-mix(in srgb, var(--syntax-green) 42%, transparent);
+  background: color-mix(in srgb, var(--syntax-green) 15%, transparent);
+}
+.terminal-tab .tab-shell[data-shell="fish"] {
+  color: var(--syntax-teal);
+  border-color: color-mix(in srgb, var(--syntax-teal) 42%, transparent);
+  background: color-mix(in srgb, var(--syntax-teal) 15%, transparent);
+}
+.terminal-tab .tab-shell[data-shell="pwsh"],
+.terminal-tab .tab-shell[data-shell="powershell"] {
+  color: var(--syntax-blue);
+  border-color: color-mix(in srgb, var(--syntax-blue) 42%, transparent);
+  background: color-mix(in srgb, var(--syntax-blue) 15%, transparent);
+}
+
 .terminal-tab .tab-close {
   background: transparent;
   border: none;
@@ -825,6 +862,7 @@ button:focus-visible {
 }
 
 #tab-new,
+#tab-new-shell,
 #terminal-search-btn,
 #split-row-btn,
 #split-col-btn {
@@ -843,6 +881,7 @@ button:focus-visible {
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 #tab-new:hover,
+#tab-new-shell:hover,
 #terminal-search-btn:hover,
 #split-row-btn:hover,
 #split-col-btn:hover {
@@ -854,6 +893,52 @@ button:focus-visible {
 #terminal-search-btn.active {
   color: var(--accent);
   background: var(--accent-dim);
+}
+
+/* Botón junto al + que muestra el shell por defecto ("zsh ▾") y abre el menú */
+#tab-new-shell {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  padding: 3px 7px;
+  margin-left: 2px;
+  border: 1px solid var(--border);
+}
+#tab-new-shell:hover {
+  border-color: var(--accent);
+}
+
+/* Menú flotante de shells */
+.tab-shell-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 180px;
+  background: var(--bg-terminal);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.tab-shell-menu-item {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.tab-shell-menu-item:hover {
+  background: var(--accent-dim, rgba(232, 132, 58, 0.12));
+  color: var(--accent);
 }
 
 /* ── Contenedor de terminales ────────────────────────────────────────────── */

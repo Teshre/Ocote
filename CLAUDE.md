@@ -72,7 +72,11 @@ ckb/
 - **Fase 4 (Meses 12-18):** Comunidad, devlog, lanzamiento, credibilidad técnica
 
 ## Estado actual — 2026-07-04
-**v1.0.1 — Fixes del sistema de overlays de prompt: el scroll ya no arrastra (viewportY + sync `onRender`), el autocompletado no aparece sobre TUIs (vim/htop/`cops`), y el anclaje migró a la Marker API de xterm (sobrevive trim/reflow). v1.0.0 estrenó la config visual de shell.**
+**v1.0.2 — Shell por pestaña (indicador coloreado + selector `zsh ▾` junto al `+` para abrir pestañas con un shell específico) + i18n de las tabs Shell y Aliases (5 idiomas). v1.0.1 arregló los overlays de prompt (scroll/TUIs/Marker API); v1.0.0 estrenó la config visual de shell.**
+
+**Shell por pestaña (`tab-manager.js`):** `createTab(name, override)` / `createPane(tabId, override)` aceptan un `{id, path}` para abrir con un shell concreto; `resolveNewPaneShell` decide override → default global (`localStorage('ocote_default_shell')`) → login. Cada `paneData` guarda `shell` (id) → `renderTabLabel` pinta `.tab-shell[data-shell=…]` (color por shell en theme.css con `color-mix`). El botón `#tab-new-shell` (`updateNewShellBtn`) muestra el default y abre el menú; `TAB_MANAGER.refreshShellButton` lo sincroniza cuando `shell-config.js` cambia el default.
+
+**i18n (`ui-i18n.js`):** claves `settings.shell.*` y `settings.aliases.*` en los 5 idiomas. HTML con `data-i18n`/`data-i18n-attr`; JS dinámico usa `window.I18N.get(key)` (helper `t()` en shell-config.js/aliases.js), con placeholders `{name}`/`{fam}` vía `.replace()`. `I18N.apply()` corre al inicio (settings.js) y al cambiar idioma.
 
 - zsh/bash/fish/PowerShell conectado al PTY (`pty.rs` con `portable-pty`) ✅
 - xterm.js renderizado (migrado desde parser VT custom) ✅

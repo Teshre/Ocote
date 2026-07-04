@@ -42,6 +42,13 @@
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
+  // i18n: texto traducido (fallback a la clave si I18N no está disponible).
+  function t(key) { return window.I18N?.get?.(key) ?? key; }
+  // Etiqueta de familia de shell para los hints (proper nouns, sin traducir).
+  function famLabel(family) {
+    return family === 'fish' ? 'fish' : family === 'ps1' ? 'PowerShell' : 'zsh y bash';
+  }
+
   function esc(s) {
     const d = document.createElement('div');
     d.textContent = s ?? '';
@@ -65,6 +72,8 @@
   function setDefaultShell(sh) {
     if (sh) localStorage.setItem('ocote_default_shell', JSON.stringify({ id: sh.id, path: sh.path }));
     else    localStorage.removeItem('ocote_default_shell');
+    // Refrescar la etiqueta del botón + de la barra de pestañas ("zsh ▾").
+    window.TAB_MANAGER?.refreshShellButton?.();
   }
 
   // ── Carga / persistencia ────────────────────────────────────────────────────
@@ -136,11 +145,11 @@
       if (!s.available) cls.push('unavailable');
 
       let sub;
-      if (!s.available)          sub = 'No instalado en tu sistema';
-      else if (s.is_login_shell) sub = esc(s.path) + '  ·  sistema';
+      if (!s.available)          sub = t('settings.shell.notInstalled');
+      else if (s.is_login_shell) sub = esc(s.path) + '  ·  ' + t('settings.shell.system');
       else                       sub = esc(s.path);
 
-      const badge = selected ? '<span class="sc-shell-badge">En uso</span>' : '';
+      const badge = selected ? `<span class="sc-shell-badge">${t('settings.shell.inUse')}</span>` : '';
       return `
         <button class="${cls.join(' ')}" data-id="${esc(s.id)}" ${s.available ? '' : 'disabled'}>
           <span class="sc-shell-name">${esc(s.name)}</span>
@@ -166,7 +175,7 @@
     const el = $('sc-env-list');
     if (!el) return;
     if (!config.env_vars.length) {
-      el.innerHTML = '<div class="sc-empty">Sin variables. Añade una arriba ↑</div>';
+      el.innerHTML = '<div class="sc-empty">' + esc(t('settings.shell.empty.env')) + '</div>';
       return;
     }
     el.innerHTML = config.env_vars.map((v, i) => `
@@ -200,7 +209,7 @@
     const el = $('sc-path-list');
     if (!el) return;
     if (!config.path_dirs.length) {
-      el.innerHTML = '<div class="sc-empty">Sin carpetas. Añade una arriba ↑</div>';
+      el.innerHTML = '<div class="sc-empty">' + esc(t('settings.shell.empty.path')) + '</div>';
       return;
     }
     el.innerHTML = config.path_dirs.map((d, i) => `
@@ -248,12 +257,8 @@
     const ta = $('sc-init-text');
     if (ta) ta.value = config.init[initFamily] || '';
 
-    const label = $('sc-init-label');
-    if (label) {
-      label.textContent = initFamily === 'fish' ? 'fish'
-        : initFamily === 'ps1' ? 'PowerShell'
-        : 'zsh y bash';
-    }
+    const hint = $('sc-adv-hint');
+    if (hint) hint.textContent = t('settings.shell.adv.hint').replace('{fam}', famLabel(initFamily));
   }
 
   // ── Operaciones ──────────────────────────────────────────────────────────────
@@ -271,13 +276,13 @@
     const name = $('sc-env-name').value.trim();
     const value = $('sc-env-value').value.trim();
     showEnvError('');
-    if (!name) { showEnvError('Escribe el nombre de la variable.'); return; }
+    if (!name) { showEnvError(t('settings.shell.err.envEmpty')); return; }
     if (!validEnvName(name)) {
-      showEnvError('Nombre inválido: usa letras, números o _ (sin empezar con número).');
+      showEnvError(t('settings.shell.err.envName'));
       return;
     }
     if (config.env_vars.some(v => v.name === name)) {
-      showEnvError(`Ya existe la variable "${name}".`);
+      showEnvError(t('settings.shell.err.envDup').replace('{name}', name));
       return;
     }
     config.env_vars.push({ name, value });
@@ -352,11 +357,8 @@
     } catch (e) {
       pre.textContent = '';
     }
-    const fam = $('sc-preview-fam');
-    if (fam) {
-      fam.textContent = initFamily === 'fish' ? 'fish'
-        : initFamily === 'ps1' ? 'PowerShell' : 'zsh y bash';
-    }
+    const hint = $('sc-preview-hint');
+    if (hint) hint.textContent = t('settings.shell.preview.hint').replace('{fam}', famLabel(initFamily));
   }
 
   // ── Copia de seguridad / restaurar ───────────────────────────────────────────
@@ -372,15 +374,15 @@
     const json = JSON.stringify(config, null, 2);
     try {
       await navigator.clipboard.writeText(json);
-      backupMsg('✓ Copiado al portapapeles');
+      backupMsg(t('settings.shell.msg.copied'));
     } catch {
       // Fallback para webviews que no exponen clipboard async.
       const ta = document.createElement('textarea');
       ta.value = json;
       document.body.appendChild(ta);
       ta.select();
-      try { document.execCommand('copy'); backupMsg('✓ Copiado'); }
-      catch { backupMsg('No se pudo copiar'); }
+      try { document.execCommand('copy'); backupMsg(t('settings.shell.msg.copied')); }
+      catch { backupMsg(t('settings.shell.msg.copyErr')); }
       document.body.removeChild(ta);
     }
   }
@@ -394,11 +396,11 @@
     try {
       parsed = JSON.parse(ta.value);
     } catch {
-      setMsg('JSON inválido.');
+      setMsg(t('settings.shell.msg.importErr'));
       return;
     }
     if (typeof parsed !== 'object' || parsed === null) {
-      setMsg('JSON inválido.');
+      setMsg(t('settings.shell.msg.importErr'));
       return;
     }
     // Normalizar al shape esperado (campos faltantes → defaults).
@@ -413,13 +415,13 @@
     setMsg('');
     $('sc-import-box').classList.add('hidden');
     ta.value = '';
-    backupMsg('✓ Importado');
+    backupMsg(t('settings.shell.msg.imported'));
   }
 
   // Restaurar: vuelve todo a vacío (con confirmación).
   async function resetConfig() {
     const ok = window.ocoteConfirm
-      ? await window.ocoteConfirm('¿Restaurar la configuración de shell a los valores por defecto? Se borrarán tus variables, PATH y preferencias.', { confirmLabel: 'Restaurar', danger: true })
+      ? await window.ocoteConfirm(t('settings.shell.confirmReset'), { confirmLabel: t('settings.shell.confirmResetBtn'), danger: true })
       : true;
     if (!ok) return;
     config = {
@@ -429,7 +431,7 @@
     };
     await persist();
     renderAll();
-    backupMsg('✓ Restaurado');
+    backupMsg(t('settings.shell.msg.restored'));
   }
 
   // ── Wiring ───────────────────────────────────────────────────────────────────

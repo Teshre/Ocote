@@ -169,7 +169,52 @@
 
   // ── Crear un pane (xterm + PTY) ───────────────────────────────────────────
 
-  async function createPane(tabId) {
+  // ── Shells detectados: para el indicador por-pestaña y el menú del + ───────
+  let AVAILABLE_SHELLS = [];   // [{id, name, path, available, is_login_shell}]
+  let loginShellId = 'zsh';    // id del shell de login del sistema ($SHELL)
+  invoke('detect_shells').then(list => {
+    AVAILABLE_SHELLS = (list || []).filter(s => s.available);
+    loginShellId = (list || []).find(s => s.is_login_shell)?.id || 'zsh';
+    // Re-render etiquetas: los panes creados antes de cargar la lista pusieron
+    // un placeholder para el shell de login.
+    tabs.forEach(t => renderTabLabel(t));
+    updateNewShellBtn();
+  }).catch(() => {});
+
+  // Shell {id, path} para un pane nuevo: override explícito del menú "abrir con
+  // shell" → default global de Settings → shell de login. path=null hace que el
+  // backend use $SHELL.
+  function resolveNewPaneShell(override) {
+    if (override && override.id) return { id: override.id, path: override.path || null };
+    try {
+      const def = JSON.parse(localStorage.getItem('ocote_default_shell') || 'null');
+      if (def && def.id) return { id: def.id, path: def.path || null };
+    } catch (_) {}
+    return { id: loginShellId, path: null };
+  }
+
+  // Shell por defecto (para la etiqueta del botón + que abre el menú de shells).
+  function defaultShellLabel() {
+    try {
+      const d = JSON.parse(localStorage.getItem('ocote_default_shell') || 'null');
+      if (d && d.id) return d.id;
+    } catch (_) {}
+    return loginShellId;
+  }
+  // El botón junto al + muestra el shell por defecto: "zsh ▾". Se refresca al
+  // cargar detect_shells y cuando cambia el default en Settings (refreshShellButton).
+  function updateNewShellBtn() {
+    const btn = document.getElementById('tab-new-shell');
+    if (btn) btn.textContent = defaultShellLabel() + ' ▾';
+  }
+
+  function _escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  async function createPane(tabId, override) {
     const tab = tabs.get(tabId);
     const paneEl = document.createElement('div');
     paneEl.className = 'terminal-pane';
@@ -184,13 +229,11 @@
     const themeId   = localStorage.getItem('ocote_theme') || 'ocote';
     const accentHex = window.OCOTE_THEMES?.TOKENS?.[themeId]?.accent?.replace('#', '') ?? 'E8843A';
 
-    // Shell por defecto elegido en Settings → Shell (ruta absoluta). Si no hay,
-    // se pasa null y el backend usa el shell de login ($SHELL).
-    let chosenShell = null;
-    try { chosenShell = JSON.parse(localStorage.getItem('ocote_default_shell') || 'null')?.path || null; }
-    catch { chosenShell = null; }
+    // Shell del pane: override del menú "abrir con shell", o el default global
+    // de Settings, o el de login. path=null → el backend usa $SHELL.
+    const sh = resolveNewPaneShell(override);
 
-    const shellId = await invoke('create_shell', { rows, cols, prompt: promptPreset, accent: accentHex, shell: chosenShell });
+    const shellId = await invoke('create_shell', { rows, cols, prompt: promptPreset, accent: accentHex, shell: sh.path });
     paneEl.dataset.shellId = shellId;
 
     window.bindTerminalShell(termData.term, shellId);
@@ -207,6 +250,7 @@
       el:          paneEl,
       tabId,
       name:        nm,
+      shell:       sh.id,   // id del shell (zsh/bash/fish/pwsh) para el indicador
     });
 
     // Click en el pane → enfocarlo
@@ -231,6 +275,7 @@
     tabEl.dataset.tabId = tabId;
     tabEl.innerHTML = `
       <span class="tab-status" aria-hidden="true"></span>
+      <span class="tab-shell" aria-hidden="true"></span>
       <span class="tab-name"></span>
       <span class="tab-count"></span>
       <button class="tab-close" title="Cerrar">×</button>
@@ -252,10 +297,10 @@
     return tab;
   }
 
-  async function createTab(name) {
+  async function createTab(name, override) {
     const tab = scaffoldTab(name);
 
-    const shellId = await createPane(tab.tabId);
+    const shellId = await createPane(tab.tabId, override);
     tab.root = { kind: 'leaf', shellId };
     tab.activePaneShellId = shellId;
     if (!tab.name) tab.name = panes.get(shellId).name;
@@ -527,7 +572,17 @@
   function renderTabLabel(tab) {
     const nameEl  = tab.element.querySelector('.tab-name');
     const countEl = tab.element.querySelector('.tab-count');
+    const shellEl = tab.element.querySelector('.tab-shell');
     if (nameEl) nameEl.textContent = tab.name || 'zsh';
+    if (shellEl) {
+      // Shell del pane activo (o el primero) — indicador por-pestaña.
+      const sid = panes.get(tab.activePaneShellId)?.shell
+               || panes.get(leavesOf(tab.root)[0])?.shell || '';
+      shellEl.textContent = sid;
+      shellEl.dataset.shell = sid;   // color por shell (CSS)
+      shellEl.title = sid ? `Shell: ${sid}` : '';
+      shellEl.style.display = sid ? '' : 'none';
+    }
     if (countEl) {
       const n = leavesOf(tab.root).length;
       countEl.textContent = n > 1 ? String(n) : '';
@@ -592,6 +647,61 @@
   // ── Botones de la barra de tabs ───────────────────────────────────────────
 
   document.getElementById('tab-new')?.addEventListener('click', () => createTab());
+
+  // Menú "abrir pestaña con un shell específico" (caret ▾ junto al +).
+  function openShellMenu(anchorEl) {
+    closeShellMenu();
+    if (!AVAILABLE_SHELLS.length) {
+      // Aún no cargó (o falló): reintentar y abrir cuando llegue.
+      invoke('detect_shells').then(list => {
+        AVAILABLE_SHELLS = (list || []).filter(s => s.available);
+        loginShellId = (list || []).find(s => s.is_login_shell)?.id || loginShellId;
+        if (AVAILABLE_SHELLS.length) openShellMenu(anchorEl);
+      }).catch(() => {});
+      return;
+    }
+    let defId = loginShellId;
+    try { defId = JSON.parse(localStorage.getItem('ocote_default_shell') || 'null')?.id || loginShellId; } catch (_) {}
+
+    const menu = document.createElement('div');
+    menu.className = 'tab-shell-menu';
+    menu.id = 'tab-shell-menu';
+    menu.innerHTML =
+      `<button class="tab-shell-menu-item" data-default="1">Por defecto (${_escHtml(defId)})</button>` +
+      AVAILABLE_SHELLS.map(s =>
+        `<button class="tab-shell-menu-item" data-id="${_escHtml(s.id)}" data-path="${_escHtml(s.path)}">${_escHtml(s.name)}</button>`
+      ).join('');
+    document.body.appendChild(menu);
+
+    const r = anchorEl.getBoundingClientRect();
+    menu.style.top  = (r.bottom + 4) + 'px';
+    menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8)) + 'px';
+
+    menu.querySelectorAll('.tab-shell-menu-item').forEach(item => {
+      item.addEventListener('click', () => {
+        if (item.dataset.default) createTab();
+        else createTab(null, { id: item.dataset.id, path: item.dataset.path });
+        closeShellMenu();
+      });
+    });
+    setTimeout(() => document.addEventListener('mousedown', _shellMenuOutside), 0);
+    document.addEventListener('keydown', _shellMenuEsc);
+  }
+  function closeShellMenu() {
+    document.getElementById('tab-shell-menu')?.remove();
+    document.removeEventListener('mousedown', _shellMenuOutside);
+    document.removeEventListener('keydown', _shellMenuEsc);
+  }
+  function _shellMenuOutside(e) {
+    if (!e.target.closest('#tab-shell-menu') && e.target.id !== 'tab-new-shell') closeShellMenu();
+  }
+  function _shellMenuEsc(e) { if (e.key === 'Escape') closeShellMenu(); }
+
+  document.getElementById('tab-new-shell')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openShellMenu(e.currentTarget);
+  });
+  updateNewShellBtn();   // etiqueta inicial (se refina al cargar detect_shells)
   document.getElementById('split-row-btn')?.addEventListener('click', () => splitActivePane('row'));
   document.getElementById('split-col-btn')?.addEventListener('click', () => splitActivePane('col'));
 
@@ -706,6 +816,7 @@
   // ── Exponer API (compatibilidad: getTab/getAllTabs operan sobre panes) ────
   window.TAB_MANAGER = {
     createTab,
+    refreshShellButton: updateNewShellBtn,
     closeTab,
     closePane,
     splitActivePane,

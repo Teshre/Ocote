@@ -24,6 +24,9 @@
     return d.innerHTML;
   }
 
+  // i18n: texto traducido (fallback a la clave si I18N no está disponible).
+  function t(key) { return window.I18N?.get?.(key) ?? key; }
+
   function showError(msg) {
     const e = $err();
     if (e) { e.textContent = msg; e.classList.remove('hidden'); }
@@ -54,7 +57,7 @@
     try {
       await invoke('save_aliases', { aliases });
     } catch (e) {
-      showError('No se pudo guardar: ' + e);
+      showError(t('settings.aliases.err.save') + e);
     }
   }
 
@@ -65,13 +68,13 @@
     const command = $cmd().value.trim();
     clearError();
 
-    if (!name || !command) { showError('Completa el nombre y el comando.'); return; }
+    if (!name || !command) { showError(t('settings.aliases.err.fields')); return; }
     if (!validName(name)) {
-      showError('Nombre inválido: usa letras, números, _ o - (sin empezar con número ni espacios).');
+      showError(t('settings.aliases.err.name'));
       return;
     }
     if (aliases.some(a => a.name === name)) {
-      showError(`Ya existe un alias "${name}".`);
+      showError(t('settings.aliases.err.dup').replace('{name}', name));
       return;
     }
 
@@ -98,7 +101,7 @@
     if (!el) return;
 
     if (!aliases.length) {
-      el.innerHTML = '<div class="alias-empty">Aún no tienes aliases. Crea el primero arriba ↑</div>';
+      el.innerHTML = '<div class="alias-empty">' + esc(t('settings.aliases.empty')) + '</div>';
       return;
     }
 
